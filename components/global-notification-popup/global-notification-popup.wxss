@@ -1,0 +1,408 @@
+.notification-mask {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48rpx;
+  box-sizing: border-box;
+  background: rgba(63, 48, 43, 0.58);
+  animation: maskIn 0.2s ease-out;
+}
+
+.notification-card {
+  position: relative;
+  width: 100%;
+  max-width: 620rpx;
+  overflow: hidden;
+  padding: 52rpx 38rpx 36rpx;
+  box-sizing: border-box;
+  border: 1rpx solid rgba(255, 255, 255, 0.9);
+  border-radius: 36rpx;
+  background: linear-gradient(180deg, #FFF2C9 0%, #FFFFFF 40%);
+  box-shadow: 0 28rpx 80rpx rgba(63, 48, 43, 0.28);
+  text-align: center;
+  animation: cardIn 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.notification-card.type-blessing,
+.notification-card.type-festival_blessing {
+  background: linear-gradient(180deg, #FFE9C2 0%, #FFFFFF 45%);
+}
+
+.notification-card.theme-missing-you,
+.notification-card.theme-anniversary {
+  background: linear-gradient(180deg, #FFDDE5 0%, #FFFFFF 46%);
+}
+
+.notification-card.theme-night {
+  background: linear-gradient(180deg, #DDD7FF 0%, #FFFFFF 46%);
+}
+
+.notification-card.theme-mid-autumn {
+  background: linear-gradient(180deg, #DCE8FF 0%, #FFF8DD 46%, #FFFFFF 72%);
+}
+
+.notification-card.theme-new-year { background: linear-gradient(180deg, #FFD99A 0%, #FFF2D2 42%, #FFFFFF 72%); }
+.notification-card.theme-valentine { background: linear-gradient(180deg, #FFD8E3 0%, #FFF0F3 44%, #FFFFFF 72%); }
+.notification-card.theme-spring { background: linear-gradient(180deg, #FFC9B8 0%, #FFE9D2 44%, #FFFFFF 72%); }
+.notification-card.theme-labor { background: linear-gradient(180deg, #FFF0A6 0%, #EAF5D2 44%, #FFFFFF 72%); }
+.notification-card.theme-children { background: linear-gradient(180deg, #D9F3FF 0%, #FFE6F0 44%, #FFFFFF 72%); }
+.notification-card.theme-qixi { background: linear-gradient(180deg, #CEC8FF 0%, #E9E5FF 44%, #FFFFFF 72%); }
+.notification-card.theme-national { background: linear-gradient(180deg, #FFD2B0 0%, #FFF0B9 44%, #FFFFFF 72%); }
+
+.notification-card.theme-birthday {
+  background: linear-gradient(180deg, #DDF7EA 0%, #FFFFFF 46%);
+}
+
+.notification-card.theme-morning {
+  background: linear-gradient(180deg, #FFF0B5 0%, #FFFFFF 48%);
+}
+
+.notification-card.theme-warm-hug,
+.notification-card.theme-eat-well,
+.notification-card.theme-waiting-home {
+  background: linear-gradient(180deg, #FFE7C8 0%, #FFFFFF 48%);
+}
+
+.notification-card.type-blessing .notification-icon,
+.notification-card.type-festival_blessing .notification-icon {
+  background: linear-gradient(135deg, #F6A04D, #E85D4A);
+}
+
+.notification-card.theme-valentine .notification-icon { background: linear-gradient(135deg, #FF809D, #E64E70); }
+.notification-card.theme-spring .notification-icon { background: linear-gradient(135deg, #F45B4D, #C92E2E); }
+.notification-card.theme-labor .notification-icon { background: linear-gradient(135deg, #F3C441, #67A85A); }
+.notification-card.theme-children .notification-icon { background: linear-gradient(135deg, #59C7E8, #FF86AB); }
+.notification-card.theme-qixi .notification-icon { background: linear-gradient(135deg, #756CE8, #463A9B); }
+.notification-card.theme-mid-autumn .notification-icon { background: linear-gradient(135deg, #F2B84B, #5479B8); }
+.notification-card.theme-national .notification-icon { background: linear-gradient(135deg, #E75542, #E7A93E); }
+
+.notification-glow {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.48;
+  pointer-events: none;
+}
+
+.glow-left {
+  top: -90rpx;
+  left: -70rpx;
+  width: 230rpx;
+  height: 230rpx;
+  background: rgba(246, 200, 95, 0.42);
+}
+
+.glow-right {
+  top: 20rpx;
+  right: -90rpx;
+  width: 190rpx;
+  height: 190rpx;
+  background: rgba(232, 93, 74, 0.14);
+}
+
+.notification-close {
+  position: absolute;
+  top: 20rpx;
+  right: 22rpx;
+  z-index: 2;
+  width: 54rpx;
+  height: 54rpx;
+  color: #A9958E;
+  font-size: 40rpx;
+  line-height: 50rpx;
+}
+
+.notification-icon-wrap {
+  position: relative;
+  z-index: 1;
+  width: 104rpx;
+  height: 104rpx;
+  margin: 0 auto 18rpx;
+}
+
+.notification-icon {
+  width: 104rpx;
+  height: 104rpx;
+  color: #FFFFFF;
+  font-size: 48rpx;
+  line-height: 104rpx;
+  border-radius: 34rpx;
+  background: linear-gradient(135deg, #F08A50 0%, #E85D4A 100%);
+  box-shadow: 0 12rpx 28rpx rgba(232, 93, 74, 0.26);
+}
+
+.blessing-envelope-stage {
+  position: relative;
+  z-index: 2;
+  width: 190rpx;
+  height: 150rpx;
+  margin: 0 auto 16rpx;
+}
+
+.blessing-envelope {
+  position: absolute;
+  top: 34rpx;
+  left: 15rpx;
+  width: 160rpx;
+  height: 104rpx;
+  filter: drop-shadow(0 12rpx 18rpx rgba(201, 66, 59, .2));
+  transform-origin: center bottom;
+}
+
+.envelope-back {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 14rpx;
+  background: linear-gradient(145deg, #FF9C81, #F06A58);
+}
+
+.envelope-letter {
+  position: absolute;
+  z-index: 1;
+  left: 17rpx;
+  bottom: 13rpx;
+  width: 126rpx;
+  height: 82rpx;
+  color: #E85D4A;
+  font-size: 30rpx;
+  line-height: 54rpx;
+  border-radius: 10rpx 10rpx 5rpx 5rpx;
+  background: #FFF9ED;
+  box-shadow: 0 4rpx 10rpx rgba(83, 44, 33, .08);
+}
+
+.envelope-front {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  overflow: hidden;
+  border-radius: 14rpx;
+}
+
+.envelope-front::before,
+.envelope-front::after {
+  content: '';
+  position: absolute;
+  bottom: -58rpx;
+  width: 130rpx;
+  height: 130rpx;
+  background: #F47B66;
+  transform: rotate(45deg);
+}
+
+.envelope-front::before { left: -66rpx; }
+.envelope-front::after { right: -66rpx; background: #EA6657; }
+
+.envelope-flap {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  border-right: 80rpx solid transparent;
+  border-left: 80rpx solid transparent;
+  border-top: 62rpx solid #FFAE8F;
+  transform-origin: center top;
+}
+
+.envelope-seal {
+  position: absolute;
+  z-index: 5;
+  top: 38rpx;
+  left: 61rpx;
+  width: 38rpx;
+  height: 38rpx;
+  color: #fff;
+  font-size: 19rpx;
+  line-height: 38rpx;
+  border-radius: 50%;
+  background: #E94F45;
+  box-shadow: 0 4rpx 8rpx rgba(161, 45, 39, .22);
+}
+
+.opening-spark {
+  position: absolute;
+  z-index: 6;
+  color: #E85D4A;
+  font-size: 25rpx;
+  opacity: 0;
+}
+
+.spark-a { top: 30rpx; left: 3rpx; }
+.spark-b { top: 4rpx; right: 6rpx; }
+.spark-c { top: 74rpx; right: -2rpx; color: #F6B83F; }
+
+.notification-card.opening .envelope-flap {
+  animation: flapOpen .34s ease forwards;
+}
+
+.notification-card.opening .envelope-seal {
+  animation: sealAway .2s ease forwards;
+}
+
+.notification-card.opening .envelope-letter {
+  animation: letterRise .62s .22s cubic-bezier(.2,.75,.25,1) forwards;
+}
+
+.notification-card.opening .blessing-envelope {
+  animation: envelopeBounce .72s ease both;
+}
+
+.notification-card.opening .opening-spark {
+  animation: sparkPop .55s .28s ease both;
+}
+
+.notification-card.opening .spark-b { animation-delay: .38s; }
+.notification-card.opening .spark-c { animation-delay: .46s; }
+
+.notification-card.opening .notification-title,
+.notification-card.opening .notification-type,
+.notification-card.opening .notification-time {
+  animation: copySoften .35s ease forwards;
+}
+
+.notification-dot {
+  position: absolute;
+  top: -5rpx;
+  right: -5rpx;
+  width: 22rpx;
+  height: 22rpx;
+  border: 5rpx solid #FFF5DA;
+  border-radius: 50%;
+  background: #FF4D5A;
+}
+
+.notification-type,
+.notification-title,
+.notification-content,
+.notification-time {
+  position: relative;
+  z-index: 1;
+  display: block;
+}
+
+.notification-type {
+  display: inline-block;
+  width: auto;
+  margin: 0 auto 16rpx;
+  padding: 7rpx 18rpx;
+  color: #D94A3A;
+  font-size: 21rpx;
+  border-radius: 999rpx;
+  background: #FFF0EA;
+}
+
+.notification-title {
+  color: #3F302B;
+  font-size: 34rpx;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.notification-content {
+  margin-top: 14rpx;
+  color: #8C7770;
+  font-size: 26rpx;
+  line-height: 1.65;
+}
+
+.notification-time {
+  margin-top: 16rpx;
+  color: #B5A29B;
+  font-size: 21rpx;
+}
+
+.notification-actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 18rpx;
+  margin-top: 34rpx;
+}
+
+.notification-button {
+  height: 82rpx;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  font-size: 28rpx;
+  font-weight: 600;
+  line-height: 82rpx;
+  border-radius: 41rpx;
+}
+
+.notification-button::after {
+  border: 0;
+}
+
+.notification-button.later {
+  color: #8C7770;
+  background: #FFF9ED;
+  box-shadow: inset 0 0 0 1rpx #E8DED8;
+}
+
+.notification-button.confirm {
+  color: #FFFFFF;
+  background: linear-gradient(135deg, #F06B53 0%, #E5473B 100%);
+  box-shadow: 0 10rpx 24rpx rgba(232, 93, 74, 0.25);
+}
+
+.notification-button:active {
+  transform: scale(0.97);
+}
+
+.notification-button[disabled] {
+  opacity: .72;
+}
+
+@keyframes maskIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(24rpx) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes flapOpen {
+  0% { transform: rotateX(0deg); z-index: 4; }
+  100% { transform: rotateX(180deg); z-index: 0; }
+}
+
+@keyframes sealAway {
+  to { opacity: 0; transform: scale(.55); }
+}
+
+@keyframes letterRise {
+  0% { transform: translateY(0) scale(.96); }
+  65% { transform: translateY(-70rpx) scale(1.04); }
+  100% { transform: translateY(-56rpx) scale(1); }
+}
+
+@keyframes envelopeBounce {
+  0%, 100% { transform: scale(1); }
+  45% { transform: scale(1.04); }
+}
+
+@keyframes sparkPop {
+  0% { opacity: 0; transform: scale(.3) translateY(10rpx); }
+  55% { opacity: 1; transform: scale(1.15) translateY(-8rpx); }
+  100% { opacity: 0; transform: scale(.8) translateY(-22rpx); }
+}
+
+@keyframes copySoften {
+  to { opacity: .42; transform: translateY(4rpx); }
+}

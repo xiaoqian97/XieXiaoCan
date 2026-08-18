@@ -1,0 +1,81 @@
+<view class="data-page">
+  <view class="data-summary">
+    <view>
+      <text class="summary-title">{{title}}</text>
+      <text class="summary-desc">管理员只读明细</text>
+    </view>
+    <text class="summary-count">{{total}}</text>
+  </view>
+
+  <view wx:if="{{type === 'orders'}}" class="search-bar">
+    <van-icon name="search" size="16px" color="#A9958E" />
+    <input
+      class="search-input"
+      value="{{keyword}}"
+      placeholder="查询单号、菜名或用户"
+      placeholder-class="search-placeholder"
+      confirm-type="search"
+      bindinput="onSearchInput"
+      bindconfirm="onSearch"
+    />
+    <van-icon wx:if="{{keyword}}" name="clear" size="15px" color="#C1B0A9" catchtap="onClearSearch" />
+    <view class="search-button" catchtap="onSearch">
+      <van-icon name="search" size="15px" color="#FFFFFF" />
+    </view>
+  </view>
+
+  <view wx:if="{{type === 'orders'}}" class="data-list">
+    <view wx:for="{{orderGroups}}" wx:key="assigneeId" wx:for-item="group" class="order-group">
+      <view class="group-header">
+        <text class="group-name">{{group.assigneeName}}</text>
+        <text class="group-count">{{group.orders.length}}个投喂单</text>
+      </view>
+      <view wx:for="{{group.orders}}" wx:key="_id" wx:for-item="order" class="order-card">
+        <view class="card-top">
+          <text class="order-number">{{order.orderNo || '投喂单'}}</text>
+          <text class="status-badge {{order.status}}">{{order.statusLabel}}</text>
+        </view>
+        <text class="dish-names">{{order.recipeNames}}</text>
+        <view class="relation-row">
+          <text>{{order.creatorName}}</text>
+          <text class="relation-arrow">点菜 →</text>
+          <text>{{order.assigneeName}}</text>
+        </view>
+        <view class="card-bottom">
+          <text>{{order.totalRecipes}} 道菜</text>
+          <text>{{order.displayTime}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:else class="data-list">
+    <view wx:for="{{recipeGroups}}" wx:key="creatorId" wx:for-item="group" class="recipe-group">
+      <view class="group-header">
+        <text class="group-name">{{group.creatorName}}</text>
+        <text class="group-count">{{group.recipes.length}}道菜</text>
+      </view>
+      <view wx:for="{{group.recipes}}" wx:key="_id" wx:for-item="recipe" class="recipe-card">
+        <image class="recipe-image" src="{{recipe.displayImage || recipe.image}}" mode="aspectFill"></image>
+        <view class="recipe-info">
+          <view class="card-top">
+            <text class="recipe-name">{{recipe.name}}</text>
+            <text class="visibility-badge">{{recipe.isPublic ? '公开' : '饭搭子'}}</text>
+          </view>
+          <view class="recipe-stats">
+            <view class="stat-item"><van-icon name="eye-o" size="11px" /><text>{{recipe.viewCount}}</text></view>
+            <view class="stat-item"><van-icon name="like-o" size="11px" /><text>{{recipe.favoriteCount}}</text></view>
+            <view class="stat-item"><van-icon name="orders-o" size="11px" /><text>{{recipe.salesCount}}</text></view>
+            <view class="stat-item rating"><van-icon name="star-o" size="11px" /><text>{{recipe.ratingAverage}}</text></view>
+          </view>
+          <text class="recipe-time">{{recipe.displayTime}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{loading}}" class="list-state">正在加载...</view>
+  <view wx:if="{{!loading && items.length === 0}}" class="empty-state">暂无{{title}}</view>
+  <view wx:if="{{!loading && items.length > 0 && !hasMore}}" class="list-state">— 已加载全部 —</view>
+</view>
+<global-notification-popup id="globalNotificationPopup" />

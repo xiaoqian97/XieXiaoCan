@@ -1,0 +1,30 @@
+.users-page { min-height: 100vh; padding-bottom: calc(48rpx + env(safe-area-inset-bottom)); background: #FFF9ED; color: #3F302B; }
+.search-panel { position: sticky; top: 0; z-index: 5; padding: 22rpx 28rpx 14rpx; background: #FFF9ED; }
+.search-box { display: flex; align-items: center; gap: 12rpx; height: 76rpx; padding: 0 22rpx; border: 1rpx solid #E8DED8; border-radius: 22rpx; background: #FFFFFF; box-sizing: border-box; }
+.search-box input { flex: 1; font-size: 26rpx; }
+.search-icon { color: #A9958E; font-size: 34rpx; }
+.clear-search { width: 40rpx; color: #A9958E; font-size: 34rpx; text-align: center; }
+.role-filters { width: 100%; white-space: nowrap; }
+.filter-row { display: inline-flex; gap: 14rpx; padding: 8rpx 28rpx 16rpx; }
+.role-filter { padding: 12rpx 24rpx; color: #8C7770; font-size: 24rpx; border-radius: 999rpx; background: #FFFFFF; }
+.role-filter.active { color: #FFFFFF; background: #E85D4A; box-shadow: 0 6rpx 16rpx rgba(232, 93, 74, 0.2); }
+.list-summary { padding: 8rpx 32rpx 16rpx; color: #8C7770; font-size: 22rpx; }
+.user-list { padding: 0 28rpx; }
+.user-card { display: flex; align-items: center; gap: 20rpx; margin-bottom: 18rpx; padding: 26rpx 22rpx; border: 1rpx solid rgba(232, 222, 216, 0.8); border-radius: 24rpx; background: #FFFFFF; box-shadow: 0 5rpx 16rpx rgba(63, 48, 43, 0.04); }
+.user-avatar { width: 82rpx; height: 82rpx; flex-shrink: 0; border-radius: 50%; background: #F5ECE6; }
+.user-main { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 7rpx; }
+.user-name-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8rpx; }
+.user-name { max-width: 190rpx; overflow: hidden; font-size: 28rpx; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.role-badge, .admin-badge, .primary-badge { padding: 3rpx 10rpx; font-size: 18rpx; border-radius: 999rpx; }
+.role-badge.chef { color: #D94A3A; background: rgba(232, 93, 74, 0.12); }
+.role-badge.consumer { color: #8C7770; background: rgba(140, 119, 112, 0.1); }
+.admin-badge { color: #A66012; background: rgba(246, 200, 95, 0.3); }
+.primary-badge { color: #FFFFFF; background: #3F302B; }
+.user-code, .feeder-info { color: #8C7770; font-size: 21rpx; }
+.user-actions { display: flex; flex-shrink: 0; flex-direction: column; gap: 8rpx; }
+.role-button { width: auto; min-width: 112rpx; height: 56rpx; margin: 0; padding: 0 16rpx; color: #E85D4A; font-size: 21rpx; line-height: 56rpx; border-radius: 28rpx; background: #FFF0EA; }
+.role-button::after, .permission-button::after { border: none; }
+.permission-button { width: auto; min-width: 112rpx; height: 48rpx; margin: 0; padding: 0 14rpx; color: #8C7770; font-size: 19rpx; line-height: 48rpx; border-radius: 24rpx; background: #F5F0ED; }
+.permission-button.disabled { color: #B8AAA4; }
+.list-state, .empty-state { padding: 34rpx; color: #A9958E; font-size: 23rpx; text-align: center; }
+.empty-state { margin: 80rpx 28rpx; border-radius: 24rpx; background: rgba(255, 255, 255, 0.7); }

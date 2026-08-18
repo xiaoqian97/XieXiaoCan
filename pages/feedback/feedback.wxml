@@ -1,0 +1,54 @@
+<view class="feedback-page">
+  <login-prompt id="loginPrompt" />
+
+  <view class="feedback-hero">
+    <view class="hero-icon">✍️</view>
+    <view class="hero-copy">
+      <text class="hero-title">告诉小千你的想法</text>
+      <text class="hero-desc">每一条反馈都会被认真查看</text>
+    </view>
+  </view>
+
+  <view class="form-card">
+    <text class="field-title">请选择类型 <text class="required">*</text></text>
+    <radio-group class="type-options" bindchange="onTypeChange">
+      <label class="type-option {{type === 'feedback' ? 'active' : ''}}">
+        <radio value="feedback" checked="{{type === 'feedback'}}" color="#E85D4A" />
+        <view><text class="type-name">反馈</text><text class="type-desc">功能异常或使用不便</text></view>
+      </label>
+      <label class="type-option {{type === 'suggestion' ? 'active' : ''}}">
+        <radio value="suggestion" checked="{{type === 'suggestion'}}" color="#E85D4A" />
+        <view><text class="type-name">建议</text><text class="type-desc">希望增加或优化的功能</text></view>
+      </label>
+    </radio-group>
+  </view>
+
+  <view class="form-card">
+    <view class="field-head">
+      <text class="field-title">描述 <text class="required">*</text></text>
+      <text class="field-count">{{description.length}}/500</text>
+    </view>
+    <textarea class="description-input" value="{{description}}" maxlength="500" placeholder="请尽量描述清楚遇到的问题、操作步骤或你的建议..." bindinput="onDescriptionInput"></textarea>
+  </view>
+
+  <view class="form-card">
+    <view class="field-head">
+      <view><text class="field-title">相关图片</text><text class="optional">（选填）</text></view>
+      <text class="field-count">{{images.length}}/{{maxImages}}</text>
+    </view>
+    <text class="image-tip">可上传页面截图，单张不超过 5MB</text>
+    <view class="image-list">
+      <view wx:for="{{images}}" wx:key="*this" class="image-item">
+        <image src="{{item}}" mode="aspectFill" data-index="{{index}}" bindtap="previewImage"></image>
+        <view class="remove-image" data-index="{{index}}" catchtap="removeImage">×</view>
+      </view>
+      <view wx:if="{{images.length < maxImages}}" class="add-image" bindtap="chooseImages">
+        <text class="add-icon">＋</text>
+        <text>添加图片</text>
+      </view>
+    </view>
+  </view>
+
+  <button class="submit-button" loading="{{submitting}}" disabled="{{submitting}}" bindtap="submitFeedback">{{submitting ? '正在提交' : '提交给管理员'}}</button>
+</view>
+<global-notification-popup id="globalNotificationPopup" />

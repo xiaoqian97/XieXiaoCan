@@ -1,0 +1,631 @@
+/* 页面容器 */
+.recipe-container {
+  min-height: 100vh;
+  background-color: #F5ECE6;
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* 表单内容区域 */
+.form-content {
+  flex: 1;
+  box-sizing: border-box;
+  padding: 24rpx 32rpx;
+  padding-bottom: 200rpx; /* 为底部按钮留出空间 */
+}
+
+.form-section {
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+}
+
+.section-label {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #3F302B;
+  margin-bottom: 24rpx;
+}
+
+.section-label.required::after {
+  content: " *";
+  color: #ff4444;
+  font-weight: normal;
+}
+
+.image-ratio-tip {
+  display: block;
+  margin: -12rpx 0 20rpx;
+  color: #8C7770;
+  font-size: 24rpx;
+}
+
+/* 图片上传区域 */
+.images-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.image-item {
+  position: relative;
+  width: 216rpx;
+  height: 122rpx;
+  border-radius: 12rpx;
+  overflow: hidden;
+  background-color: #F5ECE6;
+}
+
+.uploaded-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-delete {
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+  width: 32rpx;
+  height: 32rpx;
+  background-color: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-upload {
+  width: 216rpx;
+  height: 122rpx;
+  border: 2rpx dashed #D8CCC6;
+  border-radius: 12rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #FFF9ED;
+  color: #A9958E;
+  font-size: 24rpx;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.upload-text {
+  margin-top: 8rpx;
+  font-size: 22rpx;
+  color: #8C7770;
+}
+
+.upload-hint {
+  margin-top: 4rpx;
+  font-size: 20rpx;
+  color: #A9958E;
+}
+
+/* 基本信息输入 */
+.input-group {
+  margin-bottom: 32rpx;
+}
+
+.input-label {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #3F302B;
+  margin-bottom: 16rpx;
+}
+
+.input-label.required::after {
+  content: " *";
+  color: #ff4444;
+}
+
+/* 场景分类网格 */
+.scene-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 30rpx;
+  margin-top: 16rpx;
+}
+
+/* 选中动画 */
+@keyframes selectPulse {
+  0% { transform: translateY(-4rpx) scale(1.05); }
+  50% { transform: translateY(-4rpx) scale(1.08); }
+  100% { transform: translateY(-4rpx) scale(1.05); }
+}
+
+.scene-card {
+  padding: 24rpx 16rpx;
+  border-radius: 16rpx;
+  text-align: center;
+  color: #ffffff;
+  font-weight: 600;
+  border: 2rpx solid transparent;
+  transition: all 0.3s ease;
+  min-height: 120rpx;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.scene-card:nth-child(1) {
+  background: linear-gradient(135deg, #E85D4A, #D94A3A);
+}
+
+.scene-card:nth-child(2) {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.scene-card:nth-child(3) {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.scene-card:nth-child(4) {
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+}
+
+.scene-card:nth-child(5) {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.scene-card.selected {
+  transform: translateY(-4rpx) scale(1.15);
+  box-shadow: 0 12rpx 32rpx rgba(0, 0, 0, 0.3);
+  border: 8rpx solid #ffffff;
+  position: relative;
+  animation: selectPulse 2s ease-in-out infinite;
+}
+
+.scene-card.selected::after {
+  content: "✓";
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+  width: 32rpx;
+  height: 32rpx;
+  background-color: #ffffff;
+  color: #10b981;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20rpx;
+  font-weight: 800;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.2);
+}
+
+.scene-emoji {
+  font-size: 48rpx;
+  margin-bottom: 12rpx;
+}
+
+.scene-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  margin-bottom: 4rpx;
+}
+
+.scene-desc {
+  font-size: 22rpx;
+  opacity: 0.9;
+}
+
+/* 食材分类网格 */
+.ingredient-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16rpx;
+  margin-top: 16rpx;
+}
+
+.ingredient-card {
+  padding: 20rpx 12rpx;
+  border-radius: 12rpx;
+  text-align: center;
+  background-color: #ffffff;
+  border: 2rpx solid #E8DED8;
+  transition: all 0.3s ease;
+  min-height: 100rpx;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.ingredient-card.selected {
+  border: 3rpx solid #10b981;
+  background-color: #dcfce7;
+  transform: translateY(-2rpx) scale(1.05);
+  box-shadow: 0 6rpx 20rpx rgba(16, 185, 129, 0.3);
+  position: relative;
+}
+
+.ingredient-card.selected::after {
+  content: "✓";
+  position: absolute;
+  top: 4rpx;
+  right: 4rpx;
+  width: 24rpx;
+  height: 24rpx;
+  background-color: #10b981;
+  color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16rpx;
+  font-weight: 800;
+  box-shadow: 0 2rpx 6rpx rgba(16, 185, 129, 0.3);
+}
+
+.ingredient-emoji {
+  font-size: 36rpx;
+  margin-bottom: 8rpx;
+}
+
+.ingredient-name {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #3F302B;
+}
+
+/* 制作信息行 */
+.info-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16rpx;
+  margin-top: 16rpx;
+}
+
+.info-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.info-label {
+  font-size: 22rpx;
+  color: #8C7770;
+  margin-bottom: 8rpx;
+}
+
+.picker-field {
+  padding: 16rpx 12rpx;
+  border: 1rpx solid #E8DED8;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+  color: #3F302B;
+  background-color: #ffffff;
+  text-align: center;
+  min-height: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 可选标签 */
+.optional-tags-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.toggle-btn {
+  font-size: 24rpx;
+  color: #E85D4A;
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.tag-group {
+  margin-bottom: 24rpx;
+}
+
+.tag-group-title {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #8C7770;
+  margin-bottom: 12rpx;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+/* 可选标签基础样式 */
+.tag-list .optional-tag {
+  display: inline-block;
+  padding: 12rpx 20rpx;
+  border-radius: 24rpx;
+  font-size: 24rpx;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  box-sizing: border-box;
+  margin: 0;
+}
+
+/* 未选中状态 - 明确定义 */
+.tag-list .optional-tag.unselected {
+  background-color: #ffffff !important;
+  border: 2rpx solid #E8DED8 !important;
+  color: #8C7770 !important;
+}
+
+/* 悬停状态 */
+.tag-list .optional-tag.unselected:active {
+  background-color: #F5ECE6 !important;
+}
+
+/* 选中状态 - 最高优先级 */
+.tag-list .optional-tag.selected {
+  background-color: #E85D4A !important;
+  border: 2rpx solid #E85D4A !important;
+  color: #ffffff !important;
+  transform: translateY(-1rpx);
+  box-shadow: 0 3rpx 12rpx rgba(59, 130, 246, 0.3);
+  position: relative;
+}
+
+.tag-checkmark {
+  font-weight: 800;
+  margin-right: 4rpx;
+  color: #ffffff;
+}
+
+/* 分区头部 */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.section-action {
+  font-size: 24rpx;
+  color: #E85D4A;
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+}
+
+/* 食材项 */
+.ingredient-item {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+  padding: 16rpx;
+  background-color: #FFF9ED;
+  border-radius: 12rpx;
+}
+
+.ingredient-name-field,
+.ingredient-amount-field {
+  background-color: transparent !important;
+  border: none !important;
+  padding: 8rpx 12rpx !important;
+}
+
+.ingredient-name-field {
+  flex: 2;
+}
+
+.ingredient-amount-field {
+  flex: 1;
+}
+
+.delete-icon {
+  flex-shrink: 0;
+}
+
+/* 步骤项 */
+.step-item {
+  margin-bottom: 24rpx;
+  padding: 20rpx;
+  background-color: #FFF9ED;
+  border-radius: 12rpx;
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+}
+
+.step-number {
+  width: 44rpx;
+  height: 44rpx;
+  background-color: #E85D4A;
+  color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22rpx;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.step-content {
+  flex: 1;
+}
+
+.step-textarea {
+  background-color: transparent !important;
+  border: none !important;
+  padding: 8rpx 0 !important;
+}
+
+/* 步骤图片 */
+.step-image-section {
+  margin-top: 12rpx;
+  padding-top: 12rpx;
+  border-top: 1rpx solid #E8DED8;
+}
+
+.step-image-item {
+  position: relative;
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 8rpx;
+  overflow: hidden;
+  display: inline-block;
+  margin-right: 12rpx;
+}
+
+.step-uploaded-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.step-image-delete {
+  position: absolute;
+  top: 4rpx;
+  right: 4rpx;
+  width: 24rpx;
+  height: 24rpx;
+  background-color: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.step-image-upload {
+  font-size: 22rpx;
+  color: #E85D4A;
+  display: inline-flex;
+  align-items: center;
+  gap: 4rpx;
+}
+
+/* 隐私设置 */
+.privacy-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 0;
+}
+
+.privacy-info {
+  flex: 1;
+}
+
+.privacy-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #3F302B;
+  margin-bottom: 4rpx;
+}
+
+.privacy-desc {
+  font-size: 24rpx;
+  color: #8C7770;
+}
+
+/* 底部占位 */
+.bottom-placeholder {
+  height: 120rpx;
+}
+
+/* 底部按钮 */
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding: 20rpx 40rpx 14rpx;
+  padding-bottom: calc(16rpx + env(safe-area-inset-bottom, 0));
+  background-color: #ffffff;
+  border-top: 1rpx solid #E8DED8;
+  box-shadow: 0 -2rpx 8rpx rgba(0, 0, 0, 0.05);
+}
+
+.footer .van-button {
+  border-radius: 16rpx;
+  width: 300rpx;
+  height: 88rpx;
+  font-size: 32rpx;
+  font-weight: 500;
+}
+
+.footer.single-action {
+  justify-content: center;
+}
+
+.footer.single-action .van-button {
+  width: 100%;
+}
+
+.draft-btn,
+.submit-btn {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 999rpx;
+}
+
+.submit-btn {
+  box-shadow: 0 10rpx 24rpx rgba(232, 93, 74, 0.28);
+}
+
+/* Vant组件样式重置 */
+.van-field {
+  padding: 0 !important;
+  background-color: transparent !important;
+  border: none !important;
+}
+
+.van-field__control {
+  font-size: 28rpx !important;
+  color: #3F302B !important;
+  line-height: 1.6 !important;
+}
+
+.van-field__control::placeholder {
+  color: #A9958E !important;
+}
+
+.van-button {
+  border-radius: 8rpx !important;
+}
+
+.van-button--small {
+  height: 64rpx !important;
+  padding: 0 24rpx !important;
+  font-size: 26rpx !important;
+}
+
+/* 响应式适配 */
+@media (max-width: 375px) {
+  .scene-grid {
+    grid-template-columns: 1fr;
+    gap: 12rpx;
+  }
+  
+  .ingredient-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12rpx;
+  }
+  
+  .info-row {
+    grid-template-columns: 1fr;
+    gap: 12rpx;
+  }
+}

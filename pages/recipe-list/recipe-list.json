@@ -1,0 +1,14 @@
+{
+  "navigationBarTitleText": "菜谱",
+  "navigationBarBackgroundColor": "#E85D4A",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#FFF9ED",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "van-field": "@vant/weapp/field/index",
+    "van-icon": "@vant/weapp/icon/index",
+    "van-loading": "@vant/weapp/loading/index",
+    "recipe-item": "/components/recipe-item/recipe-item"
+  }
+}

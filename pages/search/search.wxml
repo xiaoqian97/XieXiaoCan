@@ -1,0 +1,5 @@
+<view class="search-redirect">
+  <text class="search-icon">🍳</text>
+  <text class="search-text">正在带你去菜谱里找一口...</text>
+</view>
+<global-notification-popup id="globalNotificationPopup" />

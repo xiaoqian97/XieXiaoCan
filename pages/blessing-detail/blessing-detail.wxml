@@ -1,0 +1,27 @@
+<view class="detail-page">
+  <login-prompt id="loginPrompt" />
+  <view wx:if="{{loading}}" class="detail-state">正在打开这份祝福...</view>
+  <view wx:elif="{{!blessing}}" class="detail-state">这份祝福暂时找不到了</view>
+  <block wx:else>
+    <view class="detail-card {{blessing.themeClass}}">
+      <view class="detail-orb orb-left"></view><view class="detail-orb orb-right"></view>
+      <text class="detail-emoji">{{blessing.emoji}}</text>
+      <text class="detail-kicker">{{blessing.type === 'festival' ? '谢小馋的节日祝福' : ('来自 ' + blessing.senderName)}}</text>
+      <text class="detail-title">{{blessing.title}}</text>
+      <rich-text class="detail-content rich-content" nodes="{{blessing.displayHtml}}"></rich-text>
+      <view class="detail-divider"><text>♥</text></view>
+      <text class="detail-sign">{{blessing.type === 'festival' ? '愿每个节日都有温暖相伴' : ('送给 ' + blessing.recipientName)}}</text>
+    </view>
+    <view class="detail-meta">
+      <view class="meta-row"><text>送达时间</text><text>{{blessing.displayTime}}</text></view>
+      <view class="meta-row"><text>当前状态</text><text class="status">{{blessing.statusText}}</text></view>
+      <view wx:if="{{isSender && blessing.canSeeDismissedStatus && blessing.dismissedAtText && !blessing.viewedAtText}}" class="meta-row"><text>收起时间</text><text>{{blessing.dismissedAtText}}</text></view>
+      <view wx:if="{{isSender && blessing.viewedAtText}}" class="meta-row"><text>查看时间</text><text>{{blessing.viewedAtText}}</text></view>
+      <view wx:if="{{isSender && blessing.wechatMessage}}" class="wechat-note">微信提醒：{{blessing.wechatMessage}}</view>
+    </view>
+    <button wx:if="{{isSender && blessing.status === 'scheduled'}}" class="cancel-button" loading="{{cancelling}}" bindtap="cancelBlessing">取消定时祝福</button>
+    <button wx:if="{{isSender && blessing.status !== 'scheduled'}}" class="again-button" bindtap="sendAnother">再送一份祝福</button>
+  </block>
+</view>
+<theme-confirm-dialog id="themeConfirmDialog" />
+<global-notification-popup id="globalNotificationPopup" />

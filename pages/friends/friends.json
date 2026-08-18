@@ -1,0 +1,12 @@
+
+{
+  "usingComponents": {
+    "feeder-switch-dialog": "/components/feeder-switch-dialog/feeder-switch-dialog"
+  },
+  "navigationBarTitleText": "我的饭搭子",
+  "navigationBarBackgroundColor": "#ffffff",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#FFF9ED",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark"
+}

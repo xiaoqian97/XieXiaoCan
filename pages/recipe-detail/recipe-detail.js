@@ -1,0 +1,476 @@
+const { 
+  getSceneCategoryById, 
+  getIngredientCategoryById,
+  getCookingMethods,
+  getFlavorTypes
+} = require('../../utils/tagData')
+const util = require('../../utils/util')
+const share = require('../../utils/share')
+
+Page({
+  data: {
+    // 菜谱数据
+    recipe: {
+      _id: '',
+      name: '',
+      description: '',
+      images: [],
+      ingredients: [],
+      steps: [],
+      preparationTime: {},
+      difficulty: {},
+      servingSize: {},
+      sceneCategory: '',
+      ingredientCategory: '',
+      optionalTags: [],
+      creator: {
+        nickname: '',
+        avatar: ''
+      },
+      createTime: ''
+    },
+    
+    // 分类信息
+    sceneCategoryInfo: {},
+    ingredientCategoryInfo: {},
+    optionalTagsInfo: [],
+    
+    // 页面状态
+    loading: true,
+    isFavorited: false,
+    isMyRecipe: false, // 是否为当前用户的菜谱
+    
+    // 页面参数
+    recipeId: ''
+  },
+
+  onLoad(options) {
+    
+    if (isValidRecipeId(options.id)) {
+      this.setData({
+        recipeId: options.id
+      })
+      this.loadRecipeDetail(true)
+    } else {
+      wx.showToast({
+          title: '这道菜找不到编号',
+        icon: 'error'
+      })
+      setTimeout(() => {
+        wx.switchTab({ url: '/pages/recipe-list/recipe-list' })
+      }, 1500)
+    }
+  },
+
+  onShow() {
+    if (this._editingRecipe) {
+      this._editingRecipe = false
+      this.loadRecipeDetail(false, true)
+    }
+    // 检查收藏状态
+    this.checkFavoriteStatus()
+  },
+
+  onPullDownRefresh() {
+    this.loadRecipeDetail(false)
+  },
+
+  // 加载菜谱详情
+  loadRecipeDetail(recordView = false, silent = false) {
+    if (!isValidRecipeId(this.data.recipeId)) return
+    if (!silent) this.setData({ loading: true })
+    
+    wx.cloud.callFunction({
+      name: 'recipe',
+      data: {
+        action: 'detail',
+        recipeId: this.data.recipeId,
+        recordView
+      }
+    }).then(res => {
+      
+      if (res.result.success) {
+        const recipe = res.result.data
+        this.processRecipeData(recipe)
+        this.setData({
+          recipe: recipe,
+          loading: false
+        })
+        this.resolveRecipeImages()
+      } else {
+        console.error('加载菜谱详情失败:', res.result)
+        wx.showToast({
+          title: res.result.message || '这道菜没加载出来',
+          icon: 'error'
+        })
+        this.setData({ loading: false })
+      }
+      
+      wx.stopPullDownRefresh()
+    }).catch(err => {
+      console.error('加载菜谱详情失败:', err)
+      this.setData({ loading: false })
+      wx.stopPullDownRefresh()
+      wx.showToast({
+        title: '这道菜没加载出来',
+        icon: 'error'
+      })
+    })
+  },
+
+  // 处理菜谱数据
+  processRecipeData(recipe) {
+    recipe.images = Array.isArray(recipe.images) && recipe.images.length
+      ? recipe.images
+      : ['/images/default-recipe.jpg']
+    recipe.optionalTags = Array.isArray(recipe.optionalTags) ? recipe.optionalTags : []
+    recipe.creator = {
+      id: recipe.creator && recipe.creator.id ? recipe.creator.id : recipe.creatorId,
+      nickname: recipe.creator && recipe.creator.nickname ? recipe.creator.nickname : '未知用户',
+      avatar: recipe.creator && recipe.creator.avatar ? recipe.creator.avatar : ''
+    }
+
+    // 获取场景分类信息
+    const sceneCategoryInfo = getSceneCategoryById(recipe.sceneCategory) || {}
+    
+    // 获取食材分类信息
+    const ingredientCategoryInfo = getIngredientCategoryById(recipe.ingredientCategory) || {}
+    
+    // 获取可选标签信息
+    const cookingMethods = getCookingMethods()
+    const flavorTypes = getFlavorTypes()
+    const allOptionalTags = [...cookingMethods, ...flavorTypes]
+    
+    const optionalTagsInfo = recipe.optionalTags.map(tagId => {
+      return allOptionalTags.find(tag => tag.id === tagId) || { id: tagId, name: '未知标签', emoji: '🏷️' }
+    })
+    
+    // 判断是否为当前用户的菜谱
+    const app = getApp()
+    const currentOpenid = app.globalData.openid || wx.getStorageSync('openid')
+    const isMyRecipe = currentOpenid && recipe.creatorId === currentOpenid
+    
+    this.setData({
+      sceneCategoryInfo,
+      ingredientCategoryInfo,
+      optionalTagsInfo,
+      isMyRecipe
+    })
+  },
+
+  // 检查收藏状态
+  checkFavoriteStatus() {
+    const app = getApp()
+    if (!isValidRecipeId(this.data.recipeId) || !app.isLoggedIn()) {
+      this.setData({ isFavorited: false })
+      return
+    }
+
+    util.callCloudFunction('favorite', {
+      action: 'status',
+      recipeId: this.data.recipeId
+    }).then(res => {
+      this.setData({ isFavorited: !!(res.data && res.data.isFavorited) })
+    }).catch(err => {
+      console.error('获取收藏状态失败:', err)
+    })
+  },
+
+  // 返回上一页
+  goBack() {
+    wx.navigateBack()
+  },
+
+  // 切换收藏状态
+  toggleFavorite() {
+    if (!util.requireLogin('收藏菜品需要登录')) return
+
+    util.callCloudFunction('favorite', {
+      action: 'toggle',
+      recipeId: this.data.recipeId
+    }).then(res => {
+      const isFavorited = !!(res.data && res.data.isFavorited)
+      this.setData({ isFavorited })
+      util.showSuccess(isFavorited ? '已加入收藏' : '已取消收藏')
+    }).catch(err => {
+      util.showError(err.message || '收藏没保存成功')
+    })
+  },
+
+  // 预览图片
+  previewImage(e) {
+    const current = e.currentTarget.dataset.current
+    const urls = this.data.recipe.images
+    
+    wx.previewImage({
+      current: urls[current],
+      urls: urls
+    })
+  },
+
+  // 预览步骤图片
+  previewStepImage(e) {
+    const index = e.currentTarget.dataset.index
+    const step = this.data.recipe.steps[index]
+    
+    if (step && step.image) {
+      wx.previewImage({
+        current: step.image,
+        urls: [step.image]
+      })
+    }
+  },
+
+  resolveRecipeImages() {
+    const recipe = this.data.recipe
+    const stepImages = (recipe.steps || []).map(step => step.image).filter(Boolean)
+
+    Promise.all([
+      util.resolveCloudImages([...recipe.images, ...stepImages]),
+      util.resolveCloudImage(recipe.creator && recipe.creator.avatar, '/images/default-avatar.png')
+    ]).then(([urls, creatorAvatar]) => {
+      const imageCount = recipe.images.length
+      const images = urls.slice(0, imageCount)
+      const stepUrls = urls.slice(imageCount)
+      let stepIndex = 0
+      const steps = (recipe.steps || []).map(step => {
+        if (!step.image) return step
+        return {
+          ...step,
+          image: stepUrls[stepIndex++] || step.image
+        }
+      })
+
+      this.setData({
+        'recipe.images': images,
+        'recipe.steps': steps,
+        'recipe.creator.avatar': creatorAvatar
+      })
+    })
+  },
+
+  openXiaohongshu() {
+    const url = this.data.recipe.xiaohongshuUrl
+    if (!url) return
+
+    wx.setClipboardData({
+      data: url,
+      success: () => {
+        wx.showModal({
+          title: '灵感链接已复制',
+          content: '请打开小红书，在搜索框粘贴链接即可查看这篇灵感笔记。',
+          showCancel: false,
+          confirmText: '知道了',
+          confirmColor: '#E85D4A'
+        })
+      },
+      fail: () => util.showError('灵感链接复制失败，请稍后重试')
+    })
+  },
+
+
+  // 按场景筛选
+  filterByScene(e) {
+    const sceneId = e.currentTarget.dataset.scene
+    wx.navigateTo({
+      url: `/pages/recipe-list/recipe-list?scene=${sceneId}`
+    })
+  },
+
+  // 按食材筛选
+  filterByIngredient(e) {
+    const ingredientId = e.currentTarget.dataset.ingredient
+    wx.navigateTo({
+      url: `/pages/recipe-list/recipe-list?ingredient=${ingredientId}`
+    })
+  },
+
+  // 按标签筛选
+  filterByTag(e) {
+    const tagId = e.currentTarget.dataset.tag
+    wx.navigateTo({
+      url: `/pages/recipe-list/recipe-list?tag=${tagId}`
+    })
+  },
+
+  // 查看创建者菜谱
+  viewCreatorRecipes() {
+    const creatorId = this.data.recipe.creatorId || (this.data.recipe.creator && this.data.recipe.creator.id)
+    if (creatorId) {
+      wx.setStorageSync('recipeListCreatorFilter', creatorId)
+      wx.switchTab({
+        url: '/pages/recipe-list/recipe-list',
+        fail: () => {
+          wx.removeStorageSync('recipeListCreatorFilter')
+          wx.showToast({
+            title: '页面跳转失败',
+            icon: 'none'
+          })
+        }
+      })
+    } else {
+      wx.showToast({
+        title: '创建者信息不完整',
+        icon: 'none'
+      })
+    }
+  },
+
+  // 页面分享配置
+  onShareAppMessage() {
+    return share.getRecipeShare(this.data.recipe)
+  },
+
+  // 分享到朋友圈
+  onShareTimeline() {
+    return share.getRecipeTimelineShare(this.data.recipe)
+  },
+
+  // 编辑菜谱
+  editRecipe() {
+    const recipeId = this.data.recipeId
+    wx.navigateTo({
+      url: `/pages/recipe-form/recipe-form?id=${recipeId}`,
+      success: () => {
+        this._editingRecipe = true
+      }
+    })
+  },
+
+  // 删除菜谱
+  deleteRecipe() {
+    const recipe = this.data.recipe
+    this.selectComponent('#themeConfirmDialog').open({
+      icon: '🗑️',
+      title: '删除这道菜',
+      content: `确定要删除"${recipe.name}"吗？删除后无法恢复。`,
+      confirmText: '删除',
+      cancelText: '保留',
+      tone: 'danger'
+    }).then(confirmed => {
+      if (confirmed) this.confirmDeleteRecipe()
+    })
+  },
+
+  // 确认删除菜谱
+  confirmDeleteRecipe() {
+    wx.showLoading({ title: '删除中...' })
+    
+    wx.cloud.callFunction({
+      name: 'recipe',
+      data: {
+        action: 'delete',
+        recipeId: this.data.recipeId
+      }
+    }).then(res => {
+      wx.hideLoading()
+      
+      if (res.result.success) {
+        wx.showToast({
+          title: '删除成功',
+          icon: 'success'
+        })
+        
+        // 延迟返回上一页，让用户看到成功提示
+        setTimeout(() => {
+          wx.navigateBack()
+        }, 1500)
+      } else {
+        wx.showToast({
+          title: res.result.message || '删除失败',
+          icon: 'error'
+        })
+      }
+    }).catch(err => {
+      wx.hideLoading()
+      console.error('删除菜谱失败:', err)
+      wx.showToast({
+        title: '删除失败',
+        icon: 'error'
+      })
+    })
+  },
+
+  // 发布菜谱
+  publishRecipe() {
+    const recipe = this.data.recipe
+    this.selectComponent('#themeConfirmDialog').open({
+      icon: '🍽️',
+      title: '发布这道菜',
+      content: `确定要发布"${recipe.name}"吗？发布后饭搭子都能看到。`,
+      confirmText: '发布',
+      cancelText: '再看看'
+    }).then(confirmed => {
+      if (confirmed) this.confirmPublishRecipe()
+    })
+  },
+
+  // 确认发布菜谱
+  confirmPublishRecipe() {
+    wx.showLoading({ title: '发布中...' })
+    
+    // 获取当前菜谱数据，只更新状态和公开性
+    const recipe = this.data.recipe
+    const updateData = {
+      name: recipe.name,
+      description: recipe.description,
+      images: recipe.images,
+      ingredients: recipe.ingredients,
+      steps: recipe.steps,
+      xiaohongshuUrl: recipe.xiaohongshuUrl || '',
+      preparationTime: recipe.preparationTime,
+      difficulty: recipe.difficulty,
+      servingSize: recipe.servingSize,
+      sceneCategory: recipe.sceneCategory,
+      ingredientCategory: recipe.ingredientCategory,
+      optionalTags: recipe.optionalTags,
+      isPublic: true,
+      status: 'published'
+    }
+    
+    wx.cloud.callFunction({
+      name: 'recipe',
+      data: {
+        action: 'update',
+        recipeId: this.data.recipeId,
+        data: updateData
+      }
+    }).then(res => {
+      wx.hideLoading()
+      
+      if (res.result.success) {
+        wx.showToast({
+          title: '发布成功',
+          icon: 'success'
+        })
+        
+        // 更新本地数据
+        this.setData({
+          'recipe.status': 'published',
+          'recipe.isPublic': true
+        })
+        
+        // 延迟返回上一页，让用户看到成功提示
+        setTimeout(() => {
+          wx.navigateBack()
+        }, 1500)
+      } else {
+        wx.showToast({
+          title: res.result.message || '发布失败',
+          icon: 'error'
+        })
+      }
+    }).catch(err => {
+      wx.hideLoading()
+      console.error('发布菜谱失败:', err)
+      wx.showToast({
+        title: '发布失败',
+        icon: 'error'
+      })
+    })
+  }
+})
+
+function isValidRecipeId(recipeId) {
+  return typeof recipeId === 'string' && recipeId.length > 0 && recipeId.length <= 64
+}

@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "用户与身份",
+  "navigationBarBackgroundColor": "#FFF9ED",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#FFF9ED",
+  "enablePullDownRefresh": true
+}

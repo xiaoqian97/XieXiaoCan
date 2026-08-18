@@ -1,0 +1,113 @@
+<view class="container">
+  <login-prompt id="loginPrompt" />
+  <!-- 头部导航 -->
+  <view class="header">
+    <view class="header-content">
+      <!-- 搜索框 -->
+      <view class="search-box">
+        <input 
+          class="search-input" 
+          placeholder="搜索昵称或备注..."
+          value="{{searchKeyword}}"
+          bindinput="onSearchInput"
+          bindconfirm="onSearchConfirm"
+          focus="{{searchFocus}}"
+        />
+        <view wx:if="{{searchKeyword.length > 0}}" class="clear-btn" bindtap="onClearSearch">
+          <text class="clear-icon">×</text>
+        </view>
+      </view>
+      
+      <!-- 刷新按钮 -->
+      <view class="action-btn" bindtap="onRefresh">
+        <text class="icon">🔄</text>
+      </view>
+    </view>
+    
+    <!-- 绑定申请提醒 -->
+    <view class="request-reminder" bindtap="onGoToRequests">
+      <view class="reminder-content">
+        <view class="reminder-icon">
+          <image src="/images/addFriend.png"></image>
+        </view>
+        <view class="reminder-text">
+          <text class="reminder-title">绑定申请</text>
+          <text class="reminder-count">{{friendRequestCount}}个待处理请求</text>
+        </view>
+      </view>
+      <text class="reminder-arrow">›</text>
+    </view>
+  </view>
+  
+  <!-- 饭搭子列表 -->
+  <view class="friend-list">
+    <!-- Loading状态 -->
+    <view wx:if="{{loading}}" class="loading-container">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">加载中...</text>
+    </view>
+    
+    <!-- 空状态 -->
+    <view wx:elif="{{friends.length === 0}}" class="empty-container">
+      <image class="empty-icon" src="/images/friend.png" mode="aspectFit"></image>
+      <text class="empty-title">还没有绑定饭搭子</text>
+      <text class="empty-desc">通过搜索码发起绑定申请</text>
+    </view>
+    
+        <!-- 好友列表 -->
+        <view wx:else>
+          <!-- 搜索无结果 -->
+          <view wx:if="{{showSearch && filteredFriends.length === 0 && searchKeyword.length > 0}}" class="empty-container">
+            <image class="empty-icon" src="/images/friend.png" mode="aspectFit"></image>
+            <text class="empty-title">未找到相关饭搭子</text>
+            <text class="empty-desc">尝试其他关键词或检查拼写</text>
+          </view>
+          
+          <!-- 好友列表 -->
+          <view wx:else>
+            <view class="friend-item" wx:for="{{filteredFriends}}" wx:key="id">
+              <image class="friend-avatar" src="{{item.avatar}}" mode="aspectFill"></image>
+              <view class="friend-info">
+                <view class="friend-name-row">
+                  <text class="friend-name">{{item.nickname}}</text>
+                  <text wx:if="{{item.remark}}" class="friend-original-name">（{{item.originalNickname}}）</text>
+                  <text class="identity-tag {{item.identityType}}">{{item.identityLabel}}</text>
+                </view>
+                <text wx:if="{{item.role !== 'consumer'}}" class="friend-desc">分享了 {{item.recipeCount}} 道菜谱</text>
+                <view wx:else class="diner-stats">
+                  <view class="diner-stat" catchtap="onViewFriendWishes" data-friend="{{item}}">
+                    <text class="diner-stat-icon">✨</text>
+                    <text>TA 的饭愿</text>
+                    <text class="diner-stat-value">{{item.wishCount}}</text>
+                    <text class="diner-stat-arrow">›</text>
+                  </view>
+                  <view class="diner-stat" catchtap="onViewFriendFavorites" data-friend="{{item}}">
+                    <text class="diner-stat-icon">♥</text>
+                    <text>TA 的收藏</text>
+                    <text class="diner-stat-value">{{item.favoriteCount}}</text>
+                    <text class="diner-stat-arrow">›</text>
+                  </view>
+                </view>
+                <text class="friend-desc">{{item.lastActiveText}}</text>
+              </view>
+              <view class="friend-actions">
+                <view class="friend-menu-btn" catchtap="onFriendMenu" data-friend="{{item}}">
+                  <text class="friend-menu-dots">•••</text>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+  </view>
+  
+  <!-- 底部绑定按钮 -->
+  <view class="bottom-action">
+    <button class="add-friend-btn" bindtap="onAddFriend">
+      <text class="btn-icon">👤➕</text>
+      <text class="btn-text">绑定饭搭子</text>
+    </button>
+  </view>
+</view>
+<feeder-switch-dialog id="feederSwitchDialog" />
+<theme-confirm-dialog id="themeConfirmDialog" />
+<global-notification-popup id="globalNotificationPopup" />

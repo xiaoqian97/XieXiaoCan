@@ -1,0 +1,242 @@
+<view class="order-detail-container">
+  <login-prompt id="loginPrompt" />
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading-state">
+    <van-loading size="24px" />
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 投喂单详情 -->
+  <view wx:elif="{{order}}" class="order-content">
+    <!-- 投喂单头部 -->
+    <view class="order-header">
+      <view class="order-title">
+        <text class="meal-icon">{{getMealTypeIcon(order.mealType)}}</text>
+        <text class="meal-type">{{order.mealTypeLabel}}投喂单</text>
+        <view class="status-badge status-{{order.status}}">
+          <text class="status-text">{{order.statusLabel}}</text>
+        </view>
+      </view>
+      <text class="order-no">投喂单号：{{order.orderNo}}</text>
+    </view>
+
+    <!-- 投喂单信息 -->
+    <view class="order-info">
+      <view class="info-item">
+        <text class="info-label">点饭人</text>
+        <view class="info-value">
+          <image class="assignee-avatar" src="{{order.displayCreatorAvatar || order.creatorAvatar || '/images/default-avatar.png'}}" mode="aspectFill" />
+          <text class="assignee-name">{{order.creatorName}}</text>
+        </view>
+      </view>
+      <view class="info-item">
+        <text class="info-label">投喂官</text>
+        <view class="info-value">
+          <image class="assignee-avatar" src="{{order.displayAssigneeAvatar || order.assigneeAvatar || '/images/default-avatar.png'}}" mode="aspectFill" />
+          <text class="assignee-name">{{order.assigneeName}}</text>
+        </view>
+      </view>
+      
+      <view class="info-item">
+        <text class="info-label">开饭时间</text>
+        <text class="info-value">{{order.orderDate}}</text>
+      </view>
+      
+      <view class="info-item">
+        <text class="info-label">预计投喂用时</text>
+        <text class="info-value">{{order.estimatedTime}}分钟</text>
+      </view>
+
+      <view wx:if="{{order.notes}}" class="info-item">
+        <text class="info-label">小要求</text>
+        <text class="info-value notes">{{order.notes}}</text>
+      </view>
+
+      <view wx:if="{{order.rating}}" class="info-item rating-info">
+        <text class="info-label">TA 的评价</text>
+        <view class="rating-value">
+          <text class="rating-score">{{order.rating.score}} / 5 ★</text>
+          <text wx:if="{{order.rating.content}}" class="rating-content">{{order.rating.content}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 菜品列表 -->
+    <view class="recipes-section">
+      <view class="section-title">
+        <text>菜单明细 ({{order.totalRecipes}}道)</text>
+      </view>
+      
+      <view class="recipes-list">
+        <view 
+          wx:for="{{order.recipes}}" 
+          wx:key="recipeId"
+          class="recipe-item"
+          data-recipe-id="{{item.recipeId}}"
+          bindtap="onViewRecipe"
+        >
+          <image class="recipe-image" src="{{item.displayImage || item.image || '/images/default-recipe.jpg'}}" mode="aspectFill" />
+          <view class="recipe-info">
+            <text class="recipe-name">{{item.recipeName}}</text>
+            <view class="recipe-meta">
+              <text class="meta-item">来自：{{item.authorName}}</text>
+              <text class="meta-item">⏰ {{item.preparationTime}}</text>
+              <text class="meta-item">⭐ {{item.difficulty}}</text>
+              <text wx:if="{{item.dishRating}}" class="meta-item dish-rating">评分 {{item.dishRating}} / 5 ★</text>
+            </view>
+            <text wx:if="{{item.note}}" class="meta-item">小要求：{{item.note}}</text>
+          </view>
+          <van-icon name="arrow" size="16px" color="#A9958E" />
+        </view>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="action-buttons">
+      <!-- 待处理状态 -->
+      <view wx:if="{{order.status === 'pending'}}" class="button-group">
+        <view>
+          <van-button type="default" open-type="share" bind:click="onShareOrderTap" round block>
+            分享
+          </van-button>
+        </view>
+        <view wx:if="{{order.assigneeId === userInfo.openid}}">
+          <van-button 
+            type="primary"
+            color="#19A866"
+            bind:click="startCooking"
+            round 
+            block
+          >
+            开始投喂
+          </van-button>
+        </view>
+        <view>
+          <van-button 
+            type="danger"
+            color="#EF4444"
+            bind:click="cancelOrder"
+            round 
+            block
+          >
+            取消投喂
+          </van-button>
+        </view>
+      </view>
+      
+      <!-- 处理中状态 -->
+      <view wx:elif="{{order.status === 'processing'}}" class="button-group">
+        <view>
+          <van-button type="default" open-type="share" bind:click="onShareOrderTap" round block>
+            分享
+          </van-button>
+        </view>
+        <view  wx:if="{{order.assigneeId === userInfo.openid}}">
+          <van-button 
+            type="primary"
+            color="#19A866"
+            bind:click="completeCooking"
+            round 
+            block
+          >
+            投喂完成
+          </van-button>
+          </view>
+          <view>
+          <van-button 
+            type="danger"
+            color="#EF4444"
+            bind:click="cancelOrder"
+            round 
+            block
+          >
+            取消投喂
+          </van-button>
+        </view>
+      </view>
+      
+      <!-- 已完成状态 -->
+      <view wx:elif="{{order.status === 'completed'}}" class="button-group">
+        <view>
+          <van-button type="default" open-type="share" bind:click="onShareOrderTap" round block>
+            分享
+          </van-button>
+        </view>
+        <view wx:if="{{order.creatorId === userInfo.openid && !order.rating}}">
+          <van-button type="default" bind:click="rateOrder" round block>
+            评价投喂单
+          </van-button>
+        </view>
+        <view wx:if="{{order.creatorId === userInfo.openid}}">
+          <van-button type="primary" bind:click="reorder" round block>
+            再来一单
+          </van-button>
+        </view>
+      </view>
+      
+      <!-- 已取消状态 -->
+      <view wx:elif="{{order.status === 'cancelled'}}" class="button-group">
+        <view>
+          <van-button type="default" open-type="share" bind:click="onShareOrderTap" round block>
+            分享
+          </van-button>
+        </view>
+        <view wx:if="{{order.creatorId === userInfo.openid}}">
+          <van-button type="primary" round block bind:click="reorder">
+            再来一单
+          </van-button>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 错误状态 -->
+  <view wx:else class="error-state">
+    <text class="error-emoji">😵</text>
+    <text class="error-title">投喂单不存在</text>
+    <text class="error-desc">请检查投喂单ID是否正确</text>
+    <van-button type="primary" size="large" bind:click="onGoBack">
+      返回投喂单列表
+    </van-button>
+  </view>
+
+  <view wx:if="{{showRatingModal}}" class="rating-mask" bindtap="closeRatingModal">
+    <view class="rating-modal" catchtap="stopPropagation">
+      <text class="rating-title">给每道菜打个分</text>
+      <view class="rating-recipe-list">
+        <view wx:for="{{ratingRecipes}}" wx:for-index="recipeIndex" wx:key="recipeId" class="rating-recipe-item">
+          <image class="rating-recipe-image" src="{{item.displayImage}}" mode="aspectFill" />
+          <view class="rating-recipe-content">
+            <text class="rating-recipe-name">{{item.recipeName}}</text>
+            <view class="rating-stars">
+              <text
+                wx:for="{{ratingStars}}"
+                wx:for-item="star"
+                wx:key="*this"
+                class="rating-star {{star <= item.score ? 'active' : ''}}"
+                data-index="{{recipeIndex}}"
+                data-score="{{star}}"
+                bindtap="onRatingScoreSelect"
+              >★</text>
+            </view>
+          </view>
+          <text class="rating-recipe-score">{{item.score}}分</text>
+        </view>
+      </view>
+      <textarea
+        class="rating-textarea"
+        value="{{ratingContent}}"
+        placeholder="写一句给投喂官的夸夸吧（选填）"
+        maxlength="100"
+        bindinput="onRatingContentInput"
+      />
+      <view class="rating-actions">
+        <button class="rating-button cancel" bindtap="closeRatingModal">取消</button>
+        <button class="rating-button confirm" bindtap="submitRating">存好</button>
+      </view>
+    </view>
+  </view>
+</view>
+
+<theme-confirm-dialog id="themeConfirmDialog" />
+<global-notification-popup id="globalNotificationPopup" />

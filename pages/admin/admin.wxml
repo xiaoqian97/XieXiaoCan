@@ -1,0 +1,61 @@
+<view class="admin-page">
+  <view class="admin-hero">
+    <view class="admin-crown">♛</view>
+    <view class="admin-hero-content">
+      <text class="admin-title">管理员工作台</text>
+      <text class="admin-subtitle">管理身份与投喂关系，守护每一顿饭</text>
+    </view>
+  </view>
+
+  <view class="section-title">系统概览</view>
+  <view class="stats-grid">
+    <view class="stat-card" data-role="" bindtap="openUsers">
+      <text class="stat-value">{{stats.userCount}}</text>
+      <text class="stat-name">全部用户</text>
+      <text class="stat-link">查看 ›</text>
+    </view>
+    <view class="stat-card warm" data-role="feeder" bindtap="openUsers">
+      <text class="stat-value">{{stats.feederCount}}</text>
+      <text class="stat-name">投喂官</text>
+      <text class="stat-link">查看 ›</text>
+    </view>
+    <view class="stat-card alert" data-type="orders" bindtap="openDataList">
+      <text class="stat-value">{{stats.activeOrderCount}}</text>
+      <text class="stat-name">进行中投喂单</text>
+      <text class="stat-link">查看 ›</text>
+    </view>
+    <view class="stat-card cream" data-type="recipes" bindtap="openDataList">
+      <text class="stat-value">{{stats.recipeCount}}</text>
+      <text class="stat-name">已发布菜品</text>
+      <text class="stat-link">查看 ›</text>
+    </view>
+  </view>
+
+  <view class="section-title">管理功能</view>
+  <view class="admin-modules">
+    <view class="module-card" bindtap="openUsers">
+      <view class="module-icon users">👥</view>
+      <view class="module-content">
+        <text class="module-title">用户与身份</text>
+        <text class="module-desc">管理投喂身份与独立管理员权限</text>
+      </view>
+      <text class="module-arrow">›</text>
+    </view>
+    <view class="module-card" bindtap="openRelationships">
+      <view class="module-icon relation">🍲</view>
+      <view class="module-content">
+        <text class="module-title">固定投喂关系</text>
+        <text class="module-desc">查看并协助调整唯一固定投喂官</text>
+      </view>
+      <text class="module-arrow">›</text>
+    </view>
+  </view>
+
+  <view class="admin-tip">
+    <text class="tip-icon">🔒</text>
+    <text>管理员操作由云端校验，并记录关键身份和关系变更。</text>
+  </view>
+
+  <view wx:if="{{loading}}" class="loading-text">工作台加载中...</view>
+</view>
+<global-notification-popup id="globalNotificationPopup" />

@@ -1,0 +1,66 @@
+
+.cropper-wrapper {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background-color: rgba(0, 0, 0, 0.95);
+  position: relative;
+}
+
+.cropper-area {
+  width: 100%;
+  height: calc(100% - 60px - constant(safe-area-inset-bottom));
+  height: calc(100% - 60px - env(safe-area-inset-bottom));
+  position: relative;
+}
+
+.cropper-buttons {
+  width: 100%;
+  height: calc(60px + constant(safe-area-inset-bottom));
+  height: calc(60px + env(safe-area-inset-bottom));
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.95);
+  padding: 0 40rpx constant(safe-area-inset-bottom);
+  padding: 0 40rpx env(safe-area-inset-bottom);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 9999;
+}
+
+.cropper-buttons .upload, .cropper-buttons .getCropperImage {
+  text-align: center;
+  cursor: pointer;
+}
+
+.cropper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.btn {
+  height: 36px;
+  line-height: 36px;
+  padding: 0 32rpx;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 16px;
+  user-select: none;
+}
+
+.cropper-buttons .upload {
+  background-color: #8C7770;
+  border: 1px solid #888;
+}
+
+.cropper-buttons .getCropperImage {
+  background-color: #E85D4A;
+  border: 1px solid #E85D4A;
+}

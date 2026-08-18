@@ -1,0 +1,10 @@
+
+{
+  "usingComponents": {},
+  "navigationBarTitleText": "绑定申请",
+  "navigationBarBackgroundColor": "#ffffff",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#FFF9ED",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark"
+}

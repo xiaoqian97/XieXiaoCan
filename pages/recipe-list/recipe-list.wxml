@@ -1,0 +1,186 @@
+<view class="recipe-list-container">
+  <login-prompt id="loginPrompt" />
+  <view class="header-section">
+    <view class="header-content">
+      <view class="search-wrapper">
+        <van-field
+          value="{{searchValue}}"
+          placeholder="今天吃什么？搜菜名或食材..."
+          bind:input="onSearchInput"
+          bind:confirm="onSearchConfirm"
+          bind:clear="onSearchClear"
+          clearable
+          left-icon="search"
+          custom-style="background: #F5ECE6; border-radius: 16px; border: none;"
+        />
+      </view>
+      <view class="filter-btn" bindtap="onFilterClick">
+        <van-icon name="filter-o" size="20px" color="#E85D4A" />
+        <view wx:if="{{selectedScenes.length || currentQuickFilter || selectedOptionalTags.length || selectedTime}}" class="filter-dot"></view>
+      </view>
+      <view wx:if="{{canOrder}}" class="decision-entry" bindtap="onOpenDecisionWheel">
+        <text class="decision-entry-icon">🎲</text>
+      </view>
+      <view wx:else class="feeder-mode-badge">投喂官模式</view>
+    </view>
+  </view>
+
+  <view wx:if="{{showFilter}}" class="advanced-filter-panel">
+    <scroll-view class="advanced-filter-content" scroll-y="true">
+      <view class="filter-group">
+        <text class="filter-group-title">用餐场景</text>
+        <view class="filter-tags">
+          <block wx:for="{{sceneCategories}}" wx:key="id">
+            <view class="filter-tag {{currentQuickFilter === item.id ? 'selected' : ''}}" data-sceneid="{{item.id}}" bindtap="onQuickFilterChange">
+              <text>{{item.emoji}} {{item.shortName}}</text>
+            </view>
+          </block>
+        </view>
+      </view>
+      <view class="filter-group">
+        <text class="filter-group-title">上桌时间</text>
+        <view class="filter-options">
+          <block wx:for="{{timeOptions}}" wx:key="id">
+            <view class="filter-option {{selectedTime === item.id ? 'selected' : ''}}" bindtap="onTimeFilterToggle" data-time="{{item.id}}">
+              <text class="option-emoji">{{item.emoji}}</text>
+              <text class="option-text">{{item.label}}</text>
+            </view>
+          </block>
+        </view>
+      </view>
+      <view class="filter-group">
+        <text class="filter-group-title">做法偏好</text>
+        <view class="filter-tags">
+          <block wx:for="{{cookingMethods}}" wx:key="id">
+            <view
+              class="filter-tag {{item.selected ? 'selected' : ''}}"
+              data-id="{{item.id}}"
+              bindtap="onOptionalTagToggle"
+            >
+              <text>{{item.emoji}} {{item.name}}</text>
+            </view>
+          </block>
+        </view>
+      </view>
+      <view class="filter-group">
+        <text class="filter-group-title">口味偏好</text>
+        <view class="filter-tags">
+          <block wx:for="{{flavorTypes}}" wx:key="id">
+            <view
+              class="filter-tag {{item.selected ? 'selected' : ''}}"
+              data-id="{{item.id}}"
+              bindtap="onOptionalTagToggle"
+            >
+              <text>{{item.emoji}} {{item.name}}</text>
+            </view>
+          </block>
+        </view>
+      </view>
+      <view class="reset-filters-btn" bindtap="onResetAllFilters">清空筛选</view>
+    </scroll-view>
+  </view>
+
+  <view class="menu-content {{canOrder ? 'with-submit-bar' : ''}}">
+    <scroll-view wx:if="{{recipes.length > 0 && !isSearchLoading}}" class="category-nav" scroll-y="true" show-scrollbar="{{false}}">
+      <view class="category-item {{activeCategoryId === '' ? 'active' : ''}}" bindtap="onAllIngredientCategories">全部</view>
+      <block wx:for="{{recipeSections}}" wx:key="id">
+        <view class="category-item {{activeCategoryId === item.id ? 'active' : ''}}" data-id="{{item.id}}" bindtap="onIngredientToggle">{{item.name}}</view>
+      </block>
+    </scroll-view>
+
+    <scroll-view class="recipe-scroll {{recipes.length === 0 ? 'empty-mode' : ''}}" scroll-y="true" scroll-top="{{recipeScrollTop}}" scroll-into-view="{{recipeScrollIntoView}}" lower-threshold="120" bindscroll="onRecipeScroll" bindscrolltolower="onReachBottom" show-scrollbar="{{false}}">
+      <view wx:if="{{recipes.length > 0 && !isSearchLoading}}" class="recipe-list">
+        <view id="category-all"></view>
+        <block wx:for="{{recipeSections}}" wx:for-item="section" wx:key="id">
+          <view id="category-{{section.id}}" class="recipe-section">
+            <text class="recipe-section-title">{{section.name}}</text>
+            <block wx:for="{{section.recipes}}" wx:for-item="recipe" wx:key="_id">
+              <recipe-item recipe="{{recipe}}" compact="{{true}}" show-stats="{{true}}" show-cart-action="{{canOrder}}" cooking-methods="{{cookingMethods}}" flavor-types="{{flavorTypes}}" bind:recipeclick="onRecipeClick" bind:cartaction="onCartAction" />
+            </block>
+          </view>
+        </block>
+      </view>
+
+      <view wx:if="{{loading && recipes.length === 0}}" class="loading-state {{isSearchLoading ? 'search-loading' : ''}}">
+        <van-loading size="24px" color="#E85D4A" />
+        <text>菜谱翻一翻...</text>
+      </view>
+      <view wx:if="{{loading && recipes.length > 0}}" class="load-more">
+        <van-loading size="20px" color="#E85D4A" />
+        <text>再翻几道...</text>
+      </view>
+      <view wx:if="{{!loading && recipes.length === 0}}" class="empty-state">
+        <text class="empty-emoji">{{isSearchEmpty ? '🔍' : '🍳'}}</text>
+        <text class="empty-title">{{isSearchEmpty ? '没有找到相关菜品' : (needsFixedFeeder ? '还没有固定投喂官' : '这个分类还没上菜')}}</text>
+        <text class="empty-desc">{{isSearchEmpty ? '换个菜名或食材试试看' : (needsFixedFeeder ? '先去“我的饭搭子”设置一位固定投喂官' : (canCreateRecipe ? '先添一道拿手菜' : '换个分类看看'))}}</text>
+        <button wx:if="{{needsFixedFeeder && !isSearchEmpty}}" class="set-feeder-button" bindtap="goSetFixedFeeder">去设置</button>
+      </view>
+      <view wx:if="{{!loading && !hasMore && recipes.length > 0}}" class="no-more">— 今天先看到这儿 —</view>
+    </scroll-view>
+  </view>
+
+  <view wx:if="{{canOrder}}" class="submit-order-bar">
+    <button
+      class="submit-order-button {{cartStats.totalCount === 0 ? 'disabled' : ''}}"
+      bindtap="onSubmitOrder"
+    >提交订单（{{cartStats.totalCount}}）</button>
+  </view>
+
+  <view wx:if="{{showDecisionWheel}}" class="decision-mask" bindtap="onCloseDecisionWheel" catchtouchmove="stopEvent">
+    <view class="decision-modal {{isWheelSpinning ? 'spinning' : ''}}" catchtap="stopEvent">
+      <view class="decision-header">
+        <view>
+          <text class="decision-title">今天吃什么</text>
+          <text class="decision-subtitle">让小馋替你做个决定</text>
+        </view>
+        <view class="decision-close {{isWheelSpinning ? 'disabled' : ''}}" bindtap="onCloseDecisionWheel">×</view>
+      </view>
+
+      <view class="wheel-stage">
+        <view class="wheel-pointer"></view>
+        <view
+          class="decision-wheel"
+          style="background: {{wheelGradient}}; transform: rotate({{wheelRotation}}deg); transition-duration: {{wheelTransition ? spinDuration : 0}}ms;"
+        >
+          <view
+            wx:for="{{wheelLights}}"
+            wx:for-item="light"
+            wx:key="angle"
+            class="wheel-light {{light.large ? 'large' : 'small'}}"
+            style="margin-left: {{light.offsetX}}rpx; margin-top: {{light.offsetY}}rpx; transform: translate(-50%, -50%);"
+          ></view>
+          <view
+            wx:for="{{wheelOptions}}"
+            wx:key="_id"
+            class="wheel-label"
+            style="width: {{item.labelWidth}}rpx; height: {{item.labelHeight}}rpx; margin-left: {{item.labelX}}rpx; margin-top: {{item.labelY}}rpx; font-size: {{item.labelFontSize}}rpx; transform: translate(-50%, -50%) rotate({{item.labelAngle}}deg);"
+          >
+            <text class="wheel-label-name">{{item.wheelName}}</text>
+          </view>
+        </view>
+        <view class="wheel-center" bindtap="onSpinWheel">
+          <text class="wheel-center-text">{{isWheelSpinning ? '挑选中' : '点击\n开饭'}}</text>
+        </view>
+      </view>
+
+      <view class="wheel-result {{wheelResult ? 'visible' : ''}}">
+        <block wx:if="{{wheelResult}}">
+          <image class="wheel-result-image" src="{{wheelResult.displayImage || wheelResult.images[0]}}" mode="aspectFill"></image>
+          <view class="wheel-result-content">
+            <text class="wheel-result-label">今日小馋签 · 就是它啦</text>
+            <text class="wheel-result-name">{{wheelResult.name}}</text>
+          </view>
+        </block>
+        <text wx:else class="wheel-result-placeholder">点击“开饭”，转出今天想吃的菜</text>
+      </view>
+
+      <view class="decision-actions">
+        <button class="wheel-spin-button" disabled="{{isWheelSpinning}}" bindtap="onSpinWheel">
+          {{isWheelSpinning ? '正在挑选...' : (wheelResult ? '再转一次' : '开始转动')}}
+        </button>
+        <button wx:if="{{wheelResult && !isWheelSpinning}}" class="wheel-confirm-button" bindtap="onConfirmWheelResult">确定，就吃这个</button>
+      </view>
+    </view>
+  </view>
+</view>
+<global-notification-popup id="globalNotificationPopup" />

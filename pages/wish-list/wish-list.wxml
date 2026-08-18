@@ -1,0 +1,117 @@
+<view class="wish-page">
+  <login-prompt id="loginPrompt" />
+  <view class="wish-header">
+    <view>
+      <text class="page-title">{{title}}</text>
+      <text class="page-subtitle">{{mode === 'pool' ? '看看今天谁在喊饿' : (readOnly ? '看看 TA 最近想吃什么' : '想吃什么，先许个愿')}}</text>
+    </view>
+    <van-button wx:if="{{mode === 'mine'}}" type="primary" size="small" round bind:click="openCreateModal">
+      许个饭愿
+    </van-button>
+  </view>
+
+  <view wx:if="{{loading}}" class="loading-state">
+    <van-loading size="24px" />
+    <text>饭愿加载中...</text>
+  </view>
+
+  <view wx:elif="{{wishes.length === 0}}" class="empty-state">
+    <text class="empty-icon">🍽️</text>
+    <text class="empty-title">{{mode === 'pool' ? '今天还没人喊饿' : (readOnly ? 'TA 还没有向你许饭愿' : '还没许愿')}}</text>
+    <text class="empty-desc">{{mode === 'pool' ? '等她发来想吃的' : (readOnly ? '饭愿会在对方向你发起后显示' : '先写下一道想吃的')}}</text>
+    <van-button wx:if="{{mode === 'mine'}}" type="primary" size="small" round bind:click="openCreateModal">
+      许个饭愿
+    </van-button>
+  </view>
+
+  <view wx:else class="wish-list">
+    <view wx:for="{{wishes}}" wx:key="_id" class="wish-card status-{{item.status}}">
+      <view class="wish-main">
+        <image class="wish-cover" src="{{item.displayCoverImage || item.coverImage || '/images/default-recipe.jpg'}}" mode="aspectFill" />
+        <view class="wish-content">
+          <text class="wish-name">{{item.name}}</text>
+          <text wx:if="{{item.displayNote}}" class="wish-note">{{item.displayNote}}</text>
+        </view>
+        <text class="status-badge">{{item.statusLabel}}</text>
+      </view>
+
+      <view wx:if="{{mode === 'pool'}}" class="wish-submitter">
+        <image wx:if="{{item.submitterAvatar}}" class="submitter-avatar" src="{{item.displaySubmitterAvatar || item.submitterAvatar}}" mode="aspectFill" />
+        <view wx:else class="submitter-avatar submitter-avatar-placeholder">
+          {{item.submitterName ? item.submitterName.charAt(0) : '她'}}
+        </view>
+        <text>喊饿的人：{{item.submitterName || '她'}}</text>
+      </view>
+
+      <view class="wish-meta">
+        <text>{{item.createdAtText}}</text>
+      </view>
+
+      <view wx:if="{{item.rejectReason}}" class="reject-reason">
+        先欠着原因：{{item.rejectReason}}
+      </view>
+
+      <view wx:if="{{!readOnly}}" class="wish-actions">
+        <button
+          class="wish-share-btn"
+          open-type="share"
+          data-id="{{item._id}}"
+          catchtap="onShareWishTap"
+        >
+          分享
+        </button>
+        <block wx:if="{{mode === 'mine'}}">
+          <van-button
+            wx:if="{{item.status === 'accepted' || item.status === 'in_cart'}}"
+            type="primary"
+            size="small"
+            round
+            data-id="{{item._id}}"
+            bind:click="addWishToCart"
+          >
+            放进饭篮
+          </van-button>
+          <van-button
+            wx:if="{{item.status !== 'ordered' && item.status !== 'done' && item.status !== 'cancelled'}}"
+            type="default"
+            size="small"
+            round
+            data-id="{{item._id}}"
+            bind:click="cancelWish"
+          >
+            取消
+          </van-button>
+          <van-button type="default" size="small" round bind:click="goToCart">
+            去安排
+          </van-button>
+        </block>
+
+        <block wx:else>
+          <van-button
+            wx:if="{{item.status === 'pending'}}"
+            type="primary"
+            size="small"
+            round
+            data-id="{{item._id}}"
+            bind:click="acceptWish"
+          >
+            安排上桌
+          </van-button>
+          <van-button
+            wx:if="{{item.status === 'pending'}}"
+            type="danger"
+            size="small"
+            round
+            data-id="{{item._id}}"
+            bind:click="rejectWish"
+          >
+            先欠着
+          </van-button>
+        </block>
+      </view>
+    </view>
+  </view>
+
+</view>
+<theme-confirm-dialog id="themeConfirmDialog" />
+<global-notification-popup id="globalNotificationPopup" />

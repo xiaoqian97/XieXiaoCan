@@ -1,0 +1,18 @@
+<import src="../avatar-cropper/we-cropper/we-cropper.wxml" />
+
+<view class="cropper-wrapper">
+  <view class="crop-tip">拖动图片、双指缩放，亮框内将作为 16:9 菜品封面</view>
+  <view
+    class="cropper-area"
+    catch:touchstart="touchStart"
+    catch:touchmove="touchMove"
+    catch:touchend="touchEnd"
+  >
+    <template wx:if="{{ready}}" is="we-cropper" data="{{...cropperOpt}}" />
+  </view>
+  <view class="cropper-buttons">
+    <view class="crop-button cancel" bindtap="cancelCrop">取消</view>
+    <view class="crop-button confirm" bindtap="confirmCrop">使用这张</view>
+  </view>
+</view>
+<global-notification-popup id="globalNotificationPopup" />

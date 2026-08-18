@@ -1,0 +1,549 @@
+/* 页面容器 */
+.recipe-detail-container {
+  min-height: 100vh;
+  background-color: #FFF9ED;
+  position: relative;
+}
+
+/* 头图区域 */
+.hero-section {
+  position: relative;
+  height: 400rpx;
+  overflow: hidden;
+}
+
+.hero-swipe {
+  width: 100%;
+  height: 100%;
+}
+
+.hero-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+
+.hero-nav {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 44rpx 48rpx 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+}
+
+.nav-btn {
+  width: 80rpx;
+  height: 80rpx;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20rpx);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.nav-btn:active {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(0.95);
+}
+
+.share-native-button,
+.share-action-button {
+  margin: 0;
+  border: 0;
+  line-height: normal;
+  box-sizing: border-box;
+}
+
+.share-native-button {
+  padding: 0;
+}
+
+.share-native-button::after,
+.share-action-button::after {
+  border: 0;
+}
+
+.nav-actions {
+  display: flex;
+  gap: 24rpx;
+}
+
+/* 菜谱核心信息区域 */
+.recipe-info-section {
+  background: #ffffff;
+  padding: 48rpx;
+  border-bottom: 1rpx solid #F5ECE6;
+}
+
+.recipe-info-card {
+  text-align: left;
+}
+
+.recipe-title {
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #3F302B;
+  margin-bottom: 16rpx;
+  line-height: 1.2;
+}
+
+.recipe-description {
+  font-size: 28rpx;
+  color: #8C7770;
+  line-height: 1.5;
+  margin-bottom: 0;
+}
+
+
+/* 内容卡片区域 */
+.content-card {
+  background: #ffffff;
+  min-height: calc(100vh - 400rpx);
+  padding-bottom: calc(120rpx + env(safe-area-inset-bottom, 0));
+}
+
+.section {
+  padding: 48rpx 48rpx 0;
+  border-bottom: 1rpx solid #F5ECE6;
+}
+
+.section:last-child {
+  border-bottom: none;
+  padding-bottom: 48rpx;
+}
+
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #3F302B;
+  margin-bottom: 20rpx;
+}
+
+
+/* 标签容器 */
+.tag-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-bottom: 32rpx;
+}
+
+.recipe-tag {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 24rpx;
+  border-radius: 32rpx;
+  font-size: 24rpx;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.recipe-tag:active {
+  transform: scale(0.95);
+}
+
+.tag-emoji {
+  font-size: 28rpx;
+}
+
+.tag-scene {
+  background: linear-gradient(135deg, #E85D4A, #D94A3A);
+  color: #ffffff;
+}
+
+.tag-ingredient {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #ffffff;
+}
+
+.tag-optional {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+/* 制作信息网格 */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24rpx;
+}
+
+.info-item {
+  text-align: center;
+  padding: 32rpx 24rpx;
+  background: #FFF9ED;
+  border-radius: 24rpx;
+  transition: all 0.3s ease;
+}
+
+.info-item:active {
+  background: #E8DED8;
+  transform: scale(0.95);
+}
+
+.info-number {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #3F302B;
+  margin-bottom: 8rpx;
+}
+
+.info-label {
+  font-size: 24rpx;
+  color: #8C7770;
+}
+
+/* 食材清单 */
+.ingredient-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.ingredient-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 32rpx;
+  background: #FFF9ED;
+  border-radius: 24rpx;
+  border: 2rpx solid transparent;
+  transition: all 0.3s ease;
+}
+
+.ingredient-item:active {
+  background: #E8DED8;
+}
+
+.ingredient-name {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #3F302B;
+  flex: 1;
+}
+
+.ingredient-amount {
+  font-size: 24rpx;
+  color: #E85D4A;
+  font-weight: 500;
+  margin-left: 16rpx;
+}
+
+
+/* 制作步骤 */
+.step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 32rpx;
+}
+
+.step-item {
+  display: flex;
+  gap: 24rpx;
+  transition: all 0.3s ease;
+}
+
+
+.step-number {
+  width: 64rpx;
+  height: 64rpx;
+  background: linear-gradient(135deg, #E85D4A, #D94A3A);
+  color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 28rpx;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+
+.step-content {
+  flex: 1;
+  padding-top: 8rpx;
+}
+
+.step-text {
+  font-size: 28rpx;
+  color: #6E5852;
+  line-height: 1.6;
+  margin-bottom: 16rpx;
+}
+
+.step-image {
+  width: 100%;
+  height: 240rpx;
+  border-radius: 24rpx;
+  overflow: hidden;
+  margin-bottom: 16rpx;
+  transition: all 0.3s ease;
+}
+
+.step-image:active {
+  transform: scale(0.98);
+}
+
+.step-image image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.xiaohongshu-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 32rpx;
+  border-radius: 20rpx;
+  background: #fef2f2;
+  color: #ef4444;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.xiaohongshu-link:active {
+  background: #fee2e2;
+}
+
+
+
+/* 创建者信息 */
+.creator-info {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+}
+
+.creator-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  background: linear-gradient(135deg, #E85D4A, #8b5cf6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 32rpx;
+  font-weight: 600;
+  overflow: hidden;
+}
+
+.creator-avatar image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.creator-details {
+  flex: 1;
+}
+
+.creator-name {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #3F302B;
+  margin-bottom: 8rpx;
+}
+
+.creator-time {
+  font-size: 24rpx;
+  color: #8C7770;
+}
+
+.creator-action {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 24rpx;
+  color: #E85D4A;
+  transition: all 0.3s ease;
+}
+
+.creator-action:active {
+  color: #D94A3A;
+  transform: scale(0.95);
+}
+
+/* 底部操作按钮 */
+.action-buttons {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  padding: 24rpx 48rpx;
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom, 0));
+  border-top: 1rpx solid #F5ECE6;
+  z-index: 100;
+}
+
+/* 草稿状态：三按钮布局 */
+.action-buttons-draft {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1fr;
+  gap: 16rpx;
+}
+
+/* 已发布状态：两按钮布局 */
+.action-buttons-published {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24rpx;
+}
+
+.action-buttons-visitor {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24rpx;
+}
+
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  padding: 24rpx 16rpx;
+  border-radius: 24rpx;
+  font-size: 24rpx;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.action-btn:active {
+  transform: scale(0.95);
+}
+
+.action-btn.secondary {
+  background: #F5ECE6;
+  color: #8C7770;
+}
+
+.action-btn.secondary:active {
+  background: #E8DED8;
+}
+
+.action-btn.primary {
+  background: linear-gradient(135deg, #E85D4A, #D94A3A);
+  color: #ffffff;
+  box-shadow: 0 8rpx 24rpx rgba(232, 93, 74, 0.3);
+}
+
+.action-btn.primary:active {
+  transform: scale(0.95);
+  box-shadow: 0 4rpx 16rpx rgba(232, 93, 74, 0.4);
+}
+
+.action-btn.danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #ffffff;
+  box-shadow: 0 8rpx 24rpx rgba(239, 68, 68, 0.3);
+}
+
+.action-btn.danger:active {
+  transform: scale(0.95);
+  box-shadow: 0 4rpx 16rpx rgba(239, 68, 68, 0.4);
+}
+
+
+/* 加载状态 */
+.page-loading {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+}
+
+/* 响应式适配 */
+@media (max-width: 375px) {
+  .hero-section {
+    height: 480rpx;
+  }
+  
+  .recipe-title {
+    font-size: 40rpx;
+  }
+  
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 16rpx;
+  }
+  
+  .recipe-meta {
+    gap: 16rpx;
+  }
+}
+
+/* 安全区域适配 */
+.action-buttons {
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom, 0));
+}
+
+/* 动画效果 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(40rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.section {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.step-item {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+/* Vant组件样式重置 */
+
+.van-button--mini {
+  font-size: 24rpx !important;
+  height: 60rpx !important;
+  line-height: 60rpx !important;
+}
+
+.van-rate {
+  display: flex !important;
+  justify-content: center;
+}
+
+/* 滚动优化 */
+.content-card {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 图片懒加载优化 */
+.hero-image,
+.step-image image {
+  transition: opacity 0.3s ease;
+}
+
+.hero-image[data-loaded="false"],
+.step-image image[data-loaded="false"] {
+  opacity: 0;
+}
+
+.hero-image[data-loaded="true"],
+.step-image image[data-loaded="true"] {
+  opacity: 1;
+}

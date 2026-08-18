@@ -1,0 +1,56 @@
+<view class="notification-page">
+  <login-prompt id="loginPrompt" />
+  <view wx:if="{{loading}}" class="state">
+    <text>消息加载中...</text>
+  </view>
+
+  <view wx:elif="{{notifications.length === 0}}" class="state empty">
+    <text class="empty-icon">🔔</text>
+    <text class="empty-title">还没有新消息</text>
+    <text class="empty-desc">投喂动态、饭愿和祝福都会记录在这里</text>
+  </view>
+
+  <view wx:else class="notification-list">
+    <view class="message-summary">
+      <view class="summary-icon">🔔</view>
+      <view class="summary-copy">
+        <text class="summary-title">饭搭子的暖心动态</text>
+        <text class="summary-desc">{{unreadCount ? '还有 ' + unreadCount + ' 条消息等你查看' : '消息都看完啦，记得回应 TA'}}</text>
+      </view>
+      <button
+        wx:if="{{unreadCount}}"
+        class="mark-all-button"
+        loading="{{markingAllRead}}"
+        disabled="{{markingAllRead}}"
+        bindtap="markAllRead"
+      >{{markingAllRead ? '处理中' : '全部已读'}}</button>
+      <view wx:else class="all-read-badge">✓</view>
+    </view>
+
+    <view
+      wx:for="{{notifications}}"
+      wx:key="_id"
+      class="notification-card {{item.read ? 'read' : 'unread'}}"
+      data-id="{{item._id}}"
+      data-page="{{item.targetPage}}"
+      bindtap="openNotification"
+    >
+      <view class="notification-icon {{item.themeClass}}">
+        <text>{{item.icon}}</text>
+        <view wx:if="{{!item.read}}" class="icon-dot"></view>
+      </view>
+      <view class="notification-main">
+        <view class="notification-head">
+          <text class="type-label {{item.themeClass}}">{{item.typeLabel}}</text>
+          <text wx:if="{{!item.read}}" class="unread-label">新消息</text>
+        </view>
+        <text class="notification-title">{{item.title}}</text>
+        <text class="notification-content">{{item.content}}</text>
+        <view class="notification-footer">
+          <text class="notification-time">{{item.displayTime}}</text>
+          <text class="notification-action">查看详情 <text class="action-arrow">›</text></text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

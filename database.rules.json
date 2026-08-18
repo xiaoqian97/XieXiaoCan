@@ -1,0 +1,58 @@
+{
+  "users": {
+    "read": false,
+    "write": false
+  },
+  "recipes": {
+    "read": false,
+    "write": false
+  },
+  "orders": {
+    "read": false,
+    "write": false
+  },
+  "friends": {
+    "read": false,
+    "write": false
+  },
+  "friend_requests": {
+    "read": false,
+    "write": false
+  },
+  "wishes": {
+    "read": false,
+    "write": false
+  },
+  "notifications": {
+    "read": false,
+    "write": false
+  },
+  "favorites": {
+    "read": false,
+    "write": false
+  },
+  "carts": {
+    "read": false,
+    "write": false
+  },
+  "feeding_stats": {
+    "read": false,
+    "write": false
+  },
+  "app_config": {
+    "read": false,
+    "write": false
+  },
+  "admin_logs": {
+    "read": false,
+    "write": false
+  },
+  "feedbacks": {
+    "read": false,
+    "write": false
+  },
+  "blessings": {
+    "read": false,
+    "write": false
+  }
+}

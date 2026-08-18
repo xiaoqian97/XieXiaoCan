@@ -1,0 +1,269 @@
+<wxs src="/utils/wxs/filter-utils.wxs" module="filterUtils" />
+<view class="recipe-list-container">
+  <login-prompt id="loginPrompt" />
+  
+  <!-- 头部 -->
+  <view class="header-section">
+    <view class="header-content">
+      <!-- 搜索框 -->
+      <view class="search-wrapper">
+        <van-field
+          value="{{searchValue}}"
+          placeholder="今天吃什么？搜索菜名或食材..."
+          bind:input="onSearchInput"
+          bind:confirm="onSearchConfirm"
+          clearable
+          left-icon="search"
+          custom-style="background: #F5ECE6; border-radius: 16px; border: none;"
+        />
+      </view>
+      
+      <!-- 添加按钮 -->
+      <!-- <view class="add-btn" bindtap="onAddClick">
+        <van-icon name="plus" size="20px" color="#fff" />
+      </view> -->
+    </view>
+  </view>
+
+  <!-- 状态筛选器 -->
+  <view wx:if="{{canCreateRecipe}}" class="status-filter-section">
+    <view class="status-filter-tabs">
+      <block wx:for="{{statusOptions}}" wx:key="id">
+        <view 
+          class="status-tab {{selectedStatus === item.id ? 'active' : ''}}"
+          data-status="{{item.id}}"
+          bindtap="onStatusFilterChange"
+        >
+          <text class="status-name">{{item.name}}</text>
+          <text class="status-count" wx:if="{{item.count > 0}}">({{item.count}})</text>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <!-- 场景分类（主要筛选） -->
+  <view class="scene-section">
+    <!-- <view class="section-header">
+      <text class="section-title">按场景选择</text>
+    </view> -->
+    <view class="scene-grid">
+      <block wx:for="{{sceneCategories}}" wx:key="id">
+        <view
+          class="scene-tag scene-tag-{{item.id}} {{currentQuickFilter === item.id ? 'active' : ''}}"
+          data-sceneid="{{item.id}}"
+          bindtap="onQuickFilterChange"
+        >
+          <view class="scene-emoji">{{item.emoji}}</view>
+          <view class="scene-name">{{item.shortName}}</view>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <!-- 食材快速筛选 -->
+  <view class="ingredient-section">
+    <view class="section-header">
+      <text class="section-title">食材筛选</text>
+      <view class="more-filter-btn" bindtap="onFilterClick">
+        <text class="more-filter-text">更多筛选</text>
+        <van-icon name="arrow-down" size="12px" color="#E85D4A" />
+      </view>
+    </view>
+    <scroll-view class="ingredient-scroll" scroll-x="true" show-scrollbar="{{false}}">
+      <view class="ingredient-list">
+        <block wx:for="{{ingredientCategories}}" wx:key="id" wx:if="{{index < 6}}">
+          <view
+            class="ingredient-tag {{selectedIngredients.indexOf(item.id) !== -1 ? 'selected' : ''}}"
+            data-id="{{item.id}}"
+            bindtap="onIngredientToggle"
+          >
+            <text class="ingredient-emoji">{{item.emoji}}</text>
+            <text class="ingredient-name">{{item.name}}</text>
+          </view>
+        </block>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 已选筛选条件显示 -->
+  <view wx:if="{{hasActiveFilters}}" class="selected-filters">
+    <view class="selected-filters-header">
+      <text class="selected-filters-label">当前筛选：</text>
+      <view class="reset-filters-btn" bindtap="onResetAllFilters">
+        <van-icon name="refresh" size="14px" color="#E85D4A" />
+        <text class="reset-text">重置</text>
+      </view>
+    </view>
+    <scroll-view class="selected-filters-scroll" scroll-x="true" show-scrollbar="{{false}}">
+      <view class="selected-filters-list">
+        
+        <!-- 快速筛选 -->
+        <block wx:if="{{currentQuickFilter}}">
+          <view class="selected-filter-item quick-filter">
+            <text>{{currentQuickFilterName}}</text>
+            <van-icon name="cross" size="12px" bind:click="onRemoveQuickFilter" />
+          </view>
+        </block>
+
+        <!-- 场景筛选 -->
+        <block wx:for="{{selectedScenes}}" wx:key="*this">
+          <view class="selected-filter-item scene-filter">
+            <text>{{filterUtils.getSceneName(sceneCategories, item)}}</text>
+            <van-icon name="cross" size="12px" data-id="{{item}}" bind:click="onRemoveScene" />
+          </view>
+        </block>
+
+        <!-- 食材筛选 -->
+        <block wx:for="{{selectedIngredients}}" wx:key="*this">
+          <view class="selected-filter-item ingredient-filter">
+            <text>{{filterUtils.getIngredientName(ingredientCategories, item)}}</text>
+            <van-icon name="cross" size="12px" data-id="{{item}}" bind:click="onRemoveIngredient" />
+          </view>
+        </block>
+
+        <!-- 可选标签筛选 -->
+        <block wx:for="{{selectedOptionalTags}}" wx:key="*this">
+          <view class="selected-filter-item optional-tag-filter">
+            <text>{{filterUtils.getOptionalTagName(cookingMethods, flavorTypes, item)}}</text>
+            <van-icon name="cross" size="12px" data-id="{{item}}" bind:click="onRemoveOptionalTag" />
+          </view>
+        </block>
+
+        <!-- 时间筛选 -->
+        <block wx:if="{{selectedTime}}">
+          <view class="selected-filter-item time-filter">
+            <text>{{selectedTimeLabel}}</text>
+            <van-icon name="cross" size="12px" bind:click="onRemoveTimeFilter" />
+          </view>
+        </block>
+
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 高级筛选面板 -->
+  <view wx:if="{{showFilter}}" class="advanced-filter-panel">
+    <view class="advanced-filter-content">
+      <!-- 制作时间 -->
+      <view class="filter-group">
+        <text class="filter-group-title">上桌时间</text>
+        <view class="filter-options">
+          <block wx:for="{{timeOptions}}" wx:key="id">
+            <view class="filter-option {{selectedTime === item.id ? 'selected' : ''}}" bindtap="onTimeFilterToggle" data-time="{{item.id}}">
+              <text class="option-emoji">{{item.emoji}}</text>
+              <text class="option-text">{{item.label}}</text>
+            </view>
+          </block>
+        </view>
+      </view>
+      
+
+      <!-- 烹饪方式 -->
+      <view class="filter-group">
+        <text class="filter-group-title">烹饪方式</text>
+        <view class="filter-tags">
+          <block wx:for="{{cookingMethods}}" wx:key="id">
+            <view
+              class="filter-tag {{selectedOptionalTags.indexOf(item.id) !== -1 ? 'selected' : ''}}"
+              data-id="{{item.id}}"
+              bindtap="onOptionalTagToggle"
+            >
+              <text>{{item.emoji}} {{item.name}}</text>
+            </view>
+          </block>
+        </view>
+      </view>
+
+      <!-- 口味特色 -->
+      <view class="filter-group">
+        <text class="filter-group-title">口味特色</text>
+        <view class="filter-tags">
+          <block wx:for="{{flavorTypes}}" wx:key="id">
+            <view
+              class="filter-tag {{selectedOptionalTags.indexOf(item.id) !== -1 ? 'selected' : ''}}"
+              data-id="{{item.id}}"
+              bindtap="onOptionalTagToggle"
+            >
+              <text>{{item.emoji}} {{item.name}}</text>
+            </view>
+          </block>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 菜谱列表 -->
+  <view class="recipe-list">
+    <block wx:for="{{recipes}}" wx:key="_id">
+      <recipe-item 
+        recipe="{{item}}"
+        show-status="{{canCreateRecipe}}"
+        show-cart-action="{{false}}"
+        show-favorite-info="{{canCreateRecipe}}"
+        show-stats="{{true}}"
+        show-view-stats="{{canCreateRecipe}}"
+        cooking-methods="{{cookingMethods}}"
+        flavor-types="{{flavorTypes}}"
+        bind:recipeclick="onRecipeClick"
+        bind:favoriteinfo="onFavoriteInfo"
+      />
+    </block>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading && recipes.length === 0}}" class="loading-state">
+    <van-loading size="24px" />
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 加载更多 -->
+  <view wx:if="{{loading && recipes.length > 0}}" class="load-more">
+    <van-loading size="20px" />
+    <text>加载更多...</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:if="{{!loading && recipes.length === 0}}" class="empty-state">
+    <text class="empty-emoji">🍳</text>
+    <text class="empty-title">{{needsFixedFeeder ? '还没有固定投喂官' : '还没有菜谱'}}</text>
+    <text class="empty-desc">{{needsFixedFeeder ? '先去“我的饭搭子”设置一位固定投喂官' : (canCreateRecipe ? '赶快添加第一道菜吧' : '固定投喂官还没有发布菜谱')}}</text>
+    <van-button wx:if="{{canCreateRecipe}}" type="primary" size="large" bind:click="onAddClick">
+      添一道拿手菜
+    </van-button>
+  </view>
+
+  <!-- 没有更多 -->
+  <view wx:if="{{!loading && !hasMore && recipes.length > 0}}" class="no-more">
+    <text>— 已经到底了 —</text>
+  </view>
+
+  <!-- 悬浮添加按钮 -->
+  <view wx:if="{{canCreateRecipe}}" class="fab" bindtap="onAddClick">
+    <van-icon name="plus" size="24px" color="#fff" />
+  </view>
+
+  <view wx:if="{{showFavoriteModal}}" class="favorite-modal-mask" bindtap="closeFavoriteModal" catchtouchmove="stopPropagation">
+    <view class="favorite-modal" catchtap="stopPropagation">
+      <view class="favorite-modal-header">
+        <view class="favorite-modal-heading">
+          <text class="favorite-modal-title">{{favoriteModalTitle}}的收藏者</text>
+          <text class="favorite-modal-count">共 {{favoriteUserTotal}} 人收藏</text>
+        </view>
+        <view class="favorite-modal-close" bindtap="closeFavoriteModal">×</view>
+      </view>
+
+      <scroll-view class="favorite-user-scroll" scroll-y="true" show-scrollbar="{{false}}">
+        <view class="favorite-user-list">
+          <view wx:for="{{favoriteUsers}}" wx:key="openid" class="favorite-user-pill">
+            <image class="favorite-user-avatar" src="{{item.displayAvatar}}" mode="aspectFill" />
+            <text class="favorite-user-name">{{item.nickname || '微信用户'}}</text>
+          </view>
+        </view>
+      </scroll-view>
+
+      <text wx:if="{{favoriteUserTotal > 20}}" class="favorite-modal-limit">仅展示前 20 位收藏者</text>
+      <button class="favorite-modal-confirm" bindtap="closeFavoriteModal">知道了</button>
+    </view>
+  </view>
+</view>
+<global-notification-popup id="globalNotificationPopup" />

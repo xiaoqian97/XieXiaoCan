@@ -1,0 +1,10 @@
+{
+  "navigationStyle": "custom",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "backgroundColor": "#FFF9ED",
+  "usingComponents": {
+    "safe-area-layout": "/components/safe-area-layout/safe-area-layout",
+    "login-prompt": "/components/login-prompt/login-prompt"
+  }
+}

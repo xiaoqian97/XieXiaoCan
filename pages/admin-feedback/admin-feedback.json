@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "反馈与建议",
+  "navigationBarBackgroundColor": "#FFF9ED",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#FFF9ED",
+  "enablePullDownRefresh": true
+}

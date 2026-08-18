@@ -1,0 +1,147 @@
+<!-- 页面容器 -->
+<view class="page-container safe-area-top">
+
+  <!-- 登录提示组件 -->
+  <login-prompt 
+    id="loginPrompt"
+    visible="{{showLoginPrompt}}"
+    content="{{promptContent}}"
+    bind:close="onPromptClose"
+    bind:login="onPromptLogin"
+  />
+
+  <!-- 头部用户信息 -->
+  <view class="header-section">
+    <view class="user-info">
+      <view class="greeting">
+        <text class="greeting-text">早上好，{{userInfo ? userInfo.nickname : '用户'}}</text>
+        <text class="sub-text">今天投喂什么？</text>
+      </view>
+    </view>
+
+    <!-- 搜索框 -->
+    <view class="search-container">
+      <text class="iconfont icon-search search-icon"></text>
+      <input 
+        class="search-input" 
+        placeholder="搜一搜今天想吃的"
+        placeholder-class="placeholder"
+        bindfocus="onSearchClick"
+      />
+    </view>
+  </view>
+
+  <!-- 快捷功能网格 -->
+  <view class="quick-grid">
+    <block wx:if="{{isChef}}">
+      <view class="feature-card" bindtap="onAddRecipeClick">
+        <view class="icon-container gradient-green floating">
+          <image class="feature-icon-img" src="/images/home-recipe-cute.png" mode="aspectFit"></image>
+        </view>
+        <text class="feature-text">添一道拿手菜</text>
+      </view>
+
+      <view class="feature-card" bindtap="onOrderClick">
+        <view class="icon-container gradient-purple floating" style="animation-delay: 0.2s;">
+          <image class="feature-icon-img" src="/images/home-feed-cute.png" mode="aspectFit"></image>
+        </view>
+        <text class="feature-text">开始投喂</text>
+      </view>
+    </block>
+
+    <block wx:else>
+      <view class="feature-card" bindtap="onOrderClick">
+        <view class="icon-container gradient-purple floating">
+          <image class="feature-icon-img" src="/images/home-feed-cute.png" mode="aspectFit"></image>
+        </view>
+        <text class="feature-text">开始点餐</text>
+      </view>
+
+      <view class="feature-card" bindtap="onAddRecipeClick">
+        <view class="icon-container gradient-green floating" style="animation-delay: 0.2s;">
+          <image class="feature-icon-img" src="/images/home-recipe-cute.png" mode="aspectFit"></image>
+        </view>
+        <text class="feature-text">许个饭愿</text>
+      </view>
+    </block>
+    
+    <view class="feature-card" bindtap="onFriendsClick">
+      <view class="icon-container gradient-orange floating" style="animation-delay: 0.4s;">
+        <view class="feature-icon wish-icon">
+          <view class="wish-paper">
+            <view class="wish-heart"></view>
+            <view class="wish-line line-short"></view>
+            <view class="wish-line"></view>
+          </view>
+        </view>
+      </view>
+      <text class="feature-text">{{isChef ? '待投喂清单' : '查看愿望'}}</text>
+    </view>
+  </view>
+
+  <!-- 推荐菜谱区域 -->
+  <view class="hot-recipes">
+    <view class="section-header">
+      <text class="section-title">今日小馋推荐</text>
+      <view wx:if="{{isChef && !loading && recommendRecipes.length === 0}}" class="view-more" bindtap="onEmptyRecommendAdd">
+        <text class="more-text">去添加</text>
+        <text class="iconfont icon-arrow-right"></text>
+      </view>
+      <view wx:else class="view-more" bindtap="onMoreClick">
+        <text class="more-text">再看看</text>
+        <text class="iconfont icon-arrow-right"></text>
+      </view>
+    </view>
+
+    <view wx:if="{{loading}}" class="loading-container">
+      <text class="loading-text">小馋正在翻菜谱...</text>
+    </view>
+
+    <view wx:elif="{{recommendRecipes.length > 0}}" class="recipes-list">
+      <view 
+        wx:for="{{recommendRecipes}}" 
+        wx:key="_id" 
+        class="recipe-card"
+        data-id="{{item._id}}"
+        bindtap="onRecipeClick"
+      >
+        <view class="recipe-image-container">
+          <image class="recipe-image" src="{{item.image ? item.image : '/images/default-recipe.jpg'}}" mode="aspectFill"></image>
+          <view
+            class="favorite-button {{item.isFavorited ? 'active' : ''}} {{item.favoriteLoading ? 'loading' : ''}}"
+            data-id="{{item._id}}"
+            catchtap="onFavoriteTap"
+          >
+            <text class="favorite-icon">{{item.isFavorited ? '♥' : '♡'}}</text>
+          </view>
+        </view>
+        
+        <view class="recipe-content">
+          <text class="recipe-title">{{item.title}}</text>
+          <text class="recipe-desc">{{item.description}}</text>
+          
+          <view class="recipe-meta">
+            <view class="meta-item">
+              <text class="iconfont icon-clock"></text>
+              <text class="meta-text">{{item.cookTime}}分钟</text>
+            </view>
+            <view class="meta-item">
+              <text class="iconfont icon-star"></text>
+              <text class="meta-text">{{item.ratingCount ? item.ratingAverage : '暂无评分'}}</text>
+            </view>
+            <view class="meta-item views">
+              <text class="iconfont icon-eye"></text>
+              <text class="meta-text">{{item.viewCountDisplay}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view wx:else class="empty-container">
+      <text class="empty-icon">🍳</text>
+      <text class="empty-text">{{recommendNeedsFixedFeeder ? '先绑定并设置固定投喂官，才能看到 TA 的菜谱' : '小馋今天还没想好推荐'}}</text>
+    </view>
+  </view>
+</view>
+<global-notification-popup id="globalNotificationPopup" />

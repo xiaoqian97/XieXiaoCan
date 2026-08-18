@@ -1,0 +1,150 @@
+<view class="login-container">
+  <!-- 浮动装饰 -->
+  <view class="floating-shapes">
+    <view class="shape"></view>
+    <view class="shape"></view>
+    <view class="shape"></view>
+  </view>
+  
+  <!-- 顶部Logo区域 -->
+  <view class="logo-section">
+    <view class="logo">
+      <image class="logo-image" src="/images/xie-xiaochan-logo.png" mode="aspectFill"></image>
+    </view>
+    <text class="app-name">谢小馋</text>
+    <text class="app-desc">不做选择题，只做投喂题！</text>
+    <view class="logo-dots">
+      <view class="dot"></view>
+      <view class="dot active"></view>
+      <view class="dot"></view>
+    </view>
+  </view>
+
+  <!-- 登录区域 -->
+  <view class="login-section">
+    <view wx:if="{{registrationLoading && !hasUserInfo}}" class="login-area account-state-card">
+      <view class="account-loading-ring"></view>
+      <text class="account-state-title">正在识别账号</text>
+      <text class="account-state-desc">看看是不是熟悉的小馋客...</text>
+    </view>
+
+    <view wx:elif="{{registrationError && !hasUserInfo}}" class="login-area account-state-card">
+      <text class="account-state-icon">!</text>
+      <text class="account-state-title">账号信息没加载出来</text>
+      <text class="account-state-desc">{{registrationError}}</text>
+      <button class="login-btn retry-login-btn" bindtap="onRetryRegistrationState">重新加载</button>
+    </view>
+
+    <view wx:elif="{{isReturningUser && !hasUserInfo}}" class="login-area returning-area">
+      <text class="returning-title">欢迎回来</text>
+      <image class="returning-avatar" src="{{returningAvatar || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+      <text class="returning-name">{{returningUserInfo.nickname}}</text>
+      <text class="returning-desc">资料和身份已为你保存，无需重新填写</text>
+      <button class="login-btn" bindtap="enterApp">登录并进入</button>
+      <button class="preview-btn" bindtap="enterPreviewMode">暂不登录，返回首页</button>
+    </view>
+
+    <view wx:elif="{{!hasUserInfo}}" class="login-area">
+      <view class="login-tips">
+        <text class="tips-title">启动干饭模式</text>
+        <!-- <text class="tips-desc">请选择头像并填写昵称</text> -->
+      </view>
+
+      <button class="avatar-picker" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+        <image class="avatar-preview" src="{{avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+        <text>选个投喂头像</text>
+      </button>
+
+      <input
+        class="nickname-input"
+        type="nickname"
+        maxlength="20"
+        value="{{nickname}}"
+        placeholder="填个好认的昵称"
+        bindinput="onNicknameInput"
+      />
+
+      <!-- 资料完成后进入身份选择 -->
+      <button class="login-btn" disabled="{{!hasAgreed || !avatarUrl || !nickname}}" bindtap="onLoginTap">
+        <text>{{needsRoleSelection ? '选择身份' : '启动投喂关系'}}</text>
+      </button>
+
+      <button class="preview-btn" bindtap="enterPreviewMode">暂不登录，返回首页</button>
+
+      <view class="agreement">
+        <checkbox-group bindchange="onAgreementChange">
+          <label class="agreement-check">
+            <checkbox value="agreed" checked="{{hasAgreed}}" color="#E85D4A" />
+            <text>我已阅读并同意</text>
+          </label>
+        </checkbox-group>
+        <view class="agreement-links">
+          <text class="agreement-link" data-type="service" bindtap="onOpenAgreement">《用户服务协议》</text>
+          <text>和</text>
+          <text class="agreement-link" data-type="privacy" bindtap="onOpenAgreement">《隐私政策》</text>
+        </view>
+      </view>
+
+    </view>
+
+    <!-- 已登录状态 -->
+    <view wx:else class="logged-in">
+      <image class="user-avatar" src="{{userInfo.avatar}}"></image>
+      <text class="user-name">{{userInfo.nickname}}</text>
+      <text class="login-success">干饭模式已启动</text>
+
+      <button class="avatar-picker compact" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+        <image class="avatar-preview" src="{{avatarUrl || userInfo.avatar || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+        <text>更新投喂头像</text>
+      </button>
+
+      <input
+        class="nickname-input"
+        type="nickname"
+        maxlength="20"
+        value="{{nickname}}"
+        placeholder="填个好认的昵称"
+        bindinput="onNicknameInput"
+      />
+
+      <button class="enter-btn" bindtap="onLoginTap">{{needsRoleSelection ? '选择身份' : '更新资料并开饭'}}</button>
+      <button class="enter-btn" bindtap="enterApp">进入谢小馋</button>
+      <button class="logout-btn" bindtap="logout">退出登录</button>
+    </view>
+  </view>
+
+  <!-- 身份选择弹窗 -->
+  <view wx:if="{{showRoleModal}}" class="role-modal-mask" bindtap="onCloseRoleModal">
+    <view class="role-modal" catchtap="stopPropagation">
+      <view class="role-modal-close" bindtap="onCloseRoleModal">×</view>
+      <view class="role-modal-icon">🍽️</view>
+      <text class="role-modal-title">选择你的身份</text>
+      <text class="role-modal-desc">请选择最符合你的使用方式</text>
+
+      <view class="role-options modal-options">
+        <view class="role-card {{selectedRole === 'chef' ? 'selected' : ''}}" data-role="chef" bindtap="onRoleSelect">
+          <text class="role-icon">🍳</text>
+          <view class="role-content">
+            <text class="role-name">投喂官</text>
+            <text class="role-desc">负责做饭、管理菜品和接收投喂单</text>
+          </view>
+          <text class="role-check">{{selectedRole === 'chef' ? '✓' : ''}}</text>
+        </view>
+        <view class="role-card {{selectedRole === 'consumer' ? 'selected' : ''}}" data-role="consumer" bindtap="onRoleSelect">
+          <text class="role-icon">🥢</text>
+          <view class="role-content">
+            <text class="role-name">点菜人</text>
+            <text class="role-desc">负责挑选菜品、加入饭篮和提交菜单</text>
+          </view>
+          <text class="role-check">{{selectedRole === 'consumer' ? '✓' : ''}}</text>
+        </view>
+      </view>
+
+      <view class="role-modal-warning">
+        <text class="warning-icon">!</text>
+        <text>身份确认后本人无法修改，如需变更请联系管理员“小千”</text>
+      </view>
+      <button class="role-confirm-btn" disabled="{{!selectedRole}}" bindtap="onRoleConfirm">启动投喂关系</button>
+    </view>
+  </view>
+</view>

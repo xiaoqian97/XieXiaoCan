@@ -1,0 +1,308 @@
+<view class="container">
+  <!-- 登录提示组件 -->
+  <login-prompt 
+    id="loginPrompt"
+    visible="{{showLoginPrompt}}"
+    content="{{promptContent}}"
+    bind:close="onPromptClose"
+    bind:login="onPromptLogin"
+  />
+
+  <!-- 头部渐变背景 -->
+  <view class="gradient-header">
+    <!-- 装饰性背景元素 -->
+    <view class="decorative-circle circle-1"></view>
+    <view class="decorative-circle circle-2"></view>
+    
+
+    <!-- 用户信息区域 -->
+    <view class="user-info-section">
+      <view class="avatar-section">
+        <image class="user-avatar" src="{{displayAvatar || userInfo.avatar || '/images/default-avatar.png'}}" bindtap="onAvatarClick"></image>
+      </view>
+      
+      <view class="user-details">
+        <view class="name-section">
+          <text class="user-name">{{userInfo.nickname || '未登录用户'}}</text>
+          <view class="vip-badge" wx:if="{{userInfo.vipLevel}}">VIP</view>
+          <text class="edit-nickname-btn" bindtap="onEditNickname" wx:if="{{!isPreviewMode}}">✏️</text>
+        </view>
+
+        <view class="identity-badge {{identityClass}}">
+          <view class="identity-dot"></view>
+          <text>{{identityText}}</text>
+        </view>
+        
+        <text class="user-bio" wx:if="{{userInfo.bio}}">{{userInfo.bio}}</text>
+        
+        <view class="stats-section">
+          <view class="stat-item">
+            <text class="stat-number">{{userInfo.recipeCount || 0}}</text>
+            <text class="stat-label">菜谱</text>
+          </view>
+          <view class="stat-item">
+            <text class="stat-number">{{userInfo.likeCount || 0}}</text>
+            <text class="stat-label">获赞</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="header-buttons">
+        <view class="header-btn" bindtap="onNotifications">
+          <text class="icon">🔔</text>
+          <text wx:if="{{unreadNotificationCount > 0}}" class="notification-badge">{{unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}}</text>
+        </view>
+        <view class="header-btn" bindtap="onSettings">
+          <text class="icon">⚙️</text>
+        </view>
+      </view>
+    </view>
+
+  </view>
+
+  <!-- 内容区域 -->
+  <view class="content-section">
+    <!-- 快捷功能网格 -->
+    <view class="quick-actions-grid">
+      <view class="quick-action" bindtap="onMyRecipes">
+        <view class="action-icon recipes">
+          <text class="icon">📖</text>
+        </view>
+        <text class="action-label">我的菜谱</text>
+      </view>
+      <view class="quick-action" bindtap="onMyFavorites">
+        <view class="action-icon favorites">
+          <text class="icon">❤️</text>
+        </view>
+        <text class="action-label">我的收藏</text>
+      </view>
+      <view class="quick-action" bindtap="onStatistics">
+        <view class="action-icon statistics">
+          <text class="icon">📊</text>
+        </view>
+        <text class="action-label">投喂记忆</text>
+      </view>
+      <view class="quick-action" bindtap="onFriends">
+        <view class="action-icon friends">
+          <text class="icon">👩‍❤️‍👨</text>
+        </view>
+        <text class="action-label">我的饭搭子</text>
+      </view>
+    </view>
+
+    <!-- 菜单列表 -->
+    <view class="menu-list">
+      <view class="menu-item admin-entry" wx:if="{{userInfo.isAdmin || userInfo.role === 'admin'}}" bindtap="onAdminCenter">
+        <view class="menu-item-left">
+          <view class="menu-icon admin"><text class="icon">♛</text></view>
+          <view class="admin-entry-text">
+            <text class="menu-text">管理员工作台</text>
+            <text class="admin-entry-desc">用户身份与投喂关系管理</text>
+          </view>
+        </view>
+        <view class="menu-item-right"><text class="menu-arrow">›</text></view>
+      </view>
+
+      <view class="menu-item" bindtap="onBlessings">
+        <view class="menu-item-left">
+          <view class="menu-icon blessings"><text class="icon">💌</text></view>
+          <text class="menu-text">祝福小站</text>
+        </view>
+        <view class="menu-item-right"><text class="menu-arrow">›</text></view>
+      </view>
+
+      <view class="menu-item {{subscribeRequestPending ? 'menu-item-pending' : ''}}" bindtap="onEnableSubscribeMessages">
+        <view class="menu-item-left">
+          <view class="menu-icon notifications"><text class="icon">🔔</text></view>
+          <text class="menu-text">{{subscribeRequestPending ? '正在请求授权...' : '绑定微信提醒'}}</text>
+        </view>
+        <view class="menu-item-right"><text class="menu-arrow">›</text></view>
+      </view>
+
+      <view class="menu-item" bindtap="onFeedback">
+        <view class="menu-item-left">
+          <view class="menu-icon feedback"><text class="icon">✍️</text></view>
+          <text class="menu-text">反馈与建议</text>
+        </view>
+        <view class="menu-item-right">
+          <text wx:if="{{isPrimaryAdmin && pendingFeedbackCount > 0}}" class="feedback-count">{{pendingFeedbackCount > 99 ? '99+' : pendingFeedbackCount}}</text>
+          <text class="menu-arrow">›</text>
+        </view>
+      </view>
+
+      <view class="menu-item" bindtap="onHelp">
+        <view class="menu-item-left">
+          <view class="menu-icon help">
+            <text class="icon">❓</text>
+          </view>
+          <text class="menu-text">帮助中心</text>
+        </view>
+        <view class="menu-item-right">
+          <text class="menu-arrow">›</text>
+        </view>
+      </view>
+
+      <view class="menu-item" bindtap="onAbout">
+        <view class="menu-item-left">
+          <view class="menu-icon about">
+            <text class="icon">ℹ️</text>
+          </view>
+          <text class="menu-text">关于我</text>
+        </view>
+        <view class="menu-item-right">
+          <text class="menu-arrow">›</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 退出登录按钮 -->
+    <view class="logout-section" wx:if="{{userInfo._id}}">
+      <button class="logout-btn" bindtap="onLogout">退出登录</button>
+    </view>
+  </view>
+
+  <!-- 个人设置弹窗 -->
+  <view class="help-mask" wx:if="{{showSettingsModal}}" bindtap="onCloseSettings">
+    <view class="help-card" catchtap="stopPropagation">
+      <view class="help-close" bindtap="onCloseSettings">×</view>
+      <view class="help-icon">⚙</view>
+      <text class="help-title">个人设置</text>
+      <text class="help-subtitle">在这里完善属于你的投喂身份</text>
+
+      <view class="help-steps">
+        <view class="help-step">
+          <view class="help-step-icon wish">📷</view>
+          <view class="help-step-content">
+            <text class="help-step-title">更换头像</text>
+            <text class="help-step-desc">点击页面头像即可重新选择</text>
+          </view>
+        </view>
+        <view class="help-step-line"></view>
+        <view class="help-step">
+          <view class="help-step-icon choose">✎</view>
+          <view class="help-step-content">
+            <text class="help-step-title">修改昵称</text>
+            <text class="help-step-desc">点击昵称旁的编辑按钮即可修改</text>
+          </view>
+        </view>
+        <view class="help-step-line"></view>
+        <view class="help-step">
+          <view class="help-step-icon feed">↪</view>
+          <view class="help-step-content">
+            <text class="help-step-title">退出登录</text>
+            <text class="help-step-desc">退出入口在当前页面底部</text>
+          </view>
+        </view>
+      </view>
+
+      <button class="help-confirm" bindtap="onCloseSettings">知道啦</button>
+    </view>
+  </view>
+
+  <!-- 帮助中心弹窗 -->
+  <view class="help-mask" wx:if="{{showHelpModal}}" bindtap="onCloseHelp">
+    <view class="help-card" catchtap="stopPropagation">
+      <view class="help-close" bindtap="onCloseHelp">×</view>
+      <view class="help-icon">?</view>
+      <text class="help-title">帮助中心</text>
+      <text class="help-subtitle">简单三步，把想吃的安排上</text>
+
+      <view class="help-steps">
+        <view class="help-step">
+          <view class="help-step-icon wish">💭</view>
+          <view class="help-step-content">
+            <text class="help-step-title">许下饭愿</text>
+            <text class="help-step-desc">告诉饭搭子今天想吃什么</text>
+          </view>
+          <text class="help-step-number">01</text>
+        </view>
+        <view class="help-step-line"></view>
+        <view class="help-step">
+          <view class="help-step-icon choose">🛒</view>
+          <view class="help-step-content">
+            <text class="help-step-title">挑选菜品</text>
+            <text class="help-step-desc">把喜欢的菜放进饭篮并提交</text>
+          </view>
+          <text class="help-step-number">02</text>
+        </view>
+        <view class="help-step-line"></view>
+        <view class="help-step">
+          <view class="help-step-icon feed">🍲</view>
+          <view class="help-step-content">
+            <text class="help-step-title">等待投喂</text>
+            <text class="help-step-desc">投喂官接单后会安排上桌</text>
+          </view>
+          <text class="help-step-number">03</text>
+        </view>
+      </view>
+
+      <view class="help-contact">
+        <view class="help-contact-avatar">千</view>
+        <view class="help-contact-content">
+          <text class="help-contact-title">还有问题？</text>
+          <text class="help-contact-desc">有问题，找小千</text>
+        </view>
+        <text class="help-heart">♥</text>
+      </view>
+
+      <button class="help-confirm" bindtap="onCloseHelp">我知道啦</button>
+    </view>
+  </view>
+
+  <!-- 关于我弹窗 -->
+  <view class="about-mask" wx:if="{{showAboutModal}}" bindtap="onCloseAbout">
+    <view class="about-card" catchtap="stopPropagation">
+      <view class="about-close" bindtap="onCloseAbout">×</view>
+      <view class="about-logo-wrap">
+        <image class="about-logo" src="/images/xie-xiaochan-logo.png" mode="aspectFit"></image>
+      </view>
+      <text class="about-title">谢小馋</text>
+      <text class="about-slogan">把想吃的认真记下，把喜欢的慢慢做给你</text>
+
+      <view class="about-description">
+        <text>一个属于饭搭子的投喂小系统</text>
+        <text>不做选择题，只做投喂题。</text>
+      </view>
+
+      <view class="about-info-card">
+        <view class="about-info-row">
+          <text class="about-info-label">当前版本</text>
+          <text class="about-info-value">v{{appVersion}}</text>
+        </view>
+        <view class="about-info-line"></view>
+        <view class="about-info-row">
+          <text class="about-info-label">开发者</text>
+          <text class="about-info-value developer">小千</text>
+        </view>
+      </view>
+
+      <button class="about-confirm" bindtap="onCloseAbout">知道啦</button>
+    </view>
+  </view>
+
+  <!-- 昵称编辑模态框 -->
+  <view class="modal-mask" wx:if="{{showNicknameModal}}" bindtap="onCloseModal">
+    <view class="modal-content" catchtap="stopPropagation">
+      <view class="modal-header">
+        <text class="modal-title">编辑昵称</text>
+      </view>
+      <view class="modal-body">
+        <input 
+          class="nickname-input" 
+          type="text" 
+          placeholder="请输入昵称" 
+          maxlength="10" 
+          value="{{editingNickname}}" 
+          bindinput="onNicknameInput"
+          focus="{{showNicknameModal}}"
+        />
+        <view class="nickname-counter">{{editingNickname.length}}/10</view>
+      </view>
+      <view class="modal-footer">
+        <button class="modal-btn cancel" bindtap="onCloseModal">取消</button>
+        <button class="modal-btn confirm" bindtap="onUpdateNickname">确定</button>
+      </view>
+    </view>
+  </view>
+</view>
+<global-notification-popup id="globalNotificationPopup" />

@@ -1,0 +1,342 @@
+const cloud = require('wx-server-sdk')
+
+cloud.init({
+  env: cloud.DYNAMIC_CURRENT_ENV
+})
+
+const db = cloud.database()
+
+exports.main = async (event, context) => {
+  const wxContext = cloud.getWXContext()
+  const openid = wxContext.OPENID
+
+  try {
+    switch (event.action) {
+      case 'createShareNotification':
+        return await createShareNotification(openid, event)
+      case 'list':
+        return await listNotifications(openid)
+      case 'getFirstUnread':
+        return await getFirstUnread(openid)
+      case 'markRead':
+        return await markRead(openid, event.notificationId)
+      case 'markAllRead':
+        return await markAllRead(openid)
+      case 'getSubscribeConfig':
+        return await getSubscribeConfig()
+      default:
+        return { success: false, message: '未知操作' }
+    }
+  } catch (error) {
+    console.error('通知操作失败:', error)
+    return {
+      success: false,
+      message: error.message || '通知操作失败'
+    }
+  }
+}
+
+async function createShareNotification(openid, event) {
+  if (event.type === 'order_share') {
+    return await createOrderShare(openid, event.orderId)
+  }
+  if (event.type === 'wish_share') {
+    return await createWishShare(openid, event.wishId)
+  }
+
+  return { success: false, message: '通知类型不正确' }
+}
+
+async function createOrderShare(openid, orderId) {
+  if (!orderId) return { success: false, message: '投喂单不存在' }
+
+  const order = await getRecord('orders', orderId)
+  if (!order) return { success: false, message: '投喂单不存在' }
+  if (order.creatorId !== openid && order.assigneeId !== openid) {
+    return { success: false, message: '无权限分享这张投喂单' }
+  }
+  if (!(await areBound(order.creatorId, order.assigneeId))) {
+    return { success: false, message: '饭搭子关系已解除，不能再分享这张投喂单' }
+  }
+
+  const sender = await getUser(openid)
+  const recipientId = order.assigneeId === openid ? order.creatorId : order.assigneeId
+  const mealLabel = getMealTypeLabel(order.mealType)
+  const title = `${sender.nickname || '饭搭子'}给你发来一张${mealLabel}投喂单`
+  const content = `${order.orderDate || '今天'}，共${order.totalRecipes || (order.recipes || []).length}道菜`
+
+  return await addNotification({
+    type: 'order_share',
+    senderId: openid,
+    recipientId,
+    title,
+    content,
+    targetPage: `/pages/order-detail/order-detail?orderId=${orderId}`,
+    targetId: orderId
+  })
+}
+
+async function createWishShare(openid, wishId) {
+  if (!wishId) return { success: false, message: '饭愿不存在' }
+
+  const wish = await getRecord('wishes', wishId)
+  if (!wish) return { success: false, message: '饭愿不存在' }
+  if (wish.creatorId !== openid && wish.assigneeId !== openid) {
+    return { success: false, message: '无权限分享这个饭愿' }
+  }
+  if (!(await areBound(wish.creatorId, wish.assigneeId))) {
+    return { success: false, message: '饭搭子关系已解除，不能再分享这个饭愿' }
+  }
+
+  const sender = await getUser(openid)
+  const title = `${sender.nickname || '饭搭子'}给你发来一道饭愿`
+  const content = `${wish.name || '想吃的菜'}，来看看这份饭愿吧`
+
+  const recipientId = wish.assigneeId === openid ? wish.creatorId : wish.assigneeId
+  const targetPage = recipientId === await getChefOpenid()
+    ? `/pages/recipe-form/recipe-form?mode=acceptWish&wishId=${wishId}`
+    : '/pages/wish-list/wish-list?mode=mine'
+
+  return await addNotification({
+    type: 'wish_share',
+    senderId: openid,
+    recipientId,
+    title,
+    content,
+    targetPage,
+    targetId: wishId
+  })
+}
+
+async function listNotifications(openid) {
+  const result = await db.collection('notifications')
+    .where({ recipientId: openid })
+    .orderBy('createdAt', 'desc')
+    .limit(50)
+    .get()
+
+  return {
+    success: true,
+    data: result.data.map(item => ({
+      ...item,
+      title: sanitizeTerminology(item.title),
+      content: sanitizeTerminology(sanitizeLegacyWishContent(item)),
+      createdAtText: formatDate(item.createdAt)
+    }))
+  }
+}
+
+async function getFirstUnread(openid) {
+  const result = await db.collection('notifications')
+    .where({ recipientId: openid, read: false })
+    .orderBy('createdAt', 'desc')
+    .limit(1)
+    .get()
+  const item = result.data[0]
+
+  return {
+    success: true,
+    data: item ? {
+      ...item,
+      title: sanitizeTerminology(item.title),
+      content: sanitizeTerminology(sanitizeLegacyWishContent(item)),
+      createdAtText: formatDate(item.createdAt)
+    } : null
+  }
+}
+
+function sanitizeLegacyWishContent(item) {
+  const content = String(item.content || '')
+  if (item.type !== 'wish_share') return content
+  if (content.includes('来看看这份饭愿吧')) return content
+  const wishName = content
+    .replace(/[，,]?饭钱\s*¥?\s*\d+(?:\.\d+)?/g, '')
+    .replace(/[，,]?饭钱待定/g, '')
+    .replace(/[，,、\s]+$/g, '')
+  return `${wishName || '想吃的菜'}，来看看这份饭愿吧`
+}
+
+function sanitizeTerminology(value) {
+  return String(value || '').replace(/家里人/g, '饭搭子')
+}
+
+async function markRead(openid, notificationId) {
+  if (!notificationId) return { success: true }
+
+  const notification = await getRecord('notifications', notificationId)
+  if (!notification || notification.recipientId !== openid) {
+    return { success: false, message: '通知不存在' }
+  }
+
+  await db.collection('notifications').doc(notificationId).update({
+    data: {
+      read: true,
+      readAt: new Date()
+    }
+  })
+
+  return { success: true }
+}
+
+async function markAllRead(openid) {
+  const result = await db.collection('notifications').where({
+    recipientId: openid,
+    read: false
+  }).update({
+    data: {
+      read: true,
+      readAt: new Date()
+    }
+  })
+
+  return {
+    success: true,
+    updated: result.stats ? result.stats.updated : 0
+  }
+}
+
+async function addNotification(data) {
+  if (!data.recipientId || data.recipientId === data.senderId) {
+    return { success: true }
+  }
+
+  const duplicate = await db.collection('notifications').where({
+    type: data.type,
+    senderId: data.senderId,
+    recipientId: data.recipientId,
+    targetId: data.targetId,
+    read: false
+  }).limit(1).get()
+
+  if (duplicate.data && duplicate.data.length) {
+    await db.collection('notifications').doc(duplicate.data[0]._id).update({
+      data: {
+        title: data.title,
+        content: data.content,
+        targetPage: data.targetPage,
+        createdAt: new Date()
+      }
+    })
+    return { success: true }
+  }
+
+  await db.collection('notifications').add({
+    data: {
+      ...data,
+      read: false,
+      createdAt: new Date()
+    }
+  })
+
+  return { success: true }
+}
+
+async function getRecord(collection, id) {
+  try {
+    const result = await db.collection(collection).doc(id).get()
+    return result.data || null
+  } catch (error) {
+    return null
+  }
+}
+
+async function areBound(openid, otherOpenid) {
+  const result = await db.collection('friends').where({
+    $or: [
+      { userOpenid: openid, friendOpenid: otherOpenid },
+      { userOpenid: otherOpenid, friendOpenid: openid }
+    ],
+    status: 'accepted'
+  }).limit(1).get()
+  return result.data.length > 0
+}
+
+async function getUser(openid) {
+  try {
+    const result = await db.collection('users').where({ openid }).limit(1).get()
+    return result.data[0] || {}
+  } catch (error) {
+    return {}
+  }
+}
+
+async function getSubscribeConfig() {
+  let config = await getFamilyConfig()
+  let templates = config.subscribeTemplates || {}
+  let templateIds = getTemplateIds(templates)
+  if (!templateIds.length) {
+    const existingConfigs = await db.collection('app_config').limit(20).get()
+    const configuredRecord = existingConfigs.data.find(item => (
+      item && item.chefOpenid && getTemplateIds(item.subscribeTemplates || {}).length
+    ))
+    if (configuredRecord) {
+      const { _id, ...configuredData } = configuredRecord
+      config = configuredData
+      templates = config.subscribeTemplates || {}
+      templateIds = getTemplateIds(templates)
+      await db.collection('app_config').doc('family').set({
+        data: { ...config, updatedAt: new Date() }
+      })
+    }
+  }
+  if (!templateIds.length) {
+    return { success: false, message: '未找到订阅模板 ID，请在 app_config/family 中配置模板' }
+  }
+  return {
+    success: true,
+    data: {
+      templateIds,
+      templates: Object.keys(templates).reduce((result, key) => {
+        const item = templates[key]
+        const templateId = item && (item.templateId || item.template_id)
+        if (templateId) result[key] = templateId
+        return result
+      }, {})
+    }
+  }
+}
+
+function getTemplateIds(templates) {
+  return [...new Set(Object.values(templates).map(item => (
+    item && (item.templateId || item.template_id)
+  )).filter(Boolean))]
+}
+
+async function getFamilyConfig() {
+  try {
+    const result = await db.collection('app_config').doc('family').get()
+    if (result.data) return result.data
+  } catch (error) {
+    // 统一转换为用户可理解的配置提示。
+  }
+  const existingConfigs = await db.collection('app_config').limit(20).get()
+  const existingConfig = existingConfigs.data.find(item => item && item.chefOpenid)
+  if (existingConfig) {
+    const { _id, ...config } = existingConfig
+    await db.collection('app_config').doc('family').set({ data: { ...config, updatedAt: new Date() } })
+    return config
+  }
+  throw new Error('缺少 app_config/family 配置，请在云数据库中创建记录 ID 为 family 的记录')
+}
+
+async function getChefOpenid() {
+  const config = await getFamilyConfig()
+  return config.chefOpenid || ''
+}
+
+function getMealTypeLabel(mealType) {
+  const labels = {
+    breakfast: '早餐',
+    lunch: '午餐',
+    dinner: '晚餐'
+  }
+  return labels[mealType] || '今日'
+}
+
+function formatDate(date) {
+  if (!date) return ''
+  return new Date(date).toLocaleString('zh-CN', {
+    timeZone: 'Asia/Shanghai',
+    hour12: false
+  })
+}

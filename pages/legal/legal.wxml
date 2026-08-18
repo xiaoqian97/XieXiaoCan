@@ -1,0 +1,8 @@
+<view class="legal-page">
+  <text class="legal-title">{{title}}</text>
+  <view wx:for="{{sections}}" wx:key="title" class="legal-section">
+    <text class="section-title">{{item.title}}</text>
+    <text class="section-content">{{item.content}}</text>
+  </view>
+</view>
+<global-notification-popup id="globalNotificationPopup" />

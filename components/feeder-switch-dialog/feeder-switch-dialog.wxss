@@ -1,0 +1,25 @@
+.dialog-mask { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 12000; display: flex; align-items: center; justify-content: center; padding: 40rpx; background: rgba(43, 31, 27, 0.58); box-sizing: border-box; }
+.dialog-card { width: 100%; max-width: 620rpx; overflow: hidden; border-radius: 28rpx; background: #FFFDF9; box-shadow: 0 26rpx 80rpx rgba(45, 29, 24, 0.22); }
+.dialog-hero { display: flex; flex-direction: column; align-items: center; padding: 34rpx 30rpx 28rpx; background: linear-gradient(135deg, #FFF0EA, #FFF5D9); }
+.hero-icon { display: flex; align-items: center; justify-content: center; width: 76rpx; height: 76rpx; margin-bottom: 14rpx; border-radius: 50%; font-size: 38rpx; background: rgba(255, 255, 255, 0.82); box-shadow: 0 8rpx 22rpx rgba(217, 74, 58, 0.12); }
+.dialog-kicker { color: #A06E5E; font-size: 21rpx; }
+.dialog-title { margin-top: 7rpx; color: #3F302B; font-size: 34rpx; font-weight: 700; }
+.relation-route { display: grid; grid-template-columns: 1fr 46rpx 1fr; align-items: center; gap: 8rpx; margin: 28rpx 30rpx 0; }
+.relation-route.single { display: block; }
+.person { display: flex; min-width: 0; flex-direction: column; align-items: center; padding: 18rpx 12rpx; border-radius: 18rpx; }
+.person.old { background: #F5ECE6; }
+.person.next { background: #FFF0EA; box-shadow: inset 0 0 0 1rpx rgba(232, 93, 74, 0.12); }
+.person-label { color: #A9958E; font-size: 19rpx; }
+.person-name { width: 100%; margin-top: 6rpx; overflow: hidden; color: #3F302B; font-size: 26rpx; font-weight: 700; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.person.next .person-name { color: #D94A3A; }
+.route-arrow { color: #E85D4A; font-size: 34rpx; text-align: center; }
+.change-notice { display: flex; flex-direction: column; gap: 8rpx; margin: 22rpx 30rpx 0; padding: 20rpx 22rpx; border-radius: 18rpx; background: #FFF8E6; }
+.notice-title { margin-bottom: 2rpx; color: #9A6A12; font-size: 23rpx; font-weight: 700; }
+.notice-line { color: #765F57; font-size: 21rpx; line-height: 1.5; }
+.history-tip { margin-top: 4rpx; color: #A9958E; font-size: 19rpx; }
+.setup-tip { display: block; margin: 24rpx 34rpx 0; color: #8C7770; font-size: 22rpx; line-height: 1.6; text-align: center; }
+.dialog-actions { display: grid; grid-template-columns: 1fr 1.35fr; gap: 18rpx; padding: 28rpx 30rpx calc(28rpx + env(safe-area-inset-bottom)); }
+.dialog-button { height: 76rpx; margin: 0; padding: 0; border-radius: 18rpx; font-size: 25rpx; font-weight: 600; line-height: 76rpx; }
+.dialog-button::after { border: none; }
+.dialog-button.cancel { color: #8C7770; background: #F3ECE8; }
+.dialog-button.confirm { color: #FFFFFF; background: linear-gradient(135deg, #E85D4A, #D94A3A); box-shadow: 0 8rpx 20rpx rgba(217, 74, 58, 0.2); }

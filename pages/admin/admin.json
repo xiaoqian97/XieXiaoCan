@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "管理员工作台",
+  "navigationBarBackgroundColor": "#FFF9ED",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#FFF9ED",
+  "enablePullDownRefresh": true
+}

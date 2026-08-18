@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "openapi": [
+      "subscribeMessage.send",
+      "security.msgSecCheck"
+    ]
+  },
+  "triggers": [
+    {
+      "name": "blessingScheduler",
+      "type": "timer",
+      "config": "0 */5 * * * * *"
+    }
+  ]
+}

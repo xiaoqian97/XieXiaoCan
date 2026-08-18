@@ -1,0 +1,58 @@
+<view class="relations-page">
+  <view class="relation-notice">
+    <text class="notice-icon">🍲</text>
+    <view class="notice-content">
+      <text class="notice-title">每位点菜人只能有一位固定投喂官</text>
+      <text class="notice-desc">管理员只能从对方已绑定的投喂官中协助选择。</text>
+    </view>
+  </view>
+
+  <view class="search-panel">
+    <view class="search-box">
+      <text class="search-icon">⌕</text>
+      <input value="{{keyword}}" placeholder="搜索点菜人昵称或搜索码" confirm-type="search" bindinput="onKeywordInput" bindconfirm="onSearch" />
+      <text wx:if="{{keyword}}" class="clear-search" bindtap="onClearSearch">×</text>
+    </view>
+  </view>
+
+  <view class="list-summary">共 {{total}} 位点菜人</view>
+
+  <view class="relation-list">
+    <view wx:for="{{relationships}}" wx:key="openid" wx:for-index="rowIndex" class="relation-card">
+      <view class="person-row">
+        <image class="person-avatar" src="{{item.avatar}}" mode="aspectFill"></image>
+        <view class="person-info">
+          <text class="person-name">{{item.nickname}}</text>
+          <text class="person-code">{{item.searchCode || '暂无搜索码'}}</text>
+        </view>
+        <text class="diner-tag">点菜人</text>
+      </view>
+
+      <view class="relation-arrow">↓</view>
+
+      <view class="feeder-panel {{item.fixedFeederOpenid ? 'configured' : ''}}">
+        <view class="feeder-info">
+          <text class="feeder-label">固定投喂官</text>
+          <text wx:if="{{item.fixedFeederName}}" class="feeder-name">{{item.fixedFeederName}}</text>
+          <text wx:elif="{{item.fixedFeederOpenid && !item.fixedFeederValid}}" class="invalid-name">关系已失效，请重新设置</text>
+          <text wx:else class="empty-name">尚未设置</text>
+        </view>
+
+        <view class="relation-actions">
+          <picker wx:if="{{item.availableFeeders.length > 0}}" mode="selector" range="{{item.feederNames}}" data-index="{{rowIndex}}" bindchange="onFeederChange">
+            <view class="set-button">{{item.fixedFeederOpenid ? '更换' : '设置'}}</view>
+          </picker>
+          <text wx:else class="no-feeder">无已绑定投喂官</text>
+          <button wx:if="{{item.fixedFeederOpenid}}" class="clear-button" data-row="{{item}}" bindtap="onClearFeeder">清除</button>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{loading}}" class="list-state">正在加载...</view>
+  <view wx:if="{{!loading && relationships.length === 0}}" class="empty-state">没有找到点菜人</view>
+  <view wx:if="{{!loading && relationships.length > 0 && !hasMore}}" class="list-state">— 已加载全部关系 —</view>
+</view>
+<feeder-switch-dialog id="feederSwitchDialog" />
+<theme-confirm-dialog id="themeConfirmDialog" />
+<global-notification-popup id="globalNotificationPopup" />

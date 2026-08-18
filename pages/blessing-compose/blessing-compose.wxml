@@ -1,0 +1,72 @@
+<view class="compose-page">
+  <login-prompt id="loginPrompt" />
+  <view class="section-card template-section">
+    <view class="section-heading">
+      <text class="section-title">选择一张祝福卡</text>
+      <text class="section-desc">套用后仍然可以修改文案</text>
+    </view>
+    <scroll-view class="template-scroll" scroll-x="true" show-scrollbar="false">
+      <view class="template-row">
+        <view wx:for="{{templates}}" wx:key="key" class="template-item {{item.themeClass}} {{selectedTemplateKey === item.key ? 'active' : ''}}" data-key="{{item.key}}" bindtap="selectTemplate">
+          <text class="template-emoji">{{item.emoji}}</text>
+          <text class="template-name">{{item.name}}</text>
+          <view wx:if="{{selectedTemplateKey === item.key}}" class="template-check">✓</view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view class="blessing-preview {{selectedThemeClass}}">
+    <view class="preview-spark spark-one"></view><view class="preview-spark spark-two"></view>
+    <text class="preview-emoji">{{selectedEmoji}}</text>
+    <text class="preview-title">{{title || '祝福标题'}}</text>
+    <rich-text wx:if="{{content}}" class="preview-content rich-preview" nodes="{{contentHtml}}"></rich-text>
+    <text wx:else class="preview-content">在这里写下想对 TA 说的话</text>
+    <text class="preview-sign">—— 来自最惦记你的人</text>
+  </view>
+
+  <view class="section-card form-card">
+    <text class="field-label">送给谁 <text class="required">*</text></text>
+    <picker wx:if="{{friends.length}}" range="{{friends}}" range-key="nickname" value="{{friendIndex}}" bindchange="onFriendChange">
+      <view class="picker-field"><text>{{friends[friendIndex].nickname}}</text><text class="picker-arrow">⌄</text></view>
+    </picker>
+    <view wx:elif="{{loadingFriends}}" class="picker-field muted">饭搭子加载中...</view>
+    <view wx:else class="picker-field muted">还没有已绑定的饭搭子</view>
+
+    <text class="field-label space-top">祝福标题 <text class="required">*</text></text>
+    <input class="text-field" value="{{title}}" maxlength="30" placeholder="给这份祝福起个标题" bindinput="onTitleInput" />
+
+    <text class="field-label space-top">想对 TA 说 <text class="required">*</text></text>
+    <view class="rich-editor-wrap">
+      <view class="editor-toolbar">
+        <view class="toolbar-button strong" data-name="bold" bindtap="applyEditorFormat">B</view>
+        <view class="toolbar-button italic" data-name="italic" bindtap="applyEditorFormat">I</view>
+        <view class="toolbar-button underline" data-name="underline" bindtap="applyEditorFormat">U</view>
+        <view class="toolbar-button color-warm" data-name="color" data-value="#E85D4A" bindtap="applyEditorFormat">A</view>
+        <view class="toolbar-divider"></view>
+        <view class="toolbar-button" data-name="align" data-value="left" bindtap="applyEditorFormat">左</view>
+        <view class="toolbar-button" data-name="align" data-value="center" bindtap="applyEditorFormat">中</view>
+        <view class="toolbar-button" data-name="list" data-value="bullet" bindtap="applyEditorFormat">•列</view>
+        <view class="toolbar-button" data-action="clear" bindtap="runEditorAction">清除</view>
+      </view>
+      <editor id="blessingEditor" class="content-editor" placeholder="认真写下一点心意..." show-img-size="{{false}}" show-img-toolbar="{{false}}" show-img-resize="{{false}}" bindready="onEditorReady" bindinput="onEditorInput"></editor>
+      <text class="count-text {{contentLength > 500 ? 'over-limit' : ''}}">{{contentLength}}/500</text>
+    </view>
+  </view>
+
+  <view class="section-card delivery-card">
+    <text class="section-title">什么时候送达</text>
+    <view class="mode-row">
+      <view class="mode-option {{sendMode === 'immediate' ? 'active' : ''}}" data-mode="immediate" bindtap="setSendMode"><text class="mode-icon">💌</text><view><text class="mode-title">立即发送</text><text class="mode-desc">现在就让 TA 收到</text></view></view>
+      <view class="mode-option {{sendMode === 'scheduled' ? 'active' : ''}}" data-mode="scheduled" bindtap="setSendMode"><text class="mode-icon">⏰</text><view><text class="mode-title">定时发送</text><text class="mode-desc">在特别时刻送达</text></view></view>
+    </view>
+    <view wx:if="{{sendMode === 'scheduled'}}" class="schedule-row">
+      <picker mode="date" value="{{sendDate}}" start="{{minDate}}" bindchange="onDateChange"><view class="schedule-picker">📅 {{sendDate}}</view></picker>
+      <picker mode="time" value="{{sendTime}}" bindchange="onTimeChange"><view class="schedule-picker">🕐 {{sendTime}}</view></picker>
+    </view>
+    <text class="delivery-tip">站内祝福保证送达；对方允许订阅时，会同时尝试发送微信提醒。</text>
+  </view>
+
+  <button class="submit-button" loading="{{submitting}}" disabled="{{submitting || !friends.length}}" bindtap="submitBlessing">{{submitting ? '正在送出...' : (sendMode === 'scheduled' ? '定时送出祝福' : '立即送出祝福')}}</button>
+</view>
+<global-notification-popup id="globalNotificationPopup" />

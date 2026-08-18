@@ -1,0 +1,40 @@
+<view class="blessing-page">
+  <login-prompt id="loginPrompt" />
+  <view class="blessing-hero">
+    <view class="hero-orb orb-one"></view>
+    <view class="hero-orb orb-two"></view>
+    <text class="hero-emoji">💌</text>
+    <text class="hero-title">祝福小站</text>
+    <text class="hero-desc">把没说出口的惦记，认真送给 TA</text>
+    <button class="hero-button" bindtap="createBlessing">＋ 送一份祝福</button>
+  </view>
+
+  <view class="blessing-tabs">
+    <view class="blessing-tab {{activeTab === 'received' ? 'active' : ''}}" data-tab="received" bindtap="switchTab">收到的</view>
+    <view class="blessing-tab {{activeTab === 'sent' ? 'active' : ''}}" data-tab="sent" bindtap="switchTab">送出的</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="page-state">祝福正在赶来...</view>
+  <view wx:elif="{{blessings.length === 0}}" class="page-state empty">
+    <text class="state-emoji">💌</text>
+    <text class="state-title">这里还没有祝福</text>
+    <text class="state-desc">给饭搭子送出第一份心意吧</text>
+  </view>
+  <view wx:else class="blessing-list">
+    <view wx:for="{{blessings}}" wx:key="_id" class="blessing-item {{item.themeClass}}" data-id="{{item._id}}" bindtap="openDetail">
+      <view class="item-decoration"></view>
+      <view class="item-icon">{{item.emoji}}</view>
+      <view class="item-content">
+        <view class="item-top">
+          <text class="item-person">{{item.personText}}</text>
+          <text class="item-status status-{{item.displayStatus}}">{{item.statusText}}</text>
+        </view>
+        <text class="item-title">{{item.title}}</text>
+        <text class="item-copy">{{item.content}}</text>
+        <text class="item-time">{{item.displayTime}}</text>
+      </view>
+      <text class="item-arrow">›</text>
+    </view>
+  </view>
+</view>
+<global-notification-popup id="globalNotificationPopup" />

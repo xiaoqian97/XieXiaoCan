@@ -1,0 +1,99 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/login/login",
+    "pages/legal/legal",
+    "pages/recipe-list/recipe-list",
+    "pages/recipe-detail/recipe-detail",
+    "pages/recipe-form/recipe-form",
+    "pages/image-crop/image-crop",
+    "pages/search/search",
+    "pages/order/order",
+    "pages/order-list/order-list",
+    "pages/order-detail/order-detail",
+    "pages/friends/friends",
+    "pages/friend-requests/friend-requests",
+    "pages/notifications/notifications",
+    "pages/profile/profile",
+    "pages/favorites/favorites",
+    "pages/memories/memories",
+    "pages/avatar-cropper/avatar-cropper",
+    "pages/diancan/diancan",
+    "pages/my-recipe/my-recipe",
+    "pages/wish-list/wish-list",
+    "pages/admin/admin",
+    "pages/admin-users/admin-users",
+    "pages/admin-relations/admin-relations",
+    "pages/admin-data/admin-data",
+    "pages/feedback/feedback",
+    "pages/admin-feedback/admin-feedback",
+    "pages/blessings/blessings",
+    "pages/blessing-compose/blessing-compose",
+    "pages/blessing-detail/blessing-detail"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#fff",
+    "navigationBarTitleText": "谢小馋",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#FFF9ED"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#8C7770",
+    "selectedColor": "#E85D4A",
+    "backgroundColor": "#FFF9ED",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "images/home.png",
+        "selectedIconPath": "images/home-active.png"
+      },
+      {
+        "pagePath": "pages/recipe-list/recipe-list",
+        "text": "菜谱",
+        "iconPath": "images/recipe.png",
+        "selectedIconPath": "images/recipe-active.png"
+      },
+      {
+        "pagePath": "pages/diancan/diancan",
+        "text": "饭篮",
+        "iconPath": "images/order.png",
+        "selectedIconPath": "images/order-active.png"
+      },
+      {
+        "pagePath": "pages/order-list/order-list",
+        "text": "投喂单",
+        "iconPath": "images/order.png",
+        "selectedIconPath": "images/order-active.png"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的",
+        "iconPath": "images/profile.png",
+        "selectedIconPath": "images/profile-active.png"
+      }
+    ]
+  },
+  "cloud": true,
+  "networkTimeout": {
+    "request": 10000,
+    "downloadFile": 10000
+  },
+  "usingComponents": {
+    "global-notification-popup": "/components/global-notification-popup/global-notification-popup",
+    "login-prompt": "/components/login-prompt/login-prompt",
+    "theme-confirm-dialog": "/components/theme-confirm-dialog/theme-confirm-dialog",
+    "van-button": "@vant/weapp/button/index",
+    "van-cell": "@vant/weapp/cell/index",
+    "van-cell-group": "@vant/weapp/cell-group/index",
+    "van-field": "@vant/weapp/field/index",
+    "van-icon": "@vant/weapp/icon/index",
+    "van-tab": "@vant/weapp/tab/index",
+    "van-tabs": "@vant/weapp/tabs/index",
+    "van-search": "@vant/weapp/search/index",
+    "van-dialog": "@vant/weapp/dialog/index"
+  }
+}

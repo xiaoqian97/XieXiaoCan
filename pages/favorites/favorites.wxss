@@ -1,0 +1,93 @@
+.favorites-page {
+  min-height: 100vh;
+  padding: 32rpx;
+  box-sizing: border-box;
+  background: #FFF9ED;
+}
+
+.page-header {
+  margin: 16rpx 0 32rpx;
+}
+
+.page-title,
+.page-desc {
+  display: block;
+}
+
+.page-title {
+  color: #3F302B;
+  font-size: 40rpx;
+  font-weight: 700;
+}
+
+.page-desc {
+  margin-top: 10rpx;
+  color: #A9958E;
+  font-size: 26rpx;
+}
+
+.favorite-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.favorite-card {
+  position: relative;
+}
+
+.remove-button {
+  position: absolute;
+  top: 50%;
+  right: 24rpx;
+  z-index: 20;
+  padding: 14rpx;
+  transform: translateY(-50%);
+  color: #D94A3A;
+  font-size: 38rpx;
+}
+
+.state-view {
+  display: flex;
+  min-height: 50vh;
+  align-items: center;
+  justify-content: center;
+  color: #A9958E;
+  font-size: 28rpx;
+}
+
+.empty-state {
+  flex-direction: column;
+  text-align: center;
+}
+
+.empty-icon {
+  color: #F6C85F;
+  font-size: 120rpx;
+}
+
+.empty-title {
+  margin-top: 18rpx;
+  color: #6E5852;
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.empty-desc {
+  margin: 16rpx 40rpx 36rpx;
+  color: #A9958E;
+  font-size: 26rpx;
+  line-height: 1.6;
+}
+
+.go-recipes {
+  width: 260rpx;
+  border-radius: 44rpx;
+  background: #D94A3A;
+  color: #fff;
+  font-size: 28rpx;
+}
+
+.go-recipes::after {
+  border: none;
+}

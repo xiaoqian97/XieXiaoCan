@@ -1,0 +1,200 @@
+const cloud = require('wx-server-sdk')
+
+cloud.init({
+  env: cloud.DYNAMIC_CURRENT_ENV
+})
+
+const db = cloud.database()
+
+exports.main = async (event, context) => {
+  const wxContext = cloud.getWXContext()
+  const openid = wxContext.OPENID
+  const { action } = event
+
+  try {
+    switch (action) {
+      case 'getProfile':
+        return await getUserProfile(openid)
+      case 'updateProfile':
+        return await updateUserProfile(event, openid)
+      case 'searchUser':
+        return await searchUser(event)
+      case 'generateSearchCode':
+        return await generateSearchCode(openid)
+      case 'updateSearchCode':
+        return await updateSearchCode(openid)
+      default:
+        return {
+          success: false,
+          message: '未知操作'
+        }
+    }
+  } catch (error) {
+    console.error('用户操作失败:', error)
+    return {
+      success: false,
+      message: '操作失败',
+      error: error.message
+    }
+  }
+}
+
+// 获取用户资料
+async function getUserProfile(openid) {
+  const result = await db.collection('users').where({
+    openid: openid
+  }).get()
+
+  if (result.data.length === 0) {
+    return {
+      success: false,
+      message: '用户不存在'
+    }
+  }
+
+  const user = await attachUserStats(result.data[0])
+  return {
+    success: true,
+    data: {
+      user
+    }
+  }
+}
+
+// 更新用户资料
+async function updateUserProfile(event, openid) {
+  const { nickname, avatar } = event
+  const updateData = { updatedAt: new Date() }
+
+  if (nickname !== undefined) updateData.nickname = nickname
+  if (avatar !== undefined) {
+    const avatarCheck = await validateAvatar(avatar, openid)
+    if (!avatarCheck.success) return avatarCheck
+    updateData.avatar = avatar
+  }
+
+  await db.collection('users').where({
+    openid: openid
+  }).update({
+    data: updateData
+  })
+
+  return {
+    success: true,
+    data: {}
+  }
+}
+
+async function attachUserStats(userData) {
+  if (!userData || !userData.openid) return userData
+
+  const recipeResult = await db.collection('recipes').where({
+    creatorId: userData.openid,
+    status: 'published'
+  }).field({ _id: true }).limit(1000).get()
+  const recipeIds = recipeResult.data.map(item => item._id).filter(Boolean)
+  let likeCount = 0
+  if (recipeIds.length) {
+    const favoriteResult = await db.collection('favorites').where({
+      recipeId: db.command.in(recipeIds)
+    }).count()
+    likeCount = favoriteResult.total || 0
+  }
+
+  return {
+    ...userData,
+    recipeCount: recipeIds.length,
+    likeCount
+  }
+}
+
+async function validateAvatar(fileID, openid) {
+  if (!fileID || !fileID.startsWith('cloud://')) return { success: true }
+
+  try {
+    const file = await cloud.downloadFile({ fileID })
+    const result = await cloud.openapi.security.imgSecCheck({
+      media: {
+        contentType: 'image/jpeg',
+        value: file.fileContent
+      },
+      version: 2,
+      scene: 2,
+      openid
+    })
+    if (result.result && result.result.suggest !== 'pass') throw new Error('头像内容不合规')
+    return { success: true }
+  } catch (error) {
+    console.error('头像内容安全检测未通过:', error)
+    await cloud.deleteFile({ fileList: [fileID] }).catch(() => {})
+    return { success: false, message: '头像未通过内容安全检测，请更换后重试' }
+  }
+}
+
+// 搜索用户
+async function searchUser(event) {
+  const { searchCode } = event
+
+  const result = await db.collection('users').where({
+    searchCode: searchCode
+  }).get()
+
+  if (result.data.length === 0) {
+    return {
+      success: false,
+      message: '用户不存在'
+    }
+  }
+
+  const user = result.data[0]
+  return {
+    success: true,
+    data: {
+      user: {
+        _id: user._id,
+        openid: user.openid,
+        nickname: user.nickname,
+        avatar: user.avatar,
+        searchCode: user.searchCode
+      }
+    }
+  }
+}
+
+// 生成搜索码
+async function generateSearchCode(openid) {
+  // 生成6位随机搜索码
+  const searchCode = 'FY' + Math.random().toString(36).substr(2, 6).toUpperCase()
+  
+  // 检查搜索码是否已存在
+  const existResult = await db.collection('users').where({
+    searchCode: searchCode
+  }).get()
+  
+  if (existResult.data.length > 0) {
+    // 如果存在，递归重新生成
+    return await generateSearchCode(openid)
+  }
+  
+  // 更新用户的搜索码
+  await db.collection('users').where({
+    openid: openid
+  }).update({
+    data: {
+      searchCode: searchCode,
+      updatedAt: new Date()
+    }
+  })
+  
+  return {
+    success: true,
+    data: {
+      searchCode: searchCode
+    }
+  }
+}
+
+// 更新搜索码
+async function updateSearchCode(openid) {
+  return await generateSearchCode(openid)
+}

@@ -1,0 +1,282 @@
+.notification-page {
+  min-height: 100vh;
+  padding: 28rpx 26rpx calc(46rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  background: #FFF9ED;
+}
+
+.state {
+  min-height: 520rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18rpx;
+  color: #8C7770;
+  font-size: 28rpx;
+}
+
+.empty-icon {
+  font-size: 72rpx;
+}
+
+.empty-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #3F302B;
+}
+
+.empty-desc {
+  font-size: 26rpx;
+  color: #8C7770;
+  text-align: center;
+}
+
+.notification-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+}
+
+.message-summary {
+  display: flex;
+  align-items: center;
+  min-height: 112rpx;
+  margin-bottom: 4rpx;
+  padding: 22rpx 24rpx;
+  box-sizing: border-box;
+  border: 1rpx solid rgba(246, 200, 95, 0.42);
+  border-radius: 26rpx;
+  background: linear-gradient(135deg, #FFF1C9 0%, #FFF7E7 100%);
+}
+
+.summary-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 66rpx;
+  height: 66rpx;
+  margin-right: 18rpx;
+  border-radius: 22rpx;
+  background: rgba(255, 255, 255, 0.8);
+  font-size: 32rpx;
+  box-shadow: 0 5rpx 14rpx rgba(132, 87, 28, 0.08);
+}
+
+.summary-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.summary-title {
+  color: #3F302B;
+  font-size: 27rpx;
+  font-weight: 700;
+}
+
+.summary-desc {
+  margin-top: 6rpx;
+  color: #8C7770;
+  font-size: 21rpx;
+}
+
+.mark-all-button {
+  min-width: 122rpx;
+  height: 56rpx;
+  margin: 0 0 0 14rpx;
+  padding: 0 18rpx;
+  border: 1rpx solid rgba(232, 93, 74, 0.2);
+  border-radius: 28rpx;
+  background: #FFFFFF;
+  color: #D94A3A;
+  font-size: 22rpx;
+  font-weight: 600;
+  line-height: 54rpx;
+}
+
+.mark-all-button::after {
+  border: 0;
+}
+
+.mark-all-button[disabled] {
+  color: #A9958E;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.all-read-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42rpx;
+  height: 42rpx;
+  margin-left: 14rpx;
+  border-radius: 50%;
+  background: #F6C85F;
+  color: #3F302B;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.notification-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 20rpx;
+  padding: 26rpx 24rpx;
+  overflow: hidden;
+  border: 1rpx solid rgba(232, 222, 216, 0.78);
+  border-radius: 24rpx;
+  background: #FFFFFF;
+  box-shadow: 0 7rpx 22rpx rgba(63, 48, 43, 0.06);
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+
+.notification-card.unread {
+  border-color: rgba(232, 93, 74, 0.2);
+  background: linear-gradient(100deg, #FFFFFF 0%, #FFFBF8 100%);
+}
+
+.notification-card.unread::before {
+  position: absolute;
+  top: 24rpx;
+  bottom: 24rpx;
+  left: 0;
+  width: 6rpx;
+  border-radius: 0 8rpx 8rpx 0;
+  background: #E85D4A;
+  content: '';
+}
+
+.notification-card:active {
+  transform: scale(0.985);
+  background: #FFF7F0;
+}
+
+.notification-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 76rpx;
+  height: 76rpx;
+  flex-shrink: 0;
+  border-radius: 24rpx;
+  background: #FFF1EA;
+  font-size: 34rpx;
+}
+
+.notification-icon.wish {
+  background: #FFF3D1;
+}
+
+.notification-icon.blessing {
+  background: #FFE1E7;
+}
+
+.notification-icon.festival {
+  background: linear-gradient(135deg, #FFF0B8, #FFD6C4);
+}
+
+.notification-icon.default {
+  background: #F5EEEA;
+}
+
+.icon-dot {
+  position: absolute;
+  top: -3rpx;
+  right: -3rpx;
+  width: 15rpx;
+  height: 15rpx;
+  border: 4rpx solid #FFFFFF;
+  border-radius: 50%;
+  background: #F04452;
+}
+
+.notification-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-title {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #3F302B;
+  line-height: 1.38;
+}
+
+.notification-head {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.type-label,
+.unread-label {
+  padding: 4rpx 12rpx;
+  border-radius: 999rpx;
+  font-size: 19rpx;
+  line-height: 1.4;
+}
+
+.type-label {
+  background: #FFF0EA;
+  color: #D94A3A;
+}
+
+.type-label.wish {
+  background: #FFF3D1;
+  color: #9A6810;
+}
+
+.type-label.blessing,
+.type-label.festival {
+  color: #D94A3A;
+  background: #FFF0EA;
+}
+
+.type-label.default {
+  background: #F5EEEA;
+  color: #755F58;
+}
+
+.unread-label {
+  background: #F04452;
+  color: #FFFFFF;
+}
+
+.notification-content {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 23rpx;
+  color: #7B655E;
+  line-height: 1.5;
+}
+
+.notification-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18rpx;
+  padding-top: 15rpx;
+  border-top: 1rpx solid #F3EBE6;
+}
+
+.notification-time,
+.notification-action {
+  font-size: 22rpx;
+  color: #A9958E;
+}
+
+.notification-action {
+  color: #E85D4A;
+}
+
+.action-arrow {
+  margin-left: 4rpx;
+  font-size: 28rpx;
+  line-height: 1;
+}

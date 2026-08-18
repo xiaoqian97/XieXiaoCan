@@ -1,0 +1,259 @@
+<view class="recipe-detail-container">
+  <login-prompt id="loginPrompt" />
+  
+  <!-- 头图区域 -->
+  <view class="hero-section">
+    <!-- 背景图片轮播 -->
+    <swiper 
+      class="hero-swipe" 
+      indicator-dots="{{recipe.images.length > 1}}"
+      autoplay="{{recipe.images.length > 1}}"
+      interval="3500"
+      circular="{{recipe.images.length > 1}}"
+      duration="300"
+    >
+      <swiper-item wx:for="{{recipe.images}}" wx:key="index">
+        <image 
+          class="hero-image" 
+          src="{{item}}" 
+          mode="aspectFill"
+          lazy-load="{{true}}"
+          bindtap="previewImage"
+          data-current="{{index}}"
+        />
+      </swiper-item>
+    </swiper>
+    
+    <!-- 导航栏 -->
+    <view class="hero-nav">
+      <!-- <view class="nav-btn" bindtap="goBack">
+        <van-icon name="arrow-left" size="20px" color="#ffffff" />
+      </view> -->
+      <view class="default"></view>
+      <view class="nav-actions">
+        <button class="nav-btn share-native-button" open-type="share">
+          <van-icon name="share" size="20px" color="#ffffff" />
+        </button>
+        <view class="nav-btn" bindtap="toggleFavorite">
+          <van-icon 
+            name="{{isFavorited ? 'like' : 'like-o'}}" 
+            size="20px" 
+            color="{{isFavorited ? '#ff4444' : '#ffffff'}}" 
+          />
+        </view>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 菜谱核心信息 -->
+  <view class="recipe-info-section">
+    <view class="recipe-info-card">
+      <view class="recipe-title">{{recipe.name}}</view>
+      <view class="recipe-description">{{recipe.description}}</view>
+    </view>
+  </view>
+  
+  <!-- 内容卡片区域 -->
+  <view class="content-card">
+    
+    <!-- 标签区域 -->
+    <view class="section">
+      <view class="tag-container">
+        <!-- 场景分类标签 -->
+        <view class="recipe-tag tag-scene" bindtap="filterByScene" data-scene="{{recipe.sceneCategory}}">
+          <text class="tag-emoji">{{sceneCategoryInfo.emoji}}</text>
+          <text>{{sceneCategoryInfo.name}}</text>
+        </view>
+        
+        <!-- 食材分类标签 -->
+        <view class="recipe-tag tag-ingredient" bindtap="filterByIngredient" data-ingredient="{{recipe.ingredientCategory}}">
+          <text class="tag-emoji">{{ingredientCategoryInfo.emoji}}</text>
+          <text>{{ingredientCategoryInfo.name}}</text>
+        </view>
+        
+        <!-- 可选标签 -->
+        <view 
+          wx:for="{{optionalTagsInfo}}" 
+          wx:key="id" 
+          class="recipe-tag tag-optional"
+          bindtap="filterByTag"
+          data-tag="{{item.id}}"
+        >
+          <text class="tag-emoji">{{item.emoji}}</text>
+          <text>{{item.name}}</text>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 上桌信息 -->
+    <view class="section">
+      <view class="section-title">
+        <van-icon name="info-o" size="16px" color="#E85D4A" />
+        <text>上桌信息</text>
+      </view>
+      <view class="info-grid">
+        <view class="info-item">
+          <view class="info-number">{{recipe.preparationTime && recipe.preparationTime.value || '30'}}</view>
+          <view class="info-label">分钟</view>
+        </view>
+        <view class="info-item">
+          <view class="info-number">{{recipe.difficulty && recipe.difficulty.label || '简单'}}</view>
+          <view class="info-label">难度</view>
+        </view>
+        <view class="info-item">
+          <view class="info-number">{{recipe.servingSize && recipe.servingSize.value || '1-2'}}</view>
+          <view class="info-label">人份</view>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 备菜清单 -->
+    <view class="section">
+      <view class="section-title">
+        <van-icon name="list" size="16px" color="#E85D4A" />
+        <text>备菜清单</text>
+      </view>
+      
+      <view class="ingredient-list">
+        <view 
+          wx:for="{{recipe.ingredients}}" 
+          wx:key="id"
+          class="ingredient-item"
+        >
+          <text class="ingredient-name">{{item.name}}</text>
+          <text class="ingredient-amount">{{item.amount}}</text>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 投喂步骤 -->
+    <view class="section">
+      <view class="section-title">
+        <van-icon name="orders-o" size="16px" color="#E85D4A" />
+        <text>投喂步骤</text>
+      </view>
+      
+      <view class="step-list">
+        <view 
+          wx:for="{{recipe.steps}}" 
+          wx:key="id"
+          class="step-item"
+        >
+          <view class="step-number">
+            <text>{{index + 1}}</text>
+          </view>
+          <view class="step-content">
+            <view class="step-text">{{item.content}}</view>
+            <view 
+              wx:if="{{item.image}}" 
+              class="step-image"
+              bindtap="previewStepImage"
+              data-index="{{index}}"
+            >
+              <image src="{{item.image}}" mode="aspectFill" lazy-load="{{true}}" />
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 小红书链接 -->
+    <view wx:if="{{recipe.xiaohongshuUrl}}" class="section">
+      <view class="section-title">
+        <van-icon name="link-o" size="16px" color="#ef4444" />
+        <text>小红书灵感</text>
+      </view>
+      <view class="xiaohongshu-link" bindtap="openXiaohongshu">
+        <text>打开小红书查看</text>
+        <van-icon name="arrow" size="12px" color="#ef4444" />
+      </view>
+    </view>
+
+    <!-- 创建者信息 -->
+    <view class="section">
+      <view class="creator-info">
+        <view class="creator-avatar">
+          <image 
+            wx:if="{{recipe.creator.avatar}}"
+            src="{{recipe.creator.avatar}}" 
+            mode="aspectFill"
+          />
+          <text wx:else>{{recipe.creator.nickname && recipe.creator.nickname.charAt(0) || '用'}}</text>
+        </view>
+        <view class="creator-details">
+          <view class="creator-name">{{recipe.creator.nickname || '未知用户'}}</view>
+          <view class="creator-time">{{recipe.createTime || '刚刚创建'}}</view>
+        </view>
+        <view class="creator-action" bindtap="viewCreatorRecipes">
+          <text>看看其他的</text>
+          <van-icon name="arrow" size="12px" color="#E85D4A" />
+        </view>
+      </view>
+    </view>
+    
+  </view>
+  
+  <!-- 底部操作按钮 -->
+  <view class="action-buttons" wx:if="{{isMyRecipe}}">
+    <!-- 草稿状态显示发布按钮 -->
+    <view wx:if="{{recipe.status === 'draft'}}" class="action-buttons-draft">
+      <view class="action-btn secondary" bindtap="editRecipe">
+        <van-icon name="edit" size="16px" color="#E85D4A" />
+        <text>编辑</text>
+      </view>
+      <view class="action-btn primary" bindtap="publishRecipe">
+        <van-icon name="send" size="16px" color="#ffffff" />
+        <text>发布</text>
+      </view>
+      <view class="action-btn danger" bindtap="deleteRecipe">
+        <van-icon name="delete" size="16px" color="#ffffff" />
+        <text>删除</text>
+      </view>
+    </view>
+    
+    <!-- 已发布状态显示编辑和删除按钮 -->
+    <view wx:else class="action-buttons-published">
+      <view class="action-btn secondary" bindtap="editRecipe">
+        <van-icon name="edit" size="16px" color="#E85D4A" />
+        <text>编辑</text>
+      </view>
+      <view class="action-btn danger" bindtap="deleteRecipe">
+        <van-icon name="delete" size="16px" color="#ffffff" />
+        <text>删除</text>
+      </view>
+    </view>
+  </view>
+  
+  <!-- 非个人菜谱的底部操作按钮 -->
+  <view class="action-buttons action-buttons-visitor" wx:else>
+    <view class="action-btn secondary" bindtap="toggleFavorite">
+      <van-icon 
+        name="{{isFavorited ? 'like' : 'like-o'}}" 
+        size="16px" 
+        color="{{isFavorited ? '#ff4444' : '#8C7770'}}"
+      />
+      <text>{{isFavorited ? '已收藏' : '收藏'}}</text>
+    </view>
+    <button class="action-btn primary share-action-button" open-type="share">
+      <van-icon name="share" size="16px" color="#ffffff" />
+      <text>分享</text>
+    </button>
+  </view>
+  
+  <!-- 加载状态 -->
+  <van-loading 
+    wx:if="{{loading}}" 
+    size="24px" 
+    color="#E85D4A"
+    class="page-loading"
+  >
+    加载中...
+  </van-loading>
+  
+  
+  <!-- Toast提示 -->
+  <van-toast id="van-toast" />
+  
+</view>
+<theme-confirm-dialog id="themeConfirmDialog" />
+<global-notification-popup id="globalNotificationPopup" />

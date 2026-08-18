@@ -1,0 +1,34 @@
+<view class="admin-feedback-page">
+  <view class="page-summary">
+    <view><text class="summary-title">待处理反馈</text><text class="summary-desc">处理完成后将不再计入红点</text></view>
+    <text class="summary-count">{{pendingTotal}}</text>
+  </view>
+
+  <view class="filter-tabs">
+    <view wx:for="{{tabs}}" wx:key="value" class="filter-tab {{currentType === item.value ? 'active' : ''}}" data-type="{{item.value}}" bindtap="changeType">{{item.label}}</view>
+  </view>
+
+  <view class="feedback-list">
+    <view wx:for="{{items}}" wx:key="_id" wx:for-index="itemIndex" class="feedback-card">
+      <view class="card-head">
+        <image class="user-avatar" src="{{item.displayAvatar}}" mode="aspectFill"></image>
+        <view class="user-info"><text class="user-name">{{item.creatorName}}</text><text class="submit-time">{{item.displayTime}}</text></view>
+        <text class="type-badge {{item.type}}">{{item.typeLabel}}</text>
+      </view>
+      <text class="feedback-description">{{item.description}}</text>
+      <view wx:if="{{item.displayImages.length}}" class="feedback-images">
+        <image wx:for="{{item.displayImages}}" wx:key="*this" wx:for-index="imageIndex" class="feedback-image" src="{{item}}" mode="aspectFill" data-item-index="{{itemIndex}}" data-image-index="{{imageIndex}}" bindtap="previewImage"></image>
+      </view>
+      <view class="card-actions">
+        <text class="status-label {{item.status}}">{{item.status === 'processed' ? '已处理' : '待处理'}}</text>
+        <button wx:if="{{item.status !== 'processed'}}" class="process-button" loading="{{processingId === item._id}}" data-id="{{item._id}}" bindtap="processFeedback">标记已处理</button>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{loading}}" class="list-state">正在加载...</view>
+  <view wx:if="{{!loading && items.length === 0}}" class="empty-state">暂时还没有用户反馈</view>
+  <view wx:if="{{!loading && items.length > 0 && !hasMore}}" class="list-state">— 已加载全部 —</view>
+</view>
+<theme-confirm-dialog id="themeConfirmDialog" />
+<global-notification-popup id="globalNotificationPopup" />

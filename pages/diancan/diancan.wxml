@@ -1,0 +1,179 @@
+<view class="diancan-container {{cartItems.length > 0 ? 'has-bottom-actions' : ''}} {{cartItems.length > 1 ? 'needs-scroll-space' : ''}}">
+  <login-prompt id="loginPrompt" />
+  <!-- 头部 -->
+  <view class="header-section">
+    <view class="header-content">
+      <text class="page-title">投喂清单</text>
+      <view class="cart-stats">
+        <van-icon name="shopping-cart-o" size="20px" color="#E85D4A" />
+        <text class="cart-count">{{cartStats.totalCount}}/20</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 饭篮菜品列表 -->
+  <view class="cart-section">
+    <!-- 饭篮数量提示 -->
+    <view wx:if="{{cartItems.length > 0 && cartItems.length >= 18}}" class="cart-limit-tip">
+      <van-icon name="warning-o" size="16px" color="#f59e0b" />
+      <text class="tip-text">饭篮快满啦（{{cartItems.length}}/20），最多先安排20道</text>
+    </view>
+    
+    <view wx:if="{{cartItems.length === 0}}" class="empty-cart">
+      <text class="empty-emoji">🛒</text>
+      <text class="empty-title">饭篮还空着</text>
+      <text class="empty-desc">先去挑几道想吃的菜吧</text>
+      <button class="empty-action" bindtap="goToRecipes">去选择菜品</button>
+    </view>
+    
+    <view wx:else class="cart-items">
+      <view 
+        wx:for="{{cartItems}}" 
+        wx:key="cartKey"
+        class="cart-item {{item.isSelected ? 'selected' : ''}}"
+      >
+        <view class="item-checkbox" bindtap="onToggleSelection" data-cart-key="{{item.cartKey}}">
+          <van-icon 
+            name="{{item.isSelected ? 'success' : 'circle'}}" 
+            size="20px" 
+            color="{{item.isSelected ? '#E85D4A' : '#E8DED8'}}"
+          />
+        </view>
+        
+        <image class="item-image" bindtap="onToggleSelection" data-cart-key="{{item.cartKey}}" src="{{item.displayImage || item.image || '/images/default-recipe.jpg'}}" mode="aspectFill" />
+        
+        <view class="item-info" bindtap="onToggleSelection" data-cart-key="{{item.cartKey}}">
+          <text class="item-name">{{item.recipeName}}</text>
+          <text wx:if="{{item.type === 'wish'}}" class="item-author">饭愿菜</text>
+          <text wx:else class="item-author">来自：{{item.authorName}}</text>
+          <view class="item-meta">
+            <text wx:if="{{item.preparationTime}}" class="meta-item">⏰ {{item.preparationTime}}</text>
+            <text wx:if="{{item.difficulty}}" class="meta-item">⭐ {{item.difficulty}}</text>
+          </view>
+          <text wx:if="{{item.note}}" class="item-author">小要求：{{item.note}}</text>
+        </view>
+        
+        <view class="item-actions">
+          <van-icon 
+            name="delete" 
+            size="20px" 
+            color="#ff4757" 
+            bindtap="onRemoveItem" 
+            data-cart-key="{{item.cartKey}}"
+          />
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 投喂单配置 -->
+  <view wx:if="{{cartItems.length > 0}}" class="order-config">
+    <!-- 固定投喂官 -->
+    <view class="config-item">
+      <view class="config-label">
+        <van-icon name="friends-o" size="20px" color="#E85D4A" />
+        <text>谁来投喂</text>
+      </view>
+      <view class="config-value fixed-feeder-value">
+        <text class="placeholder" wx:if="{{!selectedFriend}}">尚未绑定固定投喂官</text>
+        <block wx:else>
+          <text>{{selectedFriend.displayName}}</text>
+          <text class="fixed-feeder-badge">固定</text>
+        </block>
+      </view>
+    </view>
+
+    <!-- 选择日期 -->
+    <view class="config-item">
+      <view class="config-label">
+        <van-icon name="calendar-o" size="20px" color="#E85D4A" />
+        <text>哪天吃</text>
+      </view>
+      <picker mode="date" value="{{selectedDate}}" start="{{minDate}}" end="{{maxDate}}" bindchange="onCustomDateChange">
+        <view class="config-value">
+          <text>{{selectedDate || '今天'}}</text>
+          <van-icon name="arrow" size="16px" color="#A9958E" />
+        </view>
+      </picker>
+    </view>
+
+    <!-- 选择时间 -->
+    <view class="config-item" bindtap="onSelectTime">
+      <view class="config-label">
+        <van-icon name="clock-o" size="20px" color="#E85D4A" />
+        <text>几点开饭</text>
+      </view>
+      <view class="config-value">
+        <text>{{selectedTimeLabel || '先选个时间'}}</text>
+        <van-icon name="arrow" size="16px" color="#A9958E" />
+      </view>
+    </view>
+
+    <!-- 备注输入 -->
+    <view class="config-item">
+      <view class="config-label">
+        <van-icon name="edit" size="20px" color="#E85D4A" />
+        <text>小要求</text>
+      </view>
+      <van-field
+        value="{{orderNotes}}"
+        placeholder="少辣、加葱、想喝汤都写这"
+        bind:input="onNotesInput"
+        type="textarea"
+        autosize
+        maxlength="200"
+        show-word-limit
+        custom-style="background: #FFF9ED; border-radius: 12px; width: 100%; box-sizing: border-box;"
+        style="width: 100%;"
+      />
+    </view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view wx:if="{{cartItems.length > 0}}" class="bottom-actions">
+    <view class="selection-info">
+      <view class="selection-info-icon">🍽️</view>
+      <text>已安排 {{cartStats.selectedCount}} 道</text>
+    </view>
+    <van-button 
+      type="primary" 
+      bind:click="onCreateOrder"
+      disabled="{{!canCreateOrder}}"
+    >
+      提交投喂单
+    </van-button>
+  </view>
+
+  <!-- 时间选择器 -->
+  <van-popup 
+    show="{{showTimeSelector}}" 
+    position="bottom" 
+    bind:close="onCloseTimeSelector"
+    custom-style="z-index: 10000; position: fixed;"
+    safe-area-inset-bottom="{{false}}"
+    overlay-style="z-index: 9999;"
+  >
+    <view class="time-selector">
+      <view class="time-header">
+        <text class="time-title">几点开饭</text>
+        <van-icon name="cross" size="20px" bindtap="onCloseTimeSelector" />
+      </view>
+      <view class="time-options">
+        <view 
+          wx:for="{{timeOptions}}" 
+          wx:key="value"
+          class="time-option {{selectedTime === item.value ? 'selected' : ''}}"
+          bindtap="onTimeSelect"
+          data-time="{{item.value}}"
+        >
+          <text class="time-emoji">{{item.emoji}}</text>
+          <text class="time-label">{{item.label}}</text>
+        </view>
+      </view>
+      <!-- 添加底部安全区域 -->
+      <view class="time-bottom-safe"></view>
+    </view>
+  </van-popup>
+</view>
+<theme-confirm-dialog id="themeConfirmDialog" />
+<global-notification-popup id="globalNotificationPopup" />

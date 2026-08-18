@@ -1,0 +1,113 @@
+<view class="memory-page">
+  <login-prompt id="loginPrompt" />
+  <view class="memory-header">
+    <text class="memory-title">投喂记忆</text>
+    <text class="memory-subtitle">{{subtitle}}</text>
+  </view>
+
+  <view wx:if="{{loading}}" class="state-view">
+    <text>正在翻看记忆…</text>
+  </view>
+
+  <block wx:elif="{{memory && memory.people.length}}">
+    <view class="overall-card">
+      <view class="overall-item">
+        <text class="overall-number">{{memory.totalOrders}}</text>
+        <text class="overall-label">张投喂单</text>
+      </view>
+      <view class="overall-divider"></view>
+      <view class="overall-item">
+        <text class="overall-number">{{memory.totalDishes}}</text>
+        <text class="overall-label">道菜上桌</text>
+      </view>
+      <view class="overall-divider"></view>
+      <view class="overall-item">
+        <text class="overall-number">{{memory.completedMeals}}</text>
+        <text class="overall-label">顿已投喂</text>
+      </view>
+    </view>
+
+    <scroll-view class="people-scroll" scroll-x="true" show-scrollbar="{{false}}">
+      <view class="people-list">
+        <view
+          wx:for="{{memory.people}}"
+          wx:key="id"
+          class="person-tab {{activePersonId === item.id ? 'active' : ''}}"
+          bindtap="onPersonTap"
+          data-id="{{item.id}}"
+        >
+          <image class="person-avatar" src="{{item.displayAvatar}}" mode="aspectFill" />
+          <text>{{item.nickname}}</text>
+        </view>
+      </view>
+    </scroll-view>
+
+    <view wx:if="{{activePerson}}" class="person-memory">
+      <view class="section-heading">
+        <text>{{activePerson.nickname}}的点单记忆</text>
+        <text class="section-note">{{activePerson.completedMeals}} 顿已投喂</text>
+      </view>
+
+      <view class="person-stats">
+        <view>
+          <text class="stat-number">{{activePerson.totalOrders}}</text>
+          <text>点单次数</text>
+        </view>
+        <view>
+          <text class="stat-number">{{activePerson.totalDishes}}</text>
+          <text>点过的菜</text>
+        </view>
+        <view>
+          <text class="stat-number">{{activePerson.ratingAverage || '—'}}</text>
+          <text>平均评分</text>
+        </view>
+      </view>
+
+      <view wx:if="{{activePerson.topRecipes.length}}" class="memory-section">
+        <text class="section-title">常点的菜</text>
+        <view class="recipe-row">
+          <view wx:for="{{activePerson.topRecipes}}" wx:key="name" class="recipe-chip">
+            <image src="{{item.displayImage || '/images/default-recipe.jpg'}}" mode="aspectFill" />
+            <view>
+              <text>{{item.name}}</text>
+              <text class="recipe-count">吃过 {{item.count}} 次</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{activePerson.favoriteRecipes.length}}" class="memory-section">
+        <text class="section-title">TA 收藏的菜</text>
+        <scroll-view class="favorite-scroll" scroll-x="true" show-scrollbar="{{false}}">
+          <view class="favorite-list">
+            <view wx:for="{{activePerson.favoriteRecipes}}" wx:key="id" class="favorite-card" bindtap="onRecipeTap" data-id="{{item.id}}">
+              <image src="{{item.displayImage || '/images/default-recipe.jpg'}}" mode="aspectFill" />
+              <text>{{item.name}}</text>
+            </view>
+          </view>
+        </scroll-view>
+      </view>
+
+      <view wx:if="{{activePerson.latestRating}}" class="praise-card">
+        <text class="praise-title">最近的夸夸 · {{activePerson.latestRating.score}} / 5 ★</text>
+        <text class="praise-content">{{activePerson.latestRating.content || '这一顿收到了满分好评。'}}</text>
+      </view>
+
+      <view wx:if="{{activePerson.recentMeals.length}}" class="memory-section">
+        <text class="section-title">最近投喂</text>
+        <view wx:for="{{activePerson.recentMeals}}" wx:key="id" class="recent-meal" bindtap="onOrderTap" data-id="{{item.id}}">
+          <text class="meal-date">{{item.date}}</text>
+          <text class="meal-recipes">{{item.recipeNames}}</text>
+          <text class="meal-arrow">›</text>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <view wx:else class="state-view empty-state">
+    <text class="empty-icon">🍽️</text>
+    <text class="empty-text">{{emptyText}}</text>
+    <button class="go-recipes" bindtap="onGoToRecipes">去看看菜谱</button>
+  </view>
+</view>
+<global-notification-popup id="globalNotificationPopup" />

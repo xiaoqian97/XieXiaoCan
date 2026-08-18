@@ -1,0 +1,169 @@
+<view class="order-list-container">
+  <login-prompt id="loginPrompt" />
+  <!-- 头部 -->
+  <view class="header-section">
+    <!-- <view class="header-content">
+      <text class="page-title">我的投喂单</text>
+      <view class="search-btn" bindtap="onSearchClick">
+        <van-icon name="search" size="20px" color="#E85D4A" />
+      </view>
+    </view> -->
+    
+    <!-- 搜索框 -->
+    <view class="search-section">
+      <van-field
+        value="{{searchValue}}"
+        placeholder="搜投喂单、投喂官或菜品..."
+        bind:change="onSearchChange"
+        clearable
+        left-icon="search"
+        custom-style="background: #F5ECE6; border-radius: 16px; border: none;"
+      />
+    </view>
+  </view>
+
+  <!-- 状态筛选 -->
+  <view class="status-tabs">
+    <scroll-view class="tabs-scroll" scroll-x="true" show-scrollbar="{{false}}">
+      <view class="tabs-list">
+        <view 
+          wx:for="{{statusTabs}}" 
+          wx:key="value"
+          class="tab-item {{currentStatus === item.value ? 'active' : ''}}"
+          data-status="{{item.value}}"
+          bindtap="onStatusChange"
+        >
+          <text class="tab-text">{{item.label}}</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 投喂单列表 -->
+  <view class="orders-section">
+    <scroll-view 
+      class="orders-scroll"
+      scroll-y="true"
+      refresher-enabled="true"
+      refresher-triggered="{{refreshing}}"
+      bindrefresherrefresh="onRefresh"
+      bindscrolltolower="onReachBottom"
+    >
+      <view wx:if="{{loading && orders.length === 0}}" class="loading-state">
+        <van-loading size="24px" />
+        <text class="loading-text">投喂单加载中...</text>
+      </view>
+
+      <view wx:elif="{{orders.length === 0}}" class="empty-state">
+        <text class="empty-emoji">📋</text>
+        <text class="empty-title">还没有投喂单</text>
+      </view>
+
+      <view wx:else class="orders-list">
+        <view
+          wx:for="{{orders}}" 
+          wx:key="_id"
+          class="order-swipe-item"
+        >
+          <view wx:if="{{item.swipeOffset < 0}}" class="order-delete-action" data-order-id="{{item._id}}" catchtap="onDeleteOrder">
+            <van-icon name="delete-o" size="22px" color="#ffffff" />
+            <text>删除</text>
+          </view>
+          <view
+            class="order-card"
+            style="transform: translateX({{item.swipeOffset || 0}}px);"
+            data-order-id="{{item._id}}"
+            bindtap="onOrderClick"
+            bindtouchstart="onOrderTouchStart"
+            bindtouchmove="onOrderTouchMove"
+            bindtouchend="onOrderTouchEnd"
+            bindtouchcancel="onOrderTouchEnd"
+          >
+          <!-- 投喂单头部 -->
+          <view class="order-header">
+            <view class="order-title">
+              <view class="order-time">
+                <text class="meal-icon">{{item.mealTypeIcon}}</text>
+                <text class="meal-type">{{item.mealTypeLabel}}投喂单</text>
+                <text class="order-date">{{item.orderDate}}</text>
+              </view>
+              <view class="status-badge status-{{item.status}}">
+                <text class="status-text">{{item.statusLabel}}</text>
+              </view>
+            </view>
+            <view class="order-creator">
+              <text class="order-no">{{item.orderNo}}</text>
+              <text class="order-no">点饭人：{{item.creator.nickname}}</text>
+            </view>
+          </view>
+
+          <!-- 投喂官信息 -->
+          <view class="assignee-info">
+            <image class="assignee-avatar" src="{{item.assignee.displayAvatar || item.assignee.avatar || '/images/default-avatar.png'}}" mode="aspectFill" />
+            <view class="assignee-details">
+              <text class="assignee-name">{{item.assignee.nickname}}</text>
+              <!-- <text class="order-time">日期： {{item.orderDate}}</text> -->
+            </view>
+          </view>
+
+          <!-- 菜品预览区域 -->
+          <view class="recipes-preview">
+            <view class="recipe-grid">
+              <view 
+                wx:for="{{item.recipes}}" 
+                wx:key="index"
+                wx:if="{{index < 4}}"
+                class="recipe-image-item"
+              >
+                <image class="recipe-image" src="{{item.displayImage || item.image || '/images/default-recipe.jpg'}}" mode="aspectFill" />
+              </view>
+            </view>
+            <view class="recipe-info-right">
+              <text class="recipe-count">共{{item.totalRecipes}}道菜</text>
+            </view>
+          </view>
+
+          <!-- 操作按钮区域 -->
+          <view class="order-actions">
+            <button
+              class="action-btn secondary"
+              open-type="share"
+              data-order-id="{{item._id}}"
+              catchtap="onShareOrderTap"
+            >
+              分享
+            </button>
+            <!-- 待处理状态 -->
+            <view wx:if="{{item.status === 'pending'}}" class="button-group">
+              <button class="action-btn success" data-order-id="{{item._id}}" catchtap="onStartCooking" wx:if="{{item.assigneeId === userInfo.openid}}">开始投喂</button>
+              <button class="action-btn danger" data-order-id="{{item._id}}" catchtap="onCancelOrder">取消投喂</button>
+            </view>
+            
+            <!-- 处理中状态 -->
+            <view wx:elif="{{item.status === 'processing'}}" class="button-group">
+              <button class="action-btn success" data-order-id="{{item._id}}" catchtap="onCompleteOrder" wx:if="{{item.assigneeId === userInfo.openid}}">投喂完成</button>
+              <button class="action-btn danger" data-order-id="{{item._id}}" catchtap="onCancelOrder">取消投喂</button>
+            </view>
+            
+            <!-- 已完成或已取消状态 -->
+            <button wx:elif="{{item.status === 'completed' || item.status === 'cancelled'}}" class="action-btn primary" data-order-id="{{item._id}}" catchtap="onOrderAgain">再来一单</button>
+          </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 加载更多 -->
+      <view wx:if="{{loading && orders.length > 0}}" class="load-more">
+        <van-loading size="20px" />
+        <text>再翻几单...</text>
+      </view>
+
+      <!-- 没有更多 -->
+      <view wx:if="{{!loading && !hasMore && orders.length > 0}}" class="no-more">
+        <text>— 投喂记录先到这儿 —</text>
+      </view>
+    </scroll-view>
+  </view>
+</view>
+<theme-confirm-dialog id="themeConfirmDialog" />
+<global-notification-popup id="globalNotificationPopup" />

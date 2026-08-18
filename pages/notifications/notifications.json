@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "我的消息",
+  "navigationBarBackgroundColor": "#FFF9ED",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#FFF9ED",
+  "enablePullDownRefresh": true
+}

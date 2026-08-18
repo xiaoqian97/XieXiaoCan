@@ -1,0 +1,33 @@
+<view class="favorites-page">
+  <login-prompt id="loginPrompt" />
+  <view class="page-header">
+    <text class="page-title">{{readOnly ? friendName + '的收藏' : '想吃的，都在这里'}}</text>
+    <text class="page-desc">{{readOnly ? '看看 TA 最近喜欢哪些菜' : '留给下一次投喂'}}</text>
+  </view>
+
+  <view wx:if="{{loading}}" class="state-view">
+    <text>收藏加载中…</text>
+  </view>
+
+  <view wx:elif="{{recipes.length}}" class="favorite-list">
+    <view wx:for="{{recipes}}" wx:key="_id" class="favorite-card">
+      <recipe-item
+        recipe="{{item}}"
+        compact="{{true}}"
+        show-cart-action="{{false}}"
+        cooking-methods="{{cookingMethods}}"
+        flavor-types="{{flavorTypes}}"
+        bind:recipeclick="onRecipeTap"
+      />
+      <view wx:if="{{!readOnly}}" class="remove-button" catchtap="onRemoveFavorite" data-id="{{item._id}}">♥</view>
+    </view>
+  </view>
+
+  <view wx:else class="state-view empty-state">
+    <text class="empty-icon">♡</text>
+    <text class="empty-title">{{readOnly ? 'TA 还没有可查看的收藏' : '还没有收藏'}}</text>
+    <text class="empty-desc">{{readOnly ? '收藏的菜品不可见或暂时还没有收藏。' : '看到想吃的菜，点一下小心心就能留在这里。'}}</text>
+    <button wx:if="{{!readOnly}}" class="go-recipes" bindtap="onGoToRecipes">去挑菜</button>
+  </view>
+</view>
+<global-notification-popup id="globalNotificationPopup" />

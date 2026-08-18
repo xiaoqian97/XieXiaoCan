@@ -1,0 +1,45 @@
+<view class="users-page">
+  <view class="search-panel">
+    <view class="search-box">
+      <text class="search-icon">⌕</text>
+      <input value="{{keyword}}" placeholder="搜索昵称或搜索码" confirm-type="search" bindinput="onKeywordInput" bindconfirm="onSearch" />
+      <text wx:if="{{keyword}}" class="clear-search" bindtap="onClearSearch">×</text>
+    </view>
+  </view>
+
+  <scroll-view class="role-filters" scroll-x="true" show-scrollbar="{{false}}">
+    <view class="filter-row">
+      <view wx:for="{{roleFilters}}" wx:key="value" class="role-filter {{currentRole === item.value ? 'active' : ''}}" data-role="{{item.value}}" bindtap="onRoleFilter">
+        {{item.label}}
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="list-summary">共 {{total}} 位用户</view>
+
+  <view class="user-list">
+    <view wx:for="{{users}}" wx:key="openid" class="user-card">
+      <image class="user-avatar" src="{{item.avatar}}" mode="aspectFill"></image>
+      <view class="user-main">
+        <view class="user-name-row">
+          <text class="user-name">{{item.nickname}}</text>
+          <text class="role-badge {{item.role}}">{{item.roleLabel}}</text>
+          <text wx:if="{{item.isAdmin}}" class="admin-badge">管理员</text>
+          <text wx:if="{{item.isPrimaryAdmin}}" class="primary-badge">主管理员</text>
+        </view>
+        <text class="user-code">搜索码：{{item.searchCode || '未生成'}}</text>
+        <text class="feeder-info" wx:if="{{item.fixedFeederName}}">固定投喂官：{{item.fixedFeederName}}</text>
+      </view>
+      <view class="user-actions">
+        <button class="role-button" data-user="{{item}}" bindtap="onRoleAction">修改身份</button>
+        <button wx:if="{{canManageAdmins}}" class="permission-button {{item.isPrimaryAdmin && item.isAdmin ? 'disabled' : ''}}" data-user="{{item}}" bindtap="onAdminPermissionAction">{{item.isAdmin ? '取消管理' : '设为管理'}}</button>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{loading}}" class="list-state">正在加载...</view>
+  <view wx:if="{{!loading && users.length === 0}}" class="empty-state">没有找到符合条件的用户</view>
+  <view wx:if="{{!loading && users.length > 0 && !hasMore}}" class="list-state">— 已加载全部用户 —</view>
+</view>
+<theme-confirm-dialog id="themeConfirmDialog" />
+<global-notification-popup id="globalNotificationPopup" />

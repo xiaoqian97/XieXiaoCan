@@ -1,0 +1,366 @@
+/* 点餐页面样式 */
+.diancan-container {
+  min-height: 100vh;
+  background-color: #FFF9ED;
+  padding-bottom: 0;
+  box-sizing: border-box;
+}
+
+.diancan-container.has-bottom-actions {
+  padding-bottom: 112rpx;
+}
+
+.diancan-container.needs-scroll-space {
+  padding-bottom: 200rpx;
+}
+
+/* 头部 */
+.header-section {
+  background-color: #ffffff;
+  padding: 32rpx;
+  border-bottom: 1rpx solid #E8DED8;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.page-title {
+  font-size: 40rpx;
+  font-weight: 600;
+  color: #3F302B;
+}
+
+.cart-stats {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 20rpx;
+  background-color: #FFF4E8;
+  border-radius: 20rpx;
+}
+
+/* 购物车数量限制提示 */
+.cart-limit-tip {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  background-color: #fef3c7;
+  border: 1rpx solid #f59e0b;
+  border-radius: 8rpx;
+  padding: 16rpx 24rpx;
+  margin: 16rpx 32rpx;
+}
+
+.tip-text {
+  font-size: 28rpx;
+  color: #92400e;
+  flex: 1;
+}
+
+.cart-count {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #E85D4A;
+}
+
+/* 购物车区域 */
+.cart-section {
+  padding: 32rpx;
+}
+
+.empty-cart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24rpx;
+  padding: 240rpx 0;
+}
+
+.empty-emoji {
+  font-size: 80rpx;
+}
+
+.empty-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #3F302B;
+}
+
+.empty-desc {
+  font-size: 28rpx;
+  color: #8C7770;
+}
+
+.empty-action {
+  min-width: 280rpx;
+  height: 84rpx;
+  margin-top: 12rpx;
+  padding: 0 40rpx;
+  border: none;
+  border-radius: 42rpx;
+  background: linear-gradient(135deg, #E85D4A 0%, #D94A3A 100%);
+  box-shadow: 0 8rpx 24rpx rgba(232, 93, 74, 0.24);
+  color: #ffffff;
+  font-size: 30rpx;
+  font-weight: 600;
+  line-height: 84rpx;
+}
+
+.empty-action::after {
+  border: none;
+}
+
+.empty-action:active {
+  opacity: 0.88;
+  transform: translateY(2rpx);
+}
+
+.cart-items {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.cart-item {
+  display: flex;
+  align-items: center;
+  padding: 24rpx;
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+  border: 2rpx solid transparent;
+  transition: all 0.3s ease;
+}
+
+.cart-item.selected {
+  border-color: #E85D4A;
+  background-color: #FFF4E8;
+}
+
+.item-checkbox {
+  margin-right: 24rpx;
+  padding: 8rpx;
+}
+
+.item-image {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 12rpx;
+  margin-right: 24rpx;
+}
+
+.item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.item-name {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #3F302B;
+}
+
+.item-author {
+  font-size: 24rpx;
+  color: #8C7770;
+}
+
+.item-meta {
+  display: flex;
+  gap: 16rpx;
+}
+
+.meta-item {
+  font-size: 22rpx;
+  color: #A9958E;
+}
+
+.item-actions {
+  margin-left: 16rpx;
+  padding: 8rpx;
+}
+
+/* 订单配置 */
+.order-config {
+  margin: 32rpx;
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  padding: 32rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+}
+
+.config-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #F5ECE6;
+}
+
+.config-item:last-child {
+  border-bottom: none;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16rpx;
+  width: 100%;
+}
+
+.config-label {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  font-size: 28rpx;
+  color: #3F302B;
+}
+
+.config-value {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 28rpx;
+  color: #3F302B;
+}
+
+.fixed-feeder-value {
+  justify-content: flex-end;
+}
+
+.fixed-feeder-badge {
+  padding: 3rpx 10rpx;
+  color: #D94A3A;
+  font-size: 19rpx;
+  line-height: 1.4;
+  border-radius: 999rpx;
+  background: rgba(232, 93, 74, 0.12);
+}
+
+.placeholder {
+  color: #A9958E;
+}
+
+/* 备注输入框样式 */
+.config-item .van-field {
+  width: 100%;
+  min-height: 120rpx;
+}
+
+/* 订单按钮内容样式 */
+.order-button-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+}
+
+.dish-count-badge {
+  font-size: 24rpx;
+  background: rgba(255,255,255,0.2);
+  padding: 4rpx 12rpx;
+  border-radius: 20rpx;
+}
+
+.selection-info-icon {
+  font-size: 32rpx;
+  color: #E85D4A;
+}
+
+/* 底部操作栏 */
+.bottom-actions {
+  position: fixed;
+  bottom: 100rpx; /* 调整底部位置，避免与tabbar重叠 */
+  left: 0;
+  right: 0;
+  z-index: 1000; /* 添加z-index，确保在tabbar之上 */
+  background-color: #ffffff;
+  padding: 24rpx 32rpx;
+  border-top: 1rpx solid #E8DED8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24rpx;
+  /* 添加安全区域支持 */
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+  /* 美化效果 */
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.08);
+  border-radius: 24rpx 24rpx 0 0;
+}
+
+.selection-info {
+  font-size: 28rpx;
+  color: #6E5852;
+  font-weight: 500;
+  background-color: #FFF4E8;
+  padding: 16rpx 24rpx;
+  border-radius: 16rpx;
+  border: 1rpx solid #FFF1D6;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+
+
+/* 时间选择器 */
+.time-selector {
+  padding: 32rpx;
+  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
+  background-color: #ffffff;
+  border-radius: 24rpx 24rpx 0 0;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.time-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32rpx;
+}
+
+.time-title {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #3F302B;
+}
+
+.time-options {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.time-option {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 24rpx;
+  background-color: #FFF9ED;
+  border-radius: 12rpx;
+  border: 2rpx solid transparent;
+  transition: all 0.3s ease;
+}
+
+.time-option.selected {
+  background-color: #FFF4E8;
+  border-color: #E85D4A;
+}
+
+.time-emoji {
+  font-size: 32rpx;
+}
+
+.time-label {
+  font-size: 28rpx;
+  color: #3F302B;
+}
+
+/* 时间选择器底部安全区域 */
+.time-bottom-safe {
+  height: calc(100rpx + env(safe-area-inset-bottom));
+  background-color: #ffffff;
+}

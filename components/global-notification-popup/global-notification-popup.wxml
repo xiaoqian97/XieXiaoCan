@@ -1,0 +1,34 @@
+<view wx:if="{{visible}}" class="notification-mask" catchtouchmove="stopPropagation">
+  <view class="notification-card type-{{message.type}} theme-{{themeKey}} {{opening ? 'opening' : ''}}" catchtap="stopPropagation">
+    <view class="notification-glow glow-left"></view>
+    <view class="notification-glow glow-right"></view>
+    <view wx:if="{{!opening}}" class="notification-close" bindtap="onLater">×</view>
+
+    <view wx:if="{{!isBlessing}}" class="notification-icon-wrap">
+      <view class="notification-icon">{{icon}}</view>
+      <view class="notification-dot"></view>
+    </view>
+    <view wx:else class="blessing-envelope-stage">
+      <view class="blessing-envelope">
+        <view class="envelope-letter"><text>♥</text></view>
+        <view class="envelope-back"></view>
+        <view class="envelope-front"></view>
+        <view class="envelope-flap"></view>
+        <view class="envelope-seal">{{icon}}</view>
+      </view>
+      <view class="opening-spark spark-a">✦</view>
+      <view class="opening-spark spark-b">♥</view>
+      <view class="opening-spark spark-c">✦</view>
+    </view>
+
+    <text class="notification-type">{{typeLabel}}</text>
+    <text class="notification-title">{{message.title || '你有一条新消息'}}</text>
+    <text wx:if="{{!isBlessing}}" class="notification-content">{{message.content || '快去看看饭搭子发来的新消息吧'}}</text>
+    <text wx:if="{{message.createdAtText}}" class="notification-time">{{message.createdAtText}}</text>
+
+    <view class="notification-actions">
+      <button class="notification-button later" disabled="{{opening}}" bindtap="onLater">稍后再看</button>
+      <button class="notification-button confirm" disabled="{{opening}}" bindtap="onConfirm">{{opening ? '正在拆开...' : confirmText}}</button>
+    </view>
+  </view>
+</view>

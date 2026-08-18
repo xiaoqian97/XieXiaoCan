@@ -1,0 +1,2 @@
+<view class="container"><text>正在打开投喂单...</text></view>
+<global-notification-popup id="globalNotificationPopup" />

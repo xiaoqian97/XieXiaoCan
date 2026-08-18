@@ -1,0 +1,103 @@
+<!-- 菜谱项组件 -->
+<wxs module="filterUtils" src="/utils/wxs/filter-utils.wxs"></wxs>
+<view 
+  class="recipe-card"
+  data-id="{{recipe._id}}"
+  bindtap="onRecipeClick"
+>
+  <view class="recipe-content {{compact ? 'compact' : ''}}">
+    <image 
+      class="recipe-image" 
+      src="{{displayImage}}"
+      mode="aspectFill"
+    />
+    <!-- 状态标签 - 只在显示状态时显示 -->
+    <view wx:if="{{showStatus}}" class="recipe-status-tag {{recipe.status === 'draft' ? 'draft' : 'published'}}">
+      <text class="status-text">{{recipe.status === 'draft' ? '草稿' : '已发布'}}</text>
+    </view>
+    <view class="recipe-info">
+      <text class="recipe-title">{{recipe.name}}</text>
+      <view wx:if="{{compact}}" class="recipe-tags compact-tags">
+        <view class="recipe-tag scene-tag">{{recipe.sceneDisplay || '宴客'}}</view>
+        <view class="recipe-tag ingredient-tag">{{recipe.ingredientDisplay || '肉类'}}</view>
+        <view wx:for="{{recipe.optionalTags}}" wx:key="index" wx:if="{{index < 2}}" class="recipe-tag optional-tag">
+          {{filterUtils.getOptionalTagName(cookingMethods, flavorTypes, item)}}
+        </view>
+      </view>
+      <view wx:if="{{compact && showStats && (recipe.favoriteCount > 0 || recipe.salesCount > 0 || recipe.ratingCount > 0 || (showViewStats && recipe.viewCount > 0))}}" class="recipe-metrics compact-metrics">
+        <view wx:if="{{recipe.favoriteCount > 0}}" class="recipe-metric favorite-metric">
+          <van-icon name="like-o" size="12px" />
+          <text>{{recipe.favoriteCount}}</text>
+        </view>
+        <view wx:if="{{recipe.salesCount > 0}}" class="recipe-metric sales-metric">
+          <van-icon name="orders-o" size="12px" />
+          <text>{{recipe.salesCount}}</text>
+        </view>
+        <view wx:if="{{recipe.ratingCount > 0}}" class="recipe-metric rating-metric">
+          <van-icon name="star-o" size="12px" />
+          <text>{{recipe.ratingAverage}}</text>
+        </view>
+        <view wx:if="{{showViewStats && recipe.viewCount > 0}}" class="recipe-metric view-metric">
+          <van-icon name="eye-o" size="12px" />
+          <text>{{recipe.viewCount}}</text>
+        </view>
+      </view>
+      <block wx:if="{{!compact}}">
+        <text class="recipe-description recipe-description-text">{{recipe.description || '经典家常菜，营养美味'}}</text>
+        <view class="recipe-meta">
+          <view class="meta-item">
+            <van-icon name="clock-o" size="12px" color="#A9958E" />
+            <text>{{recipe.preparationTime && recipe.preparationTime.label || '30分钟'}}</text>
+          </view>
+          <view class="meta-item">
+            <van-icon name="friends-o" size="12px" color="#A9958E" />
+            <text>{{recipe.servingSize && recipe.servingSize.label || '1-2人'}}</text>
+          </view>
+          <view class="meta-item">
+            <van-icon name="star" size="12px" color="#ffd700" />
+            <text>{{recipe.difficulty && recipe.difficulty.label || '简单'}}</text>
+          </view>
+        </view>
+        <view wx:if="{{showStats && (recipe.favoriteCount > 0 || recipe.salesCount > 0 || recipe.ratingCount > 0 || (showViewStats && recipe.viewCount > 0))}}" class="recipe-metrics full-metrics">
+          <view wx:if="{{recipe.favoriteCount > 0 && showFavoriteInfo}}" class="recipe-metric favorite-stats" catchtap="onFavoriteInfo">
+            <van-icon name="like-o" size="12px" color="#E85D4A" />
+            <text>{{recipe.favoriteCount}}</text>
+          </view>
+          <view wx:elif="{{recipe.favoriteCount > 0}}" class="recipe-metric favorite-stats">
+            <van-icon name="like-o" size="12px" color="#E85D4A" />
+            <text>{{recipe.favoriteCount}}</text>
+          </view>
+          <view wx:if="{{recipe.salesCount > 0}}" class="recipe-metric sales-stats">
+            <van-icon name="orders-o" size="12px" color="#A9958E" />
+            <text>{{recipe.salesCount}}</text>
+          </view>
+          <view wx:if="{{recipe.ratingCount > 0}}" class="recipe-metric rating-stats">
+            <van-icon name="star-o" size="12px" color="#E7A928" />
+            <text>{{recipe.ratingAverage}}</text>
+          </view>
+          <view wx:if="{{showViewStats && recipe.viewCount > 0}}" class="recipe-metric view-stats">
+            <van-icon name="eye-o" size="12px" color="#A9958E" />
+            <text>{{recipe.viewCount}}</text>
+          </view>
+        </view>
+        <view class="recipe-tags">
+          <view class="recipe-tag scene-tag">{{recipe.sceneDisplay || '宴客'}}</view>
+          <view class="recipe-tag ingredient-tag">{{recipe.ingredientDisplay || '肉类'}}</view>
+          <view wx:for="{{recipe.optionalTags}}" wx:key="index" wx:if="{{index < 2}}" class="recipe-tag optional-tag">
+            {{filterUtils.getOptionalTagName(cookingMethods, flavorTypes, item)}}
+          </view>
+        </view>
+      </block>
+    </view>
+    
+    <!-- 饭篮按钮 -->
+    <view wx:if="{{showCartAction}}" class="cart-action {{compact ? 'compact-cart-action' : ''}}" catchtap="onCartAction" data-recipe-id="{{recipe._id}}">
+      <view wx:if="{{!recipe.isInCart}}" class="add-to-cart-btn">
+        <text class="btn-text">{{compact ? '+' : '放进饭篮'}}</text>
+      </view>
+      <view wx:else class="remove-from-cart-btn">
+        <text class="btn-text">{{compact ? '✓' : '拿出饭篮'}}</text>
+      </view>
+    </view>
+  </view>
+</view>

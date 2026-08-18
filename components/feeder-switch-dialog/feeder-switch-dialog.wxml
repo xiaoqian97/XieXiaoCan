@@ -1,0 +1,32 @@
+<view wx:if="{{visible}}" class="dialog-mask" bindtap="cancel" catchtouchmove="stopPropagation">
+  <view class="dialog-card" catchtap="stopPropagation">
+    <view class="dialog-hero">
+      <view class="hero-icon">🍲</view>
+      <text class="dialog-kicker">{{dinerName ? (dinerName + '的投喂关系') : '我的投喂关系'}}</text>
+      <text class="dialog-title">{{isSwitch ? '更换固定投喂官' : '设置固定投喂官'}}</text>
+    </view>
+
+    <view wx:if="{{isSwitch}}" class="relation-route">
+      <view class="person old"><text class="person-label">原投喂官</text><text class="person-name">{{previousName}}</text></view>
+      <view class="route-arrow">→</view>
+      <view class="person next"><text class="person-label">新投喂官</text><text class="person-name">{{nextName}}</text></view>
+    </view>
+    <view wx:else class="relation-route single">
+      <view class="person next"><text class="person-label">固定投喂官</text><text class="person-name">{{nextName}}</text></view>
+    </view>
+
+    <view wx:if="{{isSwitch}}" class="change-notice">
+      <text class="notice-title">更换后将自动收口</text>
+      <text class="notice-line">· 取消原投喂官的未完成投喂单</text>
+      <text class="notice-line">· 取消对应的未结束饭愿</text>
+      <text class="notice-line">· 移除饭篮中原投喂官的菜品</text>
+      <text class="history-tip">已完成的投喂记录会保留</text>
+    </view>
+    <text wx:else class="setup-tip">设置后，菜谱、饭愿和投喂单将由 TA 负责。</text>
+
+    <view class="dialog-actions">
+      <button class="dialog-button cancel" bindtap="cancel">再想想</button>
+      <button class="dialog-button confirm" bindtap="confirm">{{isSwitch ? '确认更换' : '确认设置'}}</button>
+    </view>
+  </view>
+</view>

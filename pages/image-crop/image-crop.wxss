@@ -1,0 +1,67 @@
+.cropper-wrapper {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+  background: #211d1b;
+}
+
+.cropper-area {
+  width: 100%;
+  height: calc(100% - 72px);
+  position: relative;
+}
+
+.crop-tip {
+  position: fixed;
+  top: 28rpx;
+  left: 32rpx;
+  right: 32rpx;
+  z-index: 10;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 24rpx;
+  text-align: center;
+  pointer-events: none;
+}
+
+.cropper-buttons {
+  width: 100%;
+  height: 72px;
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  align-items: center;
+  gap: 24rpx;
+  box-sizing: border-box;
+  padding: 12px 32rpx calc(12px + env(safe-area-inset-bottom));
+  background: #FFF9ED;
+}
+
+.cropper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.crop-button {
+  height: 44px;
+  line-height: 44px;
+  border-radius: 22px;
+  font-size: 30rpx;
+  text-align: center;
+}
+
+.crop-button.cancel {
+  color: #8C7770;
+  background: #F5ECE6;
+}
+
+.crop-button.confirm {
+  color: #ffffff;
+  background: linear-gradient(135deg, #E85D4A, #D94A3A);
+}
