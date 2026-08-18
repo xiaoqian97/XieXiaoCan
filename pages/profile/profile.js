@@ -48,7 +48,7 @@ Page({
     identityText: '访客',
     identityClass: 'guest',
     isPrimaryAdmin: false,
-    appVersion: app.globalData.version || '1.0.0'
+    appVersion: app.globalData.version || '1.0.6'
   },
 
   onLoad: function () {
@@ -57,7 +57,7 @@ Page({
 
   onShow: function () {
     if (typeof app.refreshVersionInfo === 'function') app.refreshVersionInfo()
-    this.setData({ appVersion: app.globalData.version || '1.0.0' })
+    this.setData({ appVersion: app.globalData.version || '1.0.6' })
     // 只在数据未加载时才检查登录和加载数据
     if (!this.data.isDataLoaded) {
       this.checkLoginAndLoad()

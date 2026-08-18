@@ -7,7 +7,9 @@ Component({
     content: '',
     cancelText: '再想想',
     confirmText: '确定',
-    tone: 'primary'
+    tone: 'primary',
+    showCancel: true,
+    dismissible: true
   },
 
   methods: {
@@ -20,13 +22,19 @@ Component({
         content: options.content || '',
         cancelText: options.cancelText || '再想想',
         confirmText: options.confirmText || '确定',
-        tone: options.tone === 'danger' ? 'danger' : 'primary'
+        tone: options.tone === 'danger' ? 'danger' : 'primary',
+        showCancel: options.showCancel !== false,
+        dismissible: options.dismissible !== false
       })
       return new Promise(resolve => { this._resolve = resolve })
     },
 
     cancel() {
       this.close(false)
+    },
+
+    onMaskTap() {
+      if (this.data.dismissible) this.cancel()
     },
 
     confirm() {

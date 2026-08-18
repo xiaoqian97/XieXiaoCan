@@ -10,5 +10,7 @@
 .dialog-button::after { border: none; }
 .dialog-button.cancel { color: #8C7770; background: #F3ECE8; }
 .dialog-button.confirm { color: #FFFFFF; background: linear-gradient(135deg, #E85D4A, #D94A3A); box-shadow: 0 8rpx 20rpx rgba(217, 74, 58, 0.2); }
+.dialog-actions.single { display: block; }
+.dialog-actions.single .dialog-button.confirm { width: 100%; }
 .dialog-card.danger .dialog-hero { background: linear-gradient(135deg, #FFF0EA, #FFE6E3); }
 .dialog-card.danger .dialog-button.confirm { background: linear-gradient(135deg, #E85D4A, #C93D35); }

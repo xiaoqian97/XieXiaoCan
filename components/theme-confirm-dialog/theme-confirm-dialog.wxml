@@ -1,4 +1,4 @@
-<view wx:if="{{visible}}" class="dialog-mask" bindtap="cancel" catchtouchmove="stopPropagation">
+<view wx:if="{{visible}}" class="dialog-mask" bindtap="onMaskTap" catchtouchmove="stopPropagation">
   <view class="dialog-card {{tone}}" catchtap="stopPropagation">
     <view class="dialog-hero">
       <view class="hero-icon">{{icon}}</view>
@@ -6,8 +6,8 @@
       <text class="dialog-title">{{title}}</text>
     </view>
     <text class="dialog-content">{{content}}</text>
-    <view class="dialog-actions">
-      <button class="dialog-button cancel" bindtap="cancel">{{cancelText}}</button>
+    <view class="dialog-actions {{showCancel ? '' : 'single'}}">
+      <button wx:if="{{showCancel}}" class="dialog-button cancel" bindtap="cancel">{{cancelText}}</button>
       <button class="dialog-button confirm" bindtap="confirm">{{confirmText}}</button>
     </view>
   </view>

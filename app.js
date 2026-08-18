@@ -1,9 +1,11 @@
 import Device from './utils/device.js'
 const navigation = require('./utils/navigation')
+const FALLBACK_APP_VERSION = '1.0.6'
 
 App({
   onLaunch: async function () {
     this.refreshVersionInfo()
+    this.checkForUpdate()
     // 初始化云开发
     if (!wx.cloud) {
       console.error('请使用 2.2.3 或以上的基础库以使用云能力')
@@ -215,12 +217,57 @@ App({
     try {
       const accountInfo = wx.getAccountInfoSync()
       const miniProgram = (accountInfo && accountInfo.miniProgram) || {}
-      this.globalData.version = miniProgram.version || this.globalData.version || '1.0.0'
+      this.globalData.version = miniProgram.version || this.globalData.version || FALLBACK_APP_VERSION
       this.globalData.envVersion = miniProgram.envVersion || 'develop'
     } catch (error) {
-      this.globalData.version = this.globalData.version || '1.0.0'
+      this.globalData.version = this.globalData.version || FALLBACK_APP_VERSION
       this.globalData.envVersion = 'develop'
     }
+  },
+
+  checkForUpdate: function() {
+    if (!wx.getUpdateManager) return
+    const updateManager = wx.getUpdateManager()
+    updateManager.onUpdateReady(() => {
+      this.showUpdatePrompt({
+        icon: '✨',
+        kicker: '谢小馋版本更新',
+        title: '发现新版本',
+        content: '新版本已经准备好，需要更新后才能继续使用。',
+        confirmText: '立即更新',
+        showCancel: false,
+        dismissible: false
+      }, () => updateManager.applyUpdate())
+    })
+    updateManager.onUpdateFailed(() => {
+      this.showUpdatePrompt({
+        icon: '⚠️',
+        kicker: '谢小馋版本更新',
+        title: '更新失败',
+        content: '新版本下载失败，请关闭小程序后重新打开。',
+        confirmText: '知道了',
+        showCancel: false
+      })
+    })
+  },
+
+  showUpdatePrompt: function(options, onConfirm) {
+    const pages = getCurrentPages()
+    const currentPage = pages[pages.length - 1]
+    const dialog = currentPage && currentPage.selectComponent && currentPage.selectComponent('#themeConfirmDialog')
+    if (dialog) {
+      dialog.open(options).then(confirmed => {
+        if (confirmed && onConfirm) onConfirm()
+      })
+      return
+    }
+    wx.showModal({
+      title: options.title,
+      content: options.content,
+      showCancel: false,
+      confirmText: options.confirmText || '知道了',
+      success: () => onConfirm && onConfirm()
+    })
   },
 
   getSystemInfo() {
@@ -259,7 +306,7 @@ App({
     userInfo: null,
     openid: null,
     isPreviewMode: false, // 预览模式标志
-    version: '1.0.0', // 开发工具未返回线上版本号时的兜底值
+    version: FALLBACK_APP_VERSION, // 开发工具未返回线上版本号时的兜底值
     envVersion: 'develop',
     systemInfo: {}, // 设备信息
     navHeight: "",// 导航栏的高度

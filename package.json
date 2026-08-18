@@ -1,6 +1,6 @@
 {
   "name": "food-wxapp",
-  "version": "1.0.0",
+  "version": "1.0.6",
   "description": "家庭菜谱管理小程序，基于微信小程序云开发。",
   "main": "app.js",
   "scripts": {
