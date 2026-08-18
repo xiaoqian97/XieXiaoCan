@@ -2,7 +2,6 @@ const TagData = require('../../utils/tagData')
 const cartManager = require('../../utils/cartManager')
 const util = require('../../utils/util')
 const share = require('../../utils/share')
-const subscribe = require('../../utils/subscribe')
 
 /**
  * 投喂单详情页面
@@ -39,7 +38,6 @@ Page({
       }, 1500)
     }
     this.getUserInfo()
-    subscribe.preload()
   },
 
    // 获取用户信息
@@ -198,15 +196,13 @@ Page({
 
   // 开始投喂
   startCooking: function() {
-    subscribe.requestNext('orderCreated').finally(() => {
-      this.selectComponent('#themeConfirmDialog').open({
-        icon: '🔥',
-        title: '确认开始投喂',
-        content: '确定要开始投喂这张投喂单吗？',
-        confirmText: '开始投喂'
-      }).then(confirmed => {
-        if (confirmed) this.updateOrderStatus('processing')
-      })
+    this.selectComponent('#themeConfirmDialog').open({
+      icon: '🔥',
+      title: '确认开始投喂',
+      content: '确定要开始投喂这张投喂单吗？',
+      confirmText: '开始投喂'
+    }).then(confirmed => {
+      if (confirmed) this.updateOrderStatus('processing')
     })
   },
 

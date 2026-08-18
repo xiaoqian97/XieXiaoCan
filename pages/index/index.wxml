@@ -87,6 +87,10 @@
         <text class="more-text">去添加</text>
         <text class="iconfont icon-arrow-right"></text>
       </view>
+      <view wx:elif="{{recommendNeedsFixedFeeder && !loading}}" class="view-more" bindtap="onRecommendBind">
+        <text class="more-text">去绑定</text>
+        <text class="iconfont icon-arrow-right"></text>
+      </view>
       <view wx:else class="view-more" bindtap="onMoreClick">
         <text class="more-text">再看看</text>
         <text class="iconfont icon-arrow-right"></text>

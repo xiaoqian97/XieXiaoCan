@@ -132,6 +132,8 @@ async function createOrder(openid, orderData) {
 
   await markWishesOrdered(openid, recipes, result._id)
   await updateFeedingStats(order, 'created').catch(error => console.error('新投喂单统计更新失败:', error))
+  await createOrderNotification('created', order, result._id, openid)
+    .catch(error => console.error('新投喂单站内消息创建失败:', error))
   const reminder = await sendOrderSubscribeMessage('orderCreated', order, result._id)
     .catch(error => ({ sent: false, message: formatSubscribeError(error) }))
 
@@ -411,10 +413,12 @@ async function updateOrderStatus(openid, orderId, status) {
   if (status === 'cancelled') {
     await updateOrderWishes(order, 'accepted')
   }
-  const reminder = status === 'processing'
-    ? null
-    : await sendOrderSubscribeMessage('orderStatus', { ...order, status }, orderId, openid)
+  await createOrderNotification(status, { ...order, status }, orderId, openid)
+    .catch(error => console.error('投喂单状态站内消息创建失败:', error))
+  const reminder = status === 'completed'
+    ? await sendOrderSubscribeMessage('orderStatus', { ...order, status }, orderId, openid)
       .catch(error => ({ sent: false, message: formatSubscribeError(error) }))
+    : null
 
   return {
     success: true,
@@ -1039,6 +1043,36 @@ async function sendOrderSubscribeMessage(kind, order, orderId, actorOpenid = '')
     throw error
   }
   return { sent: true }
+}
+
+async function createOrderNotification(event, order, orderId, actorOpenid) {
+  const recipientId = event === 'created'
+    ? order.assigneeId
+    : (actorOpenid === order.creatorId ? order.assigneeId : order.creatorId)
+  if (!recipientId || recipientId === actorOpenid) return
+
+  const actor = await getUserByOpenid(actorOpenid)
+  const actorName = actor.nickname || '饭搭子'
+  const titleMap = {
+    created: `${actorName}提交了新的投喂单`,
+    processing: `${actorName}开始投喂啦`,
+    completed: `${actorName}完成了这次投喂`,
+    cancelled: `${actorName}取消了这次投喂`
+  }
+  const dishes = (order.recipes || []).map(item => item.recipeName).filter(Boolean).join('、').slice(0, 36)
+  await db.collection('notifications').add({
+    data: {
+      type: event === 'created' ? 'order_created' : 'order_status',
+      senderId: actorOpenid,
+      recipientId,
+      title: titleMap[event] || '投喂单有新变化',
+      content: dishes || `共${order.totalRecipes || 0}道菜`,
+      targetPage: `/pages/order-detail/order-detail?orderId=${orderId}`,
+      targetId: orderId,
+      read: false,
+      createdAt: new Date()
+    }
+  })
 }
 
 function formatSubscribeError(error) {

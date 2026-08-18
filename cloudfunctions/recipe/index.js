@@ -813,14 +813,12 @@ async function deleteRecipe(event, openid) {
 // 获取推荐菜谱
 async function getRecommendRecipes(event, openid) {
   const limit = Math.min(20, Math.max(1, Number(event.limit) || 6))
-  const isAccountScope = event.scope === 'account'
   const conditions = [{ status: 'published' }]
   let needsFixedFeeder = false
+  const userResult = await db.collection('users').where({ openid }).limit(1).get()
+  const viewer = userResult.data[0] || null
 
-  if (isAccountScope) {
-    const userResult = await db.collection('users').where({ openid }).limit(1).get()
-    const viewer = userResult.data[0] || {}
-
+  if (viewer) {
     if (['chef', 'admin'].includes(viewer.role)) {
       conditions.push({ creatorId: openid })
     } else if (viewer.role === 'consumer') {
@@ -840,10 +838,18 @@ async function getRecommendRecipes(event, openid) {
       }
       conditions.push({ creatorId: feederOpenid })
     } else {
-      conditions.push({ isPublic: true })
+      return {
+        success: true,
+        data: { recipes: [], needsFixedFeeder: true }
+      }
     }
-  } else {
+  } else if (event.scope === 'public') {
     conditions.push({ isPublic: true })
+  } else {
+    return {
+      success: true,
+      data: { recipes: [], needsFixedFeeder: true }
+    }
   }
 
   const result = await db.collection('recipes')

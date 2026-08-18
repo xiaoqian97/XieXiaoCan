@@ -27,8 +27,11 @@ Page({
     if (!this.data.isDataLoaded && !this._initialLoadStarted) {
       this.checkLoginAndLoad()
     } else {
-      this.updateUserRole()
-      if (this._viewedRecipeId) {
+      const identityChanged = this.updateUserRole()
+      if (this.data.isDataLoaded && identityChanged) {
+        this.setData({ recommendRecipes: [], recommendNeedsFixedFeeder: false })
+        this.loadRecommendRecipes()
+      } else if (this._viewedRecipeId) {
         const recipeId = this._viewedRecipeId
         this._viewedRecipeId = ''
         this.refreshRecipeViewCount(recipeId)
@@ -84,17 +87,26 @@ Page({
 
   updateUserRole: function() {
     const userInfo = app.globalData.userInfo || wx.getStorageSync('userInfo')
-    if (!userInfo) return
     const current = this.data.userInfo || {}
+    if (!userInfo) {
+      const changed = Boolean(current.openid || this.data.hasUserInfo)
+      if (changed) this.setData({ userInfo: null, hasUserInfo: false, isChef: false })
+      return changed
+    }
     const isChef = this.isChefUser(userInfo)
     const hasUserInfo = app.isLoggedIn()
-    const userChanged = ['openid', 'nickname', 'avatar', 'role', 'isAdmin']
+    const userChanged = ['openid', 'nickname', 'avatar', 'role', 'isAdmin', 'fixedFeederOpenid']
       .some(key => current[key] !== userInfo[key])
+    const identityChanged = current.openid !== userInfo.openid ||
+      current.role !== userInfo.role ||
+      this.data.hasUserInfo !== hasUserInfo ||
+      current.fixedFeederOpenid !== userInfo.fixedFeederOpenid
     const updates = {}
     if (userChanged) updates.userInfo = userInfo
     if (this.data.isChef !== isChef) updates.isChef = isChef
     if (this.data.hasUserInfo !== hasUserInfo) updates.hasUserInfo = hasUserInfo
     if (Object.keys(updates).length) this.setData(updates)
+    return identityChanged
   },
 
   isChefUser: function(userInfo) {
@@ -109,7 +121,7 @@ Page({
     util.callCloudFunction('recipe', {
       action: 'recommend',
       limit: 6,
-      scope: app.isLoggedIn() ? 'account' : 'public'
+      scope: this.data.hasUserInfo ? 'account' : 'public'
     }).then(res => {
       if (requestId !== this._recommendRequestId) return null
       const rawRecipes = ((res.data && res.data.recipes) || []).map(recipe => this.formatRecommendRecipe(recipe))
@@ -229,6 +241,11 @@ Page({
     wx.switchTab({
       url: '/pages/recipe-list/recipe-list'
     })
+  },
+
+  onRecommendBind: function() {
+    if (!util.requireLogin('绑定饭搭子需要登录')) return
+    wx.navigateTo({ url: '/pages/friends/friends' })
   },
 
   onEmptyRecommendAdd: function() {

@@ -494,6 +494,98 @@
   box-shadow: none;
 }
 
+.subscribe-guide-mask {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 42rpx;
+  box-sizing: border-box;
+  background: rgba(63, 48, 43, 0.62);
+}
+
+.subscribe-guide-card {
+  width: 100%;
+  max-width: 620rpx;
+  padding: 44rpx 38rpx 32rpx;
+  box-sizing: border-box;
+  text-align: center;
+  border: 1rpx solid rgba(232, 222, 216, 0.9);
+  border-radius: 34rpx;
+  background: linear-gradient(180deg, #FFF4D6 0%, #FFFDF9 40%, #FFFFFF 100%);
+  box-shadow: 0 24rpx 70rpx rgba(63, 48, 43, 0.22);
+}
+
+.subscribe-guide-icon {
+  width: 86rpx;
+  height: 86rpx;
+  margin: 0 auto 18rpx;
+  font-size: 40rpx;
+  line-height: 86rpx;
+  border-radius: 28rpx;
+  background: #FFFFFF;
+  box-shadow: 0 10rpx 24rpx rgba(232, 93, 74, 0.18);
+}
+
+.subscribe-guide-title,
+.subscribe-guide-desc {
+  display: block;
+}
+
+.subscribe-guide-title {
+  color: #3F302B;
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.subscribe-guide-desc {
+  margin-top: 16rpx;
+  color: #765F57;
+  font-size: 23rpx;
+  line-height: 1.65;
+}
+
+.subscribe-guide-tip {
+  margin-top: 22rpx;
+  padding: 18rpx 20rpx;
+  color: #9A6A12;
+  font-size: 21rpx;
+  line-height: 1.55;
+  border-radius: 18rpx;
+  background: #FFF8E6;
+}
+
+.subscribe-guide-confirm {
+  height: 84rpx;
+  margin-top: 28rpx;
+  color: #FFFFFF;
+  font-size: 27rpx;
+  font-weight: 700;
+  line-height: 84rpx;
+  border-radius: 42rpx;
+  background: linear-gradient(135deg, #E85D4A, #D94A3A);
+  box-shadow: 0 9rpx 22rpx rgba(232, 93, 74, 0.22);
+}
+
+.subscribe-guide-confirm::after,
+.subscribe-guide-skip::after {
+  border: none;
+}
+
+.subscribe-guide-skip {
+  height: 66rpx;
+  margin-top: 10rpx;
+  color: #8C7770;
+  font-size: 24rpx;
+  line-height: 66rpx;
+  background: transparent;
+}
+
 /* 登录按钮 */
 .login-btn {
   width: 100%;

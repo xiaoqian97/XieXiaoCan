@@ -264,7 +264,7 @@ Page({
   onEnableSubscribeMessages: function() {
     this.handlePreviewMode('消息提醒需要登录后使用', () => {
       if (this._subscribeRequestPending) return
-      const templateIds = this.data.subscribeTemplateIds
+      const templateIds = this.data.subscribeTemplateIds.slice(0, 3)
       if (!templateIds.length) {
         util.showError(this.data.subscribeConfigLoading
           ? '消息配置加载中，请稍后再点一次'
@@ -287,8 +287,8 @@ Page({
           success: result => {
             const acceptedCount = templateIds.filter(id => ['accept', 'acceptWithAudio'].includes(result[id])).length
             acceptedCount
-              ? util.showSuccess(`已允许${acceptedCount}项一次性提醒`)
-              : util.showError('未允许消息提醒')
+              ? util.showSuccess(`已补充${acceptedCount}项提醒，各可接收1次`)
+              : util.showError('未补充微信提醒次数')
           },
           fail: error => util.showError(error.errMsg || '消息提醒授权失败'),
           complete: releaseRequest

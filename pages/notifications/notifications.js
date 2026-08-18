@@ -84,6 +84,8 @@ Page({
   decorateNotification(item) {
     const typeMap = {
       order_share: { icon: '🍱', typeLabel: '投喂单', themeClass: 'order' },
+      order_created: { icon: '🍱', typeLabel: '新投喂单', themeClass: 'order' },
+      order_status: { icon: '🍲', typeLabel: '投喂进度', themeClass: 'order' },
       wish_share: { icon: '💭', typeLabel: '饭愿', themeClass: 'wish' },
       blessing: { icon: '💌', typeLabel: '祝福', themeClass: 'blessing' },
       festival_blessing: { icon: '✨', typeLabel: '节日祝福', themeClass: 'festival' }

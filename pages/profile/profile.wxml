@@ -114,7 +114,7 @@
       <view class="menu-item {{subscribeRequestPending ? 'menu-item-pending' : ''}}" bindtap="onEnableSubscribeMessages">
         <view class="menu-item-left">
           <view class="menu-icon notifications"><text class="icon">🔔</text></view>
-          <text class="menu-text">{{subscribeRequestPending ? '正在请求授权...' : '绑定微信提醒'}}</text>
+          <text class="menu-text">{{subscribeRequestPending ? '正在请求授权...' : '补充微信提醒次数'}}</text>
         </view>
         <view class="menu-item-right"><text class="menu-arrow">›</text></view>
       </view>

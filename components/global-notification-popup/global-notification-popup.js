@@ -70,6 +70,8 @@ Component({
 function getMessageMeta(type) {
   const metas = {
     order_share: { icon: '🍱', label: '投喂单消息' },
+    order_created: { icon: '🍱', label: '新的投喂单' },
+    order_status: { icon: '🍲', label: '投喂进度' },
     wish_share: { icon: '💭', label: '饭愿消息' },
     blessing: { icon: '💌', label: '饭搭子的祝福', confirmText: '拆开祝福' },
     festival_blessing: { icon: '✨', label: '节日限定祝福', confirmText: '收下祝福' }

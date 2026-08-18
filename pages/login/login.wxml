@@ -147,5 +147,16 @@
       <button class="role-confirm-btn" disabled="{{!selectedRole}}" bindtap="onRoleConfirm">启动投喂关系</button>
     </view>
   </view>
+
+  <view wx:if="{{showSubscribeGuide}}" class="subscribe-guide-mask" catchtouchmove="stopPropagation">
+    <view class="subscribe-guide-card">
+      <view class="subscribe-guide-icon">🔔</view>
+      <text class="subscribe-guide-title">别错过 TA 的投喂消息</text>
+      <text class="subscribe-guide-desc">微信规定每次授权只能接收下一次提醒。现在开启后，新投喂单、投喂完成和祝福会各获得 1 次微信提醒。</text>
+      <view class="subscribe-guide-tip">即使暂不开启，所有消息仍会保存在“小程序 · 我的消息”中。</view>
+      <button class="subscribe-guide-confirm" loading="{{subscribeGuidePending}}" bindtap="onEnableFirstSubscribe">开启下一次微信提醒</button>
+      <button class="subscribe-guide-skip" disabled="{{subscribeGuidePending}}" bindtap="onSkipFirstSubscribe">暂时不用</button>
+    </view>
+  </view>
 </view>
 <theme-confirm-dialog id="themeConfirmDialog" />

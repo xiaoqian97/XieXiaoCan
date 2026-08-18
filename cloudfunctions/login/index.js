@@ -50,8 +50,9 @@ exports.main = async (event, context) => {
     }).get()
 
     let userData = null
+    const isNewUser = userResult.data.length === 0
 
-    if (userResult.data.length === 0) {
+    if (isNewUser) {
       const role = configuredRole || normalizeRegistrationRole(userInfo && userInfo.role)
       if (!role) {
         return {
@@ -146,6 +147,7 @@ exports.main = async (event, context) => {
         isAdmin: Boolean(isConfiguredAdmin || userData.isAdmin || userData.role === 'admin'),
         isPrimaryAdmin: isConfiguredAdmin
       },
+      isNewUser,
       message: '登录成功'
     }
 

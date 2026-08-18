@@ -4,7 +4,7 @@
   "description": "家庭菜谱管理小程序，基于微信小程序云开发。",
   "main": "app.js",
   "scripts": {
-    "test": "node tests/cloud-image-resolver.test.js && node tests/share-config.test.js && node tests/navigation.test.js && node tests/admin-data-grouping.test.js && node tests/cart-relation-cleanup.test.js && node tests/feeder-switch-dialog.test.js && node tests/theme-confirm-dialog.test.js"
+    "test": "node tests/cloud-image-resolver.test.js && node tests/share-config.test.js && node tests/navigation.test.js && node tests/admin-data-grouping.test.js && node tests/cart-relation-cleanup.test.js && node tests/feeder-switch-dialog.test.js && node tests/theme-confirm-dialog.test.js && node tests/subscribe-strategy.test.js && node tests/recommend-access.test.js"
   },
   "keywords": [],
   "author": "",

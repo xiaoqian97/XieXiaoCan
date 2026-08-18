@@ -1,5 +1,6 @@
 const app = getApp()
 const util = require('../../utils/util')
+const subscribe = require('../../utils/subscribe')
 
 Page({
   data: {
@@ -15,13 +16,16 @@ Page({
     registrationError: '',
     isReturningUser: false,
     returningUserInfo: null,
-    returningAvatar: ''
+    returningAvatar: '',
+    showSubscribeGuide: false,
+    subscribeGuidePending: false
   },
 
   onLoad: function () {
     // 检查是否已经登录
     this.checkLoginStatus()
     if (!app.globalData.userInfo) this.loadRegistrationState()
+    subscribe.preload()
   },
 
   loadRegistrationState: function() {
@@ -162,16 +166,43 @@ Page({
         showRoleModal: false
       })
       util.hideLoading()
-      
-      // 登录成功后直接跳转到首页
-      wx.switchTab({
-        url: '/pages/index/index'
-      })
+
+      if (res.isNewUser) {
+        subscribe.preload(true).finally(() => this.setData({ showSubscribeGuide: true }))
+        return
+      }
+      this.goHome()
     }).catch(err => {
       util.hideLoading()
       util.showError(err.message || '没启动成功')
       console.error('登录失败', err)
     })
+  },
+
+  onEnableFirstSubscribe: function() {
+    if (this.data.subscribeGuidePending) return
+    this.setData({ subscribeGuidePending: true })
+    subscribe.requestAll().then(result => {
+      if (!result.requested) {
+        util.showError('微信提醒暂未配置，站内消息仍会正常送达')
+      } else if (result.acceptedCount) {
+        util.showSuccess(`已补充${result.acceptedCount}项提醒`)
+      } else {
+        util.showError('暂未开启微信提醒，可稍后在“我的”中补充')
+      }
+    }).finally(() => {
+      this.setData({ showSubscribeGuide: false, subscribeGuidePending: false })
+      setTimeout(() => this.goHome(), 500)
+    })
+  },
+
+  onSkipFirstSubscribe: function() {
+    this.setData({ showSubscribeGuide: false })
+    this.goHome()
+  },
+
+  goHome: function() {
+    wx.switchTab({ url: '/pages/index/index' })
   },
 
   prepareUserInfo: function(userInfo) {
@@ -224,10 +255,7 @@ Page({
       })
       util.hideLoading()
       
-      // 登录成功后直接跳转到首页
-      wx.switchTab({
-        url: '/pages/index/index'
-      })
+      this.goHome()
     }).catch(err => {
       util.hideLoading()
       util.showError('没启动成功')

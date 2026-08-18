@@ -36,7 +36,26 @@ function requestNext(kind) {
   })
 }
 
+function requestAll() {
+  const templateIds = [...new Set(Object.values(templates).filter(Boolean))].slice(0, 3)
+  if (!templateIds.length || !wx.requestSubscribeMessage) {
+    return Promise.resolve({ requested: false, acceptedCount: 0 })
+  }
+
+  return new Promise(resolve => {
+    wx.requestSubscribeMessage({
+      tmplIds: templateIds,
+      success: result => resolve({
+        requested: true,
+        acceptedCount: templateIds.filter(id => ['accept', 'acceptWithAudio'].includes(result[id])).length
+      }),
+      fail: error => resolve({ requested: true, acceptedCount: 0, error })
+    })
+  })
+}
+
 module.exports = {
   preload,
-  requestNext
+  requestNext,
+  requestAll
 }
