@@ -179,21 +179,16 @@ Page({
 
   // 清空所有请求
   onClearAll: function() {
-    wx.showModal({
+    this.selectComponent('#themeConfirmDialog').open({
+      icon: '🧹',
       title: '确认清空',
       content: '确定要清空所有绑定申请吗？',
-      success: (res) => {
-        if (res.confirm) {
-          this.setData({
-            pendingRequests: [],
-            sentRequests: []
-          })
-          wx.showToast({
-            title: '已清空',
-            icon: 'success'
-          })
-        }
-      }
+      confirmText: '清空申请',
+      tone: 'danger'
+    }).then(confirmed => {
+      if (!confirmed) return
+      this.setData({ pendingRequests: [], sentRequests: [] })
+      wx.showToast({ title: '已清空', icon: 'success' })
     })
   },
 
@@ -246,14 +241,13 @@ Page({
             return
           }
           
-          wx.showModal({
+          this.selectComponent('#themeConfirmDialog').open({
+            icon: '👋',
             title: '找到用户',
             content: `是否向“${user.nickname}”发送绑定申请？`,
-            success: (modalRes) => {
-              if (modalRes.confirm) {
-                this.sendFriendRequest(user.openid, user.nickname, user.avatar)
-              }
-            }
+            confirmText: '发送申请'
+          }).then(confirmed => {
+            if (confirmed) this.sendFriendRequest(user.openid, user.nickname, user.avatar)
           })
         } else {
           wx.showToast({
@@ -346,55 +340,38 @@ Page({
 
   // 更新搜索码
   onUpdateSearchCode: function() {
-    wx.showModal({
+    this.selectComponent('#themeConfirmDialog').open({
+      icon: '🔑',
       title: '更新搜索码',
       content: '确定要生成新的搜索码吗？旧的搜索码将失效。',
-      success: (res) => {
-        if (res.confirm) {
-          wx.showLoading({ title: '生成中...' })
-          
-          wx.cloud.callFunction({
-            name: 'user',
-            data: {
-              action: 'updateSearchCode'
-            },
-            success: (res) => {
-              wx.hideLoading()
-              if (res.result.success) {
-                this.setData({
-                  userSearchCode: res.result.data.searchCode
-                })
-                
-                // 同步更新全局用户信息
-                const app = getApp()
-                if (app.globalData.userInfo) {
-                  app.globalData.userInfo.searchCode = res.result.data.searchCode
-                  // 更新本地存储
-                  wx.setStorageSync('userInfo', app.globalData.userInfo)
-                }
-                
-                wx.showToast({
-                  title: '搜索码已更新',
-                  icon: 'success'
-                })
-              } else {
-                wx.showToast({
-                  title: res.result.message || '更新失败',
-                  icon: 'none'
-                })
-              }
-            },
-            fail: (error) => {
-              wx.hideLoading()
-              console.error('更新搜索码失败:', error)
-              wx.showToast({
-                title: '网络错误，请重试',
-                icon: 'none'
-              })
+      confirmText: '生成新码',
+      tone: 'danger'
+    }).then(confirmed => {
+      if (!confirmed) return
+      wx.showLoading({ title: '生成中...' })
+      wx.cloud.callFunction({
+        name: 'user',
+        data: { action: 'updateSearchCode' },
+        success: (res) => {
+          wx.hideLoading()
+          if (res.result.success) {
+            this.setData({ userSearchCode: res.result.data.searchCode })
+            const app = getApp()
+            if (app.globalData.userInfo) {
+              app.globalData.userInfo.searchCode = res.result.data.searchCode
+              wx.setStorageSync('userInfo', app.globalData.userInfo)
             }
-          })
+            wx.showToast({ title: '搜索码已更新', icon: 'success' })
+          } else {
+            wx.showToast({ title: res.result.message || '更新失败', icon: 'none' })
+          }
+        },
+        fail: (error) => {
+          wx.hideLoading()
+          console.error('更新搜索码失败:', error)
+          wx.showToast({ title: '网络错误，请重试', icon: 'none' })
         }
-      }
+      })
     })
   },
 
@@ -420,14 +397,14 @@ Page({
   onRejectRequest: function(e) {
     const requestId = e.currentTarget.dataset.id
     
-    wx.showModal({
+    this.selectComponent('#themeConfirmDialog').open({
+      icon: '🙅',
       title: '确认拒绝',
       content: '确定要拒绝这个绑定申请吗？',
-      success: (res) => {
-        if (res.confirm) {
-          this.handleFriendRequest(requestId, false)
-        }
-      }
+      confirmText: '拒绝申请',
+      tone: 'danger'
+    }).then(confirmed => {
+      if (confirmed) this.handleFriendRequest(requestId, false)
     })
   },
 

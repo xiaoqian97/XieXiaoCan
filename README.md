@@ -93,9 +93,9 @@ Food-wxapp/
 
 ```json
 {
-  "adminOpenid": "oyWDkxVwYIHb3adMU4PpCl9rWUqI",
-  "chefOpenid": "oyWDkxVwYIHb3adMU4PpCl9rWUqI",
-  "chefNickname": "小千",
+  "adminOpenid": "",
+  "chefOpenid": "",
+  "chefNickname": "",
   "miniprogramState": "formal",
   "subscribeTemplates": {
     "orderCreated": {

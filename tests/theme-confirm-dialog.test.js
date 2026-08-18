@@ -17,6 +17,12 @@ async function run() {
   dialog.confirm()
   assert.strictEqual(await confirmation, true)
   assert.strictEqual(dialog.data.visible, false)
+
+  global.getCurrentPages = () => [{ selectComponent: () => dialog }]
+  const util = require('../utils/util.js')
+  const sharedConfirmation = util.showConfirm('确定退出吗？', '退出登录')
+  dialog.cancel()
+  assert.strictEqual(await sharedConfirmation, false)
   console.log('theme confirm dialog: pass')
 }
 

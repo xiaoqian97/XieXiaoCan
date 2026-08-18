@@ -148,3 +148,4 @@
     </view>
   </view>
 </view>
+<theme-confirm-dialog id="themeConfirmDialog" />

@@ -509,16 +509,14 @@ Page({
 
   // 重置所有筛选条件
   onResetAllFilters: function() {
-    wx.showModal({
+    this.selectComponent('#themeConfirmDialog').open({
+      icon: '🧹',
       title: '重置筛选',
       content: '确定要清空所有筛选条件吗？',
       confirmText: '重置',
-      cancelText: '取消',
-      success: (res) => {
-        if (res.confirm) {
-          this.resetAllFilters()
-        }
-      }
+      cancelText: '保留'
+    }).then(confirmed => {
+      if (confirmed) this.resetAllFilters()
     })
   },
 

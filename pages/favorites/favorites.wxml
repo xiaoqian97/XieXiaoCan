@@ -30,4 +30,5 @@
     <button wx:if="{{!readOnly}}" class="go-recipes" bindtap="onGoToRecipes">去挑菜</button>
   </view>
 </view>
+<theme-confirm-dialog id="themeConfirmDialog" />
 <global-notification-popup id="globalNotificationPopup" />

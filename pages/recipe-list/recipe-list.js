@@ -544,16 +544,14 @@ Page({
 
   // 重置所有筛选条件
   onResetAllFilters: function() {
-    wx.showModal({
+    this.selectComponent('#themeConfirmDialog').open({
+      icon: '🧹',
       title: '清空筛选',
       content: '要清空当前口味重新挑吗？',
       confirmText: '清空',
-      cancelText: '取消',
-      success: (res) => {
-        if (res.confirm) {
-          this.resetAllFilters()
-        }
-      }
+      cancelText: '保留'
+    }).then(confirmed => {
+      if (confirmed) this.resetAllFilters()
     })
   },
 

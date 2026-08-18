@@ -143,6 +143,11 @@ const showError = (title = '操作失败') => {
  * 显示确认对话框
  */
 const showConfirm = (content, title = '提示') => {
+  const pages = getCurrentPages()
+  const page = pages[pages.length - 1]
+  const dialog = page && page.selectComponent && page.selectComponent('#themeConfirmDialog')
+  if (dialog) return dialog.open({ title, content })
+
   return new Promise((resolve, reject) => {
     wx.showModal({
       title,

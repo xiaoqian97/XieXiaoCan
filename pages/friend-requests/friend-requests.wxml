@@ -111,4 +111,5 @@
     </view>
   </view>
 </view>
+<theme-confirm-dialog id="themeConfirmDialog" />
 <global-notification-popup id="globalNotificationPopup" />
