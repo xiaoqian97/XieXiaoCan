@@ -73,6 +73,8 @@ function getMessageMeta(type) {
     order_created: { icon: '🍱', label: '新的投喂单' },
     order_status: { icon: '🍲', label: '投喂进度' },
     wish_share: { icon: '💭', label: '饭愿消息' },
+    friend_request: { icon: '👥', label: '新的饭搭子申请', confirmText: '去处理' },
+    friend_request_result: { icon: '🤝', label: '饭搭子申请结果', confirmText: '去看看' },
     blessing: { icon: '💌', label: '饭搭子的祝福', confirmText: '拆开祝福' },
     festival_blessing: { icon: '✨', label: '节日限定祝福', confirmText: '收下祝福' }
   }

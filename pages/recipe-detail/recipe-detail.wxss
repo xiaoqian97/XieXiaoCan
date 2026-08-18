@@ -8,7 +8,8 @@
 /* 头图区域 */
 .hero-section {
   position: relative;
-  height: 400rpx;
+  width: 100%;
+  height: 750rpx;
   overflow: hidden;
 }
 
@@ -21,6 +22,29 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* 没图时的头图占位 */
+.hero-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #FFF0EA, #FFF5D9);
+}
+
+.hero-placeholder-emoji {
+  font-size: 140rpx;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+.hero-placeholder-text {
+  margin-top: 20rpx;
+  color: #A06E5E;
+  font-size: 26rpx;
 }
 
 
@@ -303,6 +327,28 @@
   object-fit: cover;
 }
 
+.ingredient-group-title {
+  display: block;
+  margin-bottom: 14rpx;
+  color: #8C7770;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.ingredient-text-group {
+  margin-top: 24rpx;
+}
+
+.ingredient-text-content {
+  display: block;
+  padding: 24rpx 32rpx;
+  border-radius: 20rpx;
+  color: #6E5852;
+  background: #FFF9ED;
+  font-size: 27rpx;
+  line-height: 1.6;
+}
+
 .xiaohongshu-link {
   display: flex;
   align-items: center;
@@ -404,6 +450,34 @@
   grid-template-columns: 1fr 1fr;
   gap: 24rpx;
 }
+
+.interaction-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  padding-bottom: 12rpx;
+}
+
+.interaction-chip {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  min-height: 64rpx;
+  padding: 0 20rpx;
+  border: 1rpx solid #EEDFD6;
+  border-radius: 32rpx;
+  color: #6E5852;
+  background: #FFFCF8;
+  font-size: 24rpx;
+}
+
+.interaction-chip.active {
+  color: #E85D4A;
+  border-color: #E85D4A;
+  background: #FFF0EA;
+}
+
+.interaction-count { color: #A9958E; font-size: 20rpx; }
 
 .action-buttons-visitor {
   display: grid;

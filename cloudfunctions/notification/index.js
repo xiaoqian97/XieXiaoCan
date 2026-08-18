@@ -22,6 +22,8 @@ exports.main = async (event, context) => {
         return await markRead(openid, event.notificationId)
       case 'markAllRead':
         return await markAllRead(openid)
+      case 'delete':
+        return await deleteNotification(openid, event.notificationId)
       case 'getSubscribeConfig':
         return await getSubscribeConfig()
       default:
@@ -180,8 +182,7 @@ async function markRead(openid, notificationId) {
 
 async function markAllRead(openid) {
   const result = await db.collection('notifications').where({
-    recipientId: openid,
-    read: false
+    recipientId: openid
   }).update({
     data: {
       read: true,
@@ -193,6 +194,16 @@ async function markAllRead(openid) {
     success: true,
     updated: result.stats ? result.stats.updated : 0
   }
+}
+
+async function deleteNotification(openid, notificationId) {
+  if (!notificationId) return { success: false, message: '消息不存在' }
+  const notification = await getRecord('notifications', notificationId)
+  if (!notification || notification.recipientId !== openid) {
+    return { success: false, message: '消息不存在或无权删除' }
+  }
+  await db.collection('notifications').doc(notificationId).remove()
+  return { success: true }
 }
 
 async function addNotification(data) {
@@ -280,26 +291,40 @@ async function getSubscribeConfig() {
     }
   }
   if (!templateIds.length) {
-    return { success: false, message: '未找到订阅模板 ID，请在 app_config/family 中配置模板' }
+    return { success: false, message: '订阅模板 ID 未正确配置，请替换示例文字并填写公众平台中的真实模板 ID' }
+  }
+  const templatePriority = ['friendRequest', 'orderCreated', 'orderStatus', 'blessingReceived']
+  const orderedKeys = [
+    ...templatePriority.filter(key => templates[key]),
+    ...Object.keys(templates).filter(key => !templatePriority.includes(key))
+  ]
+  const orderedTemplates = orderedKeys.reduce((result, key) => {
+    const templateId = getConfiguredTemplateId(templates[key])
+    if (templateId) result[key] = templateId
+    return result
+  }, {})
+  if (!Object.keys(orderedTemplates).length) {
+    return { success: false, message: '订阅模板 ID 未正确配置，请替换示例文字并填写公众平台中的真实模板 ID' }
   }
   return {
     success: true,
     data: {
-      templateIds,
-      templates: Object.keys(templates).reduce((result, key) => {
-        const item = templates[key]
-        const templateId = item && (item.templateId || item.template_id)
-        if (templateId) result[key] = templateId
-        return result
-      }, {})
+      templateIds: [...new Set(Object.values(orderedTemplates))],
+      templates: orderedTemplates
     }
   }
 }
 
 function getTemplateIds(templates) {
-  return [...new Set(Object.values(templates).map(item => (
-    item && (item.templateId || item.template_id)
-  )).filter(Boolean))]
+  return [...new Set(Object.values(templates).map(getConfiguredTemplateId).filter(Boolean))]
+}
+
+function getConfiguredTemplateId(template) {
+  const templateId = String(template && (template.templateId || template.template_id) || '').trim()
+  if (!templateId) return ''
+  // README 中的中文示例不能作为微信订阅模板 ID 直接使用。
+  if (/模板\s*(ID|编号)|请填写|这里填写/i.test(templateId)) return ''
+  return templateId
 }
 
 async function getFamilyConfig() {

@@ -1,4 +1,7 @@
 const util = require('../../utils/util')
+const { getIngredientCategoryById } = require('../../utils/tagData')
+
+const DEFAULT_RECIPE_IMAGE = '/images/default-recipe.jpg'
 
 // 菜谱项组件
 Component({
@@ -39,6 +42,10 @@ Component({
       type: Boolean,
       value: false
     },
+    showViewerInfo: {
+      type: Boolean,
+      value: false
+    },
     // 烹饪方式数据（用于标签显示）
     cookingMethods: {
       type: Array,
@@ -55,7 +62,9 @@ Component({
    * 组件的初始数据
    */
   data: {
-    displayImage: '/images/default-recipe.jpg'
+    displayImage: '',
+    hasRealImage: false,
+    placeholderEmoji: '🍽️'
   },
 
   /**
@@ -98,19 +107,37 @@ Component({
       })
     },
 
+    onViewerInfo: function() {
+      this.triggerEvent('viewerinfo', {
+        recipe: this.data.recipe
+      })
+    },
+
     updateDisplayImage: function(recipe) {
       const images = recipe && Array.isArray(recipe.images) ? recipe.images : []
-      const src = (recipe && recipe.displayImage) || images[0] || '/images/default-recipe.jpg'
+      const src = (recipe && recipe.displayImage) || images[0] || ''
+
+      // 没图（或者只有那张通用兜底图）就按食材分类显示占位图标，不拿别的菜的照片糊弄
+      if (!src || src === DEFAULT_RECIPE_IMAGE) {
+        const category = getIngredientCategoryById(recipe && recipe.ingredientCategory) || {}
+        this._pendingImageSrc = ''
+        this.setData({
+          displayImage: '',
+          hasRealImage: false,
+          placeholderEmoji: category.emoji || '🍽️'
+        })
+        return
+      }
 
       if (src.indexOf('cloud://') !== 0) {
-        this.setData({ displayImage: src })
+        this.setData({ displayImage: src, hasRealImage: true })
         return
       }
 
       this._pendingImageSrc = src
       util.resolveCloudImage(src).then(displayImage => {
         if (this._pendingImageSrc !== src) return
-        this.setData({ displayImage })
+        this.setData({ displayImage, hasRealImage: Boolean(displayImage) })
       })
     }
   }

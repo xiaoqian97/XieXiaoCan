@@ -3,6 +3,8 @@ const util = require('../../utils/util')
 Page({
   data: {
     loading: true,
+    hasLoaded: false,
+    isPrimaryAdmin: false,
     stats: {
       userCount: 0,
       feederCount: 0,
@@ -34,9 +36,10 @@ Page({
   loadDashboard() {
     this.setData({ loading: true })
     return util.callCloudFunction('admin', { action: 'getDashboard' }).then(res => {
-      this.setData({ stats: res.data || {}, loading: false })
+      const stats = res.data || {}
+      this.setData({ stats, isPrimaryAdmin: stats.isPrimaryAdmin === true, loading: false, hasLoaded: true })
     }).catch(error => {
-      this.setData({ loading: false })
+      this.setData({ loading: false, hasLoaded: true })
       util.showError(error.message || '工作台加载失败')
     })
   },
@@ -48,6 +51,16 @@ Page({
 
   openRelationships() {
     wx.navigateTo({ url: '/pages/admin-relations/admin-relations' })
+  },
+
+  openAnalytics() {
+    if (!this.data.isPrimaryAdmin) return
+    wx.navigateTo({ url: '/pages/admin-analytics/admin-analytics' })
+  },
+
+  openBlessingLogs() {
+    if (!this.data.isPrimaryAdmin) return
+    wx.navigateTo({ url: '/pages/admin-blessing-logs/admin-blessing-logs' })
   },
 
   openDataList(e) {

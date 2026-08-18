@@ -98,6 +98,8 @@
 .module-icon { width: 70rpx; height: 70rpx; font-size: 32rpx; line-height: 70rpx; text-align: center; border-radius: 20rpx; }
 .module-icon.users { background: #FFF0EA; }
 .module-icon.relation { background: #FFF3D5; }
+.module-icon.analytics { color: #FFFFFF; background: #E85D4A; }
+.module-icon.blessing-log { color: #FFFFFF; background: #D95B67; }
 .module-content { display: flex; flex: 1; flex-direction: column; gap: 6rpx; }
 .module-title { font-size: 28rpx; font-weight: 600; }
 .module-desc { color: #8C7770; font-size: 22rpx; }
@@ -117,4 +119,6 @@
 }
 
 .tip-icon { flex-shrink: 0; }
-.loading-text { padding: 28rpx; color: #8C7770; font-size: 23rpx; text-align: center; }
+.admin-page-loading { display: flex; min-height: 100vh; flex-direction: column; align-items: center; justify-content: center; gap: 22rpx; background: #FFF9ED; }
+.admin-loading-mark { display: flex; width: 86rpx; height: 86rpx; align-items: center; justify-content: center; border-radius: 28rpx; background: #FFF0EA; color: #E85D4A; font-size: 48rpx; box-shadow: 0 10rpx 24rpx rgba(232, 93, 74, 0.12); }
+.admin-loading-text { color: #8C7770; font-size: 24rpx; }

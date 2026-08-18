@@ -44,6 +44,11 @@ Page({
 
   openNotification(e) {
     const { id, page } = e.currentTarget.dataset
+    const index = this.data.notifications.findIndex(item => item._id === id)
+    if (this._suppressNotificationClick || (index >= 0 && this.data.notifications[index].swipeOffset)) {
+      if (index >= 0) this.setData({ [`notifications[${index}].swipeOffset`]: 0 })
+      return
+    }
     const notifications = this.data.notifications.map(item => (
       item._id === id ? { ...item, read: true } : item
     ))
@@ -81,12 +86,77 @@ Page({
     })
   },
 
+  onNotificationTouchStart(e) {
+    const id = e.currentTarget.dataset.id
+    const index = this.data.notifications.findIndex(item => item._id === id)
+    const touch = e.touches && e.touches[0]
+    if (index < 0 || !touch) return
+    this._notificationSwipe = {
+      index,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      startOffset: Number(this.data.notifications[index].swipeOffset) || 0,
+      horizontal: false
+    }
+    const updates = {}
+    this.data.notifications.forEach((item, itemIndex) => {
+      if (itemIndex !== index && item.swipeOffset) updates[`notifications[${itemIndex}].swipeOffset`] = 0
+    })
+    if (Object.keys(updates).length) this.setData(updates)
+  },
+
+  onNotificationTouchMove(e) {
+    if (!this._notificationSwipe) return
+    const touch = e.touches && e.touches[0]
+    if (!touch) return
+    const deltaX = touch.clientX - this._notificationSwipe.startX
+    const deltaY = touch.clientY - this._notificationSwipe.startY
+    if (!this._notificationSwipe.horizontal && Math.abs(deltaX) <= Math.abs(deltaY)) return
+    this._notificationSwipe.horizontal = true
+    const offset = Math.max(-76, Math.min(0, this._notificationSwipe.startOffset + deltaX))
+    this.setData({ [`notifications[${this._notificationSwipe.index}].swipeOffset`]: offset })
+  },
+
+  onNotificationTouchEnd() {
+    if (!this._notificationSwipe) return
+    const { index, horizontal } = this._notificationSwipe
+    const currentOffset = Number(this.data.notifications[index].swipeOffset) || 0
+    this.setData({ [`notifications[${index}].swipeOffset`]: currentOffset < -36 ? -76 : 0 })
+    this._notificationSwipe = null
+    if (horizontal) {
+      this._suppressNotificationClick = true
+      setTimeout(() => { this._suppressNotificationClick = false }, 250)
+    }
+  },
+
+  onDeleteNotification(e) {
+    const id = e.currentTarget.dataset.id
+    const index = this.data.notifications.findIndex(item => item._id === id)
+    if (index < 0) return
+    util.callCloudFunction('notification', {
+      action: 'delete',
+      notificationId: id
+    }).then(() => {
+      const notifications = this.data.notifications.filter(item => item._id !== id)
+      this.setData({
+        notifications,
+        unreadCount: notifications.filter(item => !item.read).length
+      })
+      wx.showToast({ title: '已删除', icon: 'success' })
+    }).catch(err => {
+      this.setData({ [`notifications[${index}].swipeOffset`]: 0 })
+      util.showError(err.message || '删除失败，请稍后重试')
+    })
+  },
+
   decorateNotification(item) {
     const typeMap = {
       order_share: { icon: '🍱', typeLabel: '投喂单', themeClass: 'order' },
       order_created: { icon: '🍱', typeLabel: '新投喂单', themeClass: 'order' },
       order_status: { icon: '🍲', typeLabel: '投喂进度', themeClass: 'order' },
       wish_share: { icon: '💭', typeLabel: '饭愿', themeClass: 'wish' },
+      friend_request: { icon: '👥', typeLabel: '饭搭子申请', themeClass: 'friend' },
+      friend_request_result: { icon: '🤝', typeLabel: '申请结果', themeClass: 'friend' },
       blessing: { icon: '💌', typeLabel: '祝福', themeClass: 'blessing' },
       festival_blessing: { icon: '✨', typeLabel: '节日祝福', themeClass: 'festival' }
     }
@@ -96,7 +166,9 @@ Page({
       ...meta,
       title: sanitizeTerminology(item.title),
       content: sanitizeTerminology(sanitizeLegacyWishContent(item)),
-      displayTime: formatMessageTime(item.createdAt, item.createdAtText)
+      displayTime: formatMessageTime(item.createdAt, item.createdAtText),
+      read: item.read === true,
+      swipeOffset: 0
     }
   }
 })

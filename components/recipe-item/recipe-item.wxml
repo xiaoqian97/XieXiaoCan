@@ -6,11 +6,15 @@
   bindtap="onRecipeClick"
 >
   <view class="recipe-content {{compact ? 'compact' : ''}}">
-    <image 
-      class="recipe-image" 
+    <image
+      wx:if="{{hasRealImage}}"
+      class="recipe-image"
       src="{{displayImage}}"
       mode="aspectFill"
     />
+    <view wx:else class="recipe-image recipe-image-placeholder">
+      <text class="recipe-placeholder-emoji">{{placeholderEmoji}}</text>
+    </view>
     <!-- 状态标签 - 只在显示状态时显示 -->
     <view wx:if="{{showStatus}}" class="recipe-status-tag {{recipe.status === 'draft' ? 'draft' : 'published'}}">
       <text class="status-text">{{recipe.status === 'draft' ? '草稿' : '已发布'}}</text>
@@ -75,7 +79,11 @@
             <van-icon name="star-o" size="12px" color="#E7A928" />
             <text>{{recipe.ratingAverage}}</text>
           </view>
-          <view wx:if="{{showViewStats && recipe.viewCount > 0}}" class="recipe-metric view-stats">
+          <view wx:if="{{showViewStats && recipe.viewCount > 0 && showViewerInfo}}" class="recipe-metric view-stats viewer-info-action" catchtap="onViewerInfo">
+            <van-icon name="eye-o" size="12px" color="#A9958E" />
+            <text>{{recipe.viewCount}}</text>
+          </view>
+          <view wx:elif="{{showViewStats && recipe.viewCount > 0}}" class="recipe-metric view-stats">
             <van-icon name="eye-o" size="12px" color="#A9958E" />
             <text>{{recipe.viewCount}}</text>
           </view>

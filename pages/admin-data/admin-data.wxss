@@ -30,7 +30,25 @@
 .recipe-stats, .recipe-time { color: #8C7770; font-size: 20rpx; }
 .recipe-stats { display: flex; align-items: center; gap: 22rpx; white-space: nowrap; }
 .stat-item { display: inline-flex; align-items: center; gap: 5rpx; }
+.stat-item-action { padding: 4rpx 9rpx; border-radius: 18rpx; background: #F5ECE6; color: #6E5852; }
+.favorite-action { color: #C85B4A; background: #FFF0EA; }
 .stat-item.rating { color: #C58A16; }
 .recipe-time { margin-top: auto; }
 .list-state, .empty-state { padding: 36rpx; color: #A9958E; font-size: 23rpx; text-align: center; }
 .empty-state { margin-top: 80rpx; border-radius: 24rpx; background: rgba(255, 255, 255, 0.75); }
+.audience-modal-mask { position: fixed; z-index: 1200; inset: 0; display: flex; align-items: center; justify-content: center; padding: 40rpx; box-sizing: border-box; background: rgba(51, 38, 34, 0.48); }
+.audience-modal { width: 100%; max-width: 640rpx; padding: 36rpx 32rpx 28rpx; box-sizing: border-box; border-radius: 24rpx; background: #FFFFFF; box-shadow: 0 24rpx 64rpx rgba(63, 48, 43, 0.2); }
+.audience-modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24rpx; }
+.audience-modal-title, .audience-modal-count, .audience-modal-limit { display: block; }
+.audience-modal-title { color: #3F302B; font-size: 32rpx; font-weight: 700; line-height: 1.4; }
+.audience-modal-count { margin-top: 8rpx; color: #A9958E; font-size: 23rpx; }
+.audience-modal-close { display: flex; width: 52rpx; height: 52rpx; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 50%; background: #F5ECE6; color: #8C7770; font-size: 38rpx; line-height: 1; }
+.audience-user-scroll { max-height: 520rpx; margin-top: 30rpx; }
+.audience-user-list { display: flex; flex-wrap: wrap; gap: 16rpx; }
+.audience-user-pill { display: inline-flex; max-width: 100%; height: 64rpx; align-items: center; gap: 10rpx; padding: 6rpx 12rpx 6rpx 8rpx; box-sizing: border-box; border: 1rpx solid #F1DED5; border-radius: 32rpx; background: #FFF8F3; }
+.audience-user-avatar { width: 48rpx; height: 48rpx; flex-shrink: 0; border-radius: 50%; background: #F5ECE6; }
+.audience-user-name { max-width: 180rpx; overflow: hidden; color: #5E4942; font-size: 24rpx; text-overflow: ellipsis; white-space: nowrap; }
+.audience-user-count { flex-shrink: 0; padding: 3rpx 10rpx; border-radius: 18rpx; background: #F5ECE6; color: #A06B5C; font-size: 20rpx; }
+.audience-modal-limit { margin-top: 22rpx; color: #A9958E; font-size: 22rpx; text-align: center; }
+.audience-modal-confirm { height: 76rpx; margin-top: 28rpx; border: 0; border-radius: 38rpx; background: #E85D4A; color: #FFFFFF; font-size: 27rpx; font-weight: 600; line-height: 76rpx; }
+.audience-modal-confirm::after { border: none; }

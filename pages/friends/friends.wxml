@@ -25,14 +25,17 @@
     </view>
     
     <!-- 绑定申请提醒 -->
-    <view class="request-reminder" bindtap="onGoToRequests">
+    <view class="request-reminder {{friendRequestCount > 0 ? 'has-pending' : ''}}" bindtap="onGoToRequests">
       <view class="reminder-content">
         <view class="reminder-icon">
           <image src="/images/addFriend.png"></image>
         </view>
         <view class="reminder-text">
-          <text class="reminder-title">绑定申请</text>
-          <text class="reminder-count">{{friendRequestCount}}个待处理请求</text>
+          <view class="reminder-title-row">
+            <text class="reminder-title">绑定申请</text>
+            <text wx:if="{{friendRequestCount > 0}}" class="request-count-badge">{{friendRequestCount > 99 ? '99+' : friendRequestCount}}</text>
+          </view>
+          <text class="reminder-count {{friendRequestCount > 0 ? 'pending' : ''}}">{{friendRequestCount > 0 ? '有申请等待你处理' : '暂无待处理申请'}}</text>
         </view>
       </view>
       <text class="reminder-arrow">›</text>
@@ -108,6 +111,35 @@
     </button>
   </view>
 </view>
+<van-popup
+  show="{{showFriendMenu}}"
+  position="bottom"
+  round
+  close-on-click-overlay
+  custom-style="background: transparent;"
+  bind:close="closeFriendMenu"
+>
+  <view class="friend-menu-panel">
+    <view class="friend-menu-header">
+      <text class="friend-menu-kicker">饭搭子操作</text>
+      <text class="friend-menu-title">{{friendMenuName}}</text>
+    </view>
+    <scroll-view class="friend-menu-list" scroll-y="true" show-scrollbar="{{false}}">
+      <view
+        wx:for="{{friendMenuActions}}"
+        wx:key="key"
+        class="friend-menu-item {{item.danger ? 'danger' : ''}}"
+        data-key="{{item.key}}"
+        bindtap="onFriendMenuAction"
+      >
+        <view class="friend-menu-item-icon">{{item.icon}}</view>
+        <text class="friend-menu-item-label">{{item.label}}</text>
+        <text class="friend-menu-item-arrow">›</text>
+      </view>
+    </scroll-view>
+    <button class="friend-menu-cancel" bindtap="closeFriendMenu">取消</button>
+  </view>
+</van-popup>
 <feeder-switch-dialog id="feederSwitchDialog" />
 <theme-confirm-dialog id="themeConfirmDialog" />
 <global-notification-popup id="globalNotificationPopup" />

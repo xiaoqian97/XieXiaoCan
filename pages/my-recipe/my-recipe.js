@@ -59,15 +59,22 @@ Page({
     
     currentQuickFilter: null,
     canCreateRecipe: false,
+    isPrimaryAdmin: false,
     needsFixedFeeder: false,
     showFavoriteModal: false,
     favoriteModalRecipeId: '',
     favoriteModalTitle: '',
     favoriteUserTotal: 0,
-    favoriteUsers: []
+    favoriteUsers: [],
+    showViewerModal: false,
+    viewerModalRecipeId: '',
+    viewerModalTitle: '',
+    viewerUserTotal: 0,
+    viewerUsers: []
   },
 
   onLoad: function (options) {
+    this._recipeDataVersion = app.globalData.recipeDataVersion || 0
     if (!util.requireLogin('查看我的菜谱需要登录')) {
       this.setData({ loading: false })
       return
@@ -93,6 +100,8 @@ Page({
 
   onShow: function () {
     if (!util.isLoggedIn()) return
+    const recipeDataChanged = this._recipeDataVersion !== (app.globalData.recipeDataVersion || 0)
+    if (recipeDataChanged) this._recipeDataVersion = app.globalData.recipeDataVersion || 0
     this.updateRecipePermission()
     // 更新自定义tabbar的选中状态
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
@@ -101,9 +110,9 @@ Page({
       })
     }
     
-    if (this._needsFullRefresh) {
+    if (this._needsFullRefresh || recipeDataChanged) {
       this._needsFullRefresh = false
-      this.refreshData()
+      this.refreshData(true)
       return
     }
     if (this._viewedRecipeId) {
@@ -126,17 +135,23 @@ Page({
   updateRecipePermission: function() {
     const userInfo = app.globalData.userInfo || wx.getStorageSync('userInfo') || {}
     this.setData({
-      canCreateRecipe: ['chef', 'admin'].includes(userInfo.role)
+      canCreateRecipe: ['chef', 'admin'].includes(userInfo.role),
+      isPrimaryAdmin: Boolean(
+        userInfo.isPrimaryAdmin ||
+        userInfo.openid === PRIMARY_ADMIN_OPENID ||
+        app.globalData.openid === PRIMARY_ADMIN_OPENID
+      )
     })
   },
 
-  refreshData: function() {
-    this.setData({
-      recipes: [],
+  refreshData: function(silent = false) {
+    const resetState = {
       page: 1,
       hasMore: true,
-      loading: true
-    })
+      loading: !silent
+    }
+    if (!silent) resetState.recipes = []
+    this.setData(resetState)
     this.loadRecipes()
   },
 
@@ -280,6 +295,46 @@ Page({
 
   closeFavoriteModal: function() {
     this.setData({ showFavoriteModal: false })
+  },
+
+  onViewerInfo: function(e) {
+    if (!this.data.isPrimaryAdmin) return
+    const recipe = e.detail && e.detail.recipe
+    if (!recipe || !recipe._id) return
+    this.setData({
+      showViewerModal: true,
+      viewerModalRecipeId: recipe._id,
+      viewerModalTitle: recipe.name || '这道菜',
+      viewerUserTotal: 0,
+      viewerUsers: []
+    })
+    util.callCloudFunction('recipe', {
+      action: 'getViewers',
+      recipeId: recipe._id
+    }).then(payload => {
+      if (!this.data.showViewerModal || this.data.viewerModalRecipeId !== recipe._id) return
+      const data = payload.data || {}
+      const users = Array.isArray(data.viewers) ? data.viewers : []
+      this.setData({
+        viewerUserTotal: Number(data.total || 0),
+        viewerUsers: users.map(user => ({ ...user, displayAvatar: util.DEFAULT_AVATAR }))
+      })
+      return util.resolveCloudImages(users.map(user => user.avatar), util.DEFAULT_AVATAR).then(avatars => {
+        if (!this.data.showViewerModal || this.data.viewerModalRecipeId !== recipe._id) return
+        this.setData({
+          viewerUsers: users.map((user, index) => ({ ...user, displayAvatar: avatars[index] }))
+        })
+      })
+    }).catch(error => {
+      if (this.data.showViewerModal && this.data.viewerModalRecipeId === recipe._id) {
+        this.setData({ showViewerModal: false })
+        wx.showToast({ title: error.message || '加载查看者失败', icon: 'none' })
+      }
+    })
+  },
+
+  closeViewerModal: function() {
+    this.setData({ showViewerModal: false })
   },
 
   stopPropagation: function() {

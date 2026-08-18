@@ -1,0 +1,53 @@
+<view class="log-page">
+  <view class="log-hero"><view><text class="hero-title">祝福日志</text><text class="hero-desc">仅主管理员可查看发送与拆开状态</text></view><text class="hero-icon">✦</text></view>
+
+  <view class="category-tabs">
+    <view wx:for="{{categories}}" wx:key="value" class="category-tab {{category === item.value ? 'active' : ''}}" data-value="{{item.value}}" bindtap="switchCategory">{{item.label}}</view>
+  </view>
+
+  <view class="summary-grid">
+    <view><text>{{summary.total}}</text><text>记录总数</text></view>
+    <view><text>{{summary.sent}}</text><text>站内送达</text></view>
+    <view><text>{{summary.opened}}</text><text>已拆开</text></view>
+    <view><text>{{summary.unopened}}</text><text>未拆开</text></view>
+    <view><text>{{summary.dismissed}}</text><text>已收起</text></view>
+    <view><text>{{summary.failed}}</text><text>发送失败</text></view>
+  </view>
+
+  <scroll-view class="status-scroll" scroll-x="true" show-scrollbar="false">
+    <view class="status-tabs"><view wx:for="{{statuses}}" wx:key="value" class="status-tab {{status === item.value ? 'active' : ''}}" data-value="{{item.value}}" bindtap="switchStatus">{{item.label}}</view></view>
+  </scroll-view>
+
+  <view wx:if="{{loading}}" class="page-state">正在整理祝福日志...</view>
+  <view wx:elif="{{!items.length}}" class="page-state">暂时没有符合条件的祝福记录</view>
+  <view wx:else class="log-list">
+    <view wx:for="{{items}}" wx:key="_id" class="log-card" data-id="{{item._id}}" bindtap="openDetail">
+      <view class="people-row">
+        <image class="avatar" src="{{item.senderAvatar}}" mode="aspectFill" />
+        <text class="person-name">{{item.senderName}}</text><text class="arrow">→</text>
+        <image class="avatar" src="{{item.recipientAvatar}}" mode="aspectFill" />
+        <text class="person-name recipient">{{item.recipientName}}</text>
+        <text class="delivery-status">{{item.deliveryStatus}}</text>
+      </view>
+      <text class="log-title">{{item.title}}</text>
+      <view class="log-meta"><text>送达 {{item.sentAtText}}</text><text>微信 {{item.wechatText}}</text></view>
+      <view wx:if="{{item.readAtText}}" class="log-meta"><text>拆开 {{item.readAtText}}</text></view>
+      <view wx:if="{{item.dismissedAtText}}" class="log-meta"><text>收起 {{item.dismissedAtText}}</text></view>
+    </view>
+  </view>
+
+  <view wx:if="{{detail}}" class="detail-mask" bindtap="closeDetail">
+    <view class="detail-panel" catchtap="noop">
+      <view class="detail-top"><text class="detail-title">祝福详情</text><text class="close" bindtap="closeDetail">×</text></view>
+      <text class="detail-route">{{detail.senderName}} → {{detail.recipientName}}</text>
+      <text class="detail-subject">{{detail.title}}</text>
+      <text class="detail-content">{{detail.content}}</text>
+      <view class="detail-info"><text>当前状态</text><text>{{detail.deliveryStatus}}</text></view>
+      <view class="detail-info"><text>站内送达</text><text>{{detail.sentAtText || '未送达'}}</text></view>
+      <view class="detail-info"><text>微信提醒</text><text>{{detail.wechatText}}</text></view>
+      <view wx:if="{{detail.readAtText}}" class="detail-info"><text>拆开时间</text><text>{{detail.readAtText}}</text></view>
+      <view wx:if="{{detail.wechatMessage || detail.failReason}}" class="detail-error">{{detail.wechatMessage || detail.failReason}}</view>
+    </view>
+  </view>
+</view>
+<global-notification-popup id="globalNotificationPopup" />

@@ -202,10 +202,12 @@
         show-favorite-info="{{canCreateRecipe}}"
         show-stats="{{true}}"
         show-view-stats="{{canCreateRecipe}}"
+        show-viewer-info="{{isPrimaryAdmin}}"
         cooking-methods="{{cookingMethods}}"
         flavor-types="{{flavorTypes}}"
         bind:recipeclick="onRecipeClick"
         bind:favoriteinfo="onFavoriteInfo"
+        bind:viewerinfo="onViewerInfo"
       />
     </block>
   </view>
@@ -227,9 +229,6 @@
     <text class="empty-emoji">🍳</text>
     <text class="empty-title">{{needsFixedFeeder ? '还没有固定投喂官' : '还没有菜谱'}}</text>
     <text class="empty-desc">{{needsFixedFeeder ? '先去“我的饭搭子”设置一位固定投喂官' : (canCreateRecipe ? '赶快添加第一道菜吧' : '固定投喂官还没有发布菜谱')}}</text>
-    <van-button wx:if="{{canCreateRecipe}}" type="primary" size="large" bind:click="onAddClick">
-      添一道拿手菜
-    </van-button>
   </view>
 
   <!-- 没有更多 -->
@@ -263,6 +262,31 @@
 
       <text wx:if="{{favoriteUserTotal > 20}}" class="favorite-modal-limit">仅展示前 20 位收藏者</text>
       <button class="favorite-modal-confirm" bindtap="closeFavoriteModal">知道了</button>
+    </view>
+  </view>
+
+  <view wx:if="{{showViewerModal}}" class="favorite-modal-mask" bindtap="closeViewerModal" catchtouchmove="stopPropagation">
+    <view class="favorite-modal" catchtap="stopPropagation">
+      <view class="favorite-modal-header">
+        <view class="favorite-modal-heading">
+          <text class="favorite-modal-title">{{viewerModalTitle}}的查看者</text>
+          <text class="favorite-modal-count">共 {{viewerUserTotal}} 人查看</text>
+        </view>
+        <view class="favorite-modal-close" bindtap="closeViewerModal">×</view>
+      </view>
+
+      <scroll-view class="favorite-user-scroll" scroll-y="true" show-scrollbar="{{false}}">
+        <view class="favorite-user-list">
+          <view wx:for="{{viewerUsers}}" wx:key="openid" class="favorite-user-pill viewer-user-pill">
+            <image class="favorite-user-avatar" src="{{item.displayAvatar}}" mode="aspectFill" />
+            <text class="favorite-user-name">{{item.nickname || '微信用户'}}</text>
+            <text class="viewer-user-count">{{item.viewCount}} 次</text>
+          </view>
+        </view>
+      </scroll-view>
+
+      <text wx:if="{{viewerUserTotal > 20}}" class="favorite-modal-limit">仅展示查看次数前 20 位用户</text>
+      <button class="favorite-modal-confirm" bindtap="closeViewerModal">知道了</button>
     </view>
   </view>
 </view>

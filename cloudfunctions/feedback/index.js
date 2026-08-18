@@ -35,6 +35,15 @@ async function submitFeedback(openid, event) {
   if (!description) throw new Error('请填写问题或建议描述')
   if (description.length > 500) throw new Error('描述不能超过500字')
 
+  try {
+    await checkTextSecurity(openid, description)
+    await validateFeedbackImages(images, openid)
+  } catch (error) {
+    // 图片在提交前已经上传到云存储，审核失败时及时清理，避免留下不可用文件。
+    if (images.length) await cloud.deleteFile({ fileList: images }).catch(() => {})
+    throw error
+  }
+
   const result = await db.collection('feedbacks').add({
     data: {
       creatorId: openid,
@@ -47,6 +56,44 @@ async function submitFeedback(openid, event) {
     }
   })
   return { success: true, data: { feedbackId: result._id } }
+}
+
+async function checkTextSecurity(openid, content) {
+  const result = await cloud.openapi.security.msgSecCheck({
+    openid,
+    scene: 2,
+    version: 2,
+    content
+  })
+  const suggest = result && result.result && result.result.suggest
+  if (suggest && suggest !== 'pass') throw new Error('内容未通过安全检测，请修改后再提交')
+}
+
+async function validateFeedbackImages(images, openid) {
+  for (const fileID of images) {
+    const file = await cloud.downloadFile({ fileID })
+    const contentType = detectImageContentType(file.fileContent)
+    if (!contentType) throw new Error('图片格式暂不支持，请使用 JPG 或 PNG 图片')
+
+    const result = await cloud.openapi.security.imgSecCheck({
+      media: { contentType, value: file.fileContent },
+      version: 2,
+      scene: 2,
+      openid
+    })
+    const suggest = result && result.result && result.result.suggest
+    if (suggest && suggest !== 'pass') throw new Error('图片内容未通过安全检测，请更换后再提交')
+  }
+}
+
+function detectImageContentType(buffer) {
+  if (!buffer || buffer.length < 12) return ''
+  if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) return 'image/jpeg'
+  if (
+    buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47 &&
+    buffer[4] === 0x0D && buffer[5] === 0x0A && buffer[6] === 0x1A && buffer[7] === 0x0A
+  ) return 'image/png'
+  return ''
 }
 
 async function listFeedbacks(openid, event) {

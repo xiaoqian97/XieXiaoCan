@@ -85,6 +85,7 @@
       <view class="quick-action" bindtap="onFriends">
         <view class="action-icon friends">
           <text class="icon">👩‍❤️‍👨</text>
+          <text wx:if="{{pendingFriendRequestCount > 0}}" class="friend-request-badge">{{pendingFriendRequestCount > 9 ? '9+' : pendingFriendRequestCount}}</text>
         </view>
         <text class="action-label">我的饭搭子</text>
       </view>
@@ -107,6 +108,14 @@
         <view class="menu-item-left">
           <view class="menu-icon blessings"><text class="icon">💌</text></view>
           <text class="menu-text">祝福小站</text>
+        </view>
+        <view class="menu-item-right"><text class="menu-arrow">›</text></view>
+      </view>
+
+      <view class="menu-item" bindtap="onDietPreferences">
+        <view class="menu-item-left">
+          <view class="menu-icon preferences"><text class="icon">🥗</text></view>
+          <text class="menu-text">饮食偏好与忌口</text>
         </view>
         <view class="menu-item-right"><text class="menu-arrow">›</text></view>
       </view>

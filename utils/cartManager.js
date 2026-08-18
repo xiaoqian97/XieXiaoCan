@@ -116,7 +116,7 @@ function addToCart(recipe) {
       difficulty: recipe.difficulty ? recipe.difficulty.label : '',
       servingSize: recipe.servingSize ? recipe.servingSize.label : '',
       addedAt: new Date().toISOString(),
-      isSelected: false
+      isSelected: true
     }
   } else {
     // 不存在，添加新项
@@ -134,7 +134,7 @@ function addToCart(recipe) {
       difficulty: recipe.difficulty ? recipe.difficulty.label : '',
       servingSize: recipe.servingSize ? recipe.servingSize.label : '',
       addedAt: new Date().toISOString(),
-      isSelected: false
+      isSelected: true
     })
   }
   
@@ -157,6 +157,8 @@ function scheduleCloudSync(cartData) {
     wx.cloud.callFunction({
       name: 'cart',
       data: { action: 'save', cartData }
+    }).then(res => {
+      if (res.result && res.result.success) require('./analytics').trackEvent('cart_update')
     }).catch(error => console.error('饭篮云端同步失败:', error))
   }, 300)
 }

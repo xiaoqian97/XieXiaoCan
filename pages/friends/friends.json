@@ -1,7 +1,8 @@
 
 {
   "usingComponents": {
-    "feeder-switch-dialog": "/components/feeder-switch-dialog/feeder-switch-dialog"
+    "feeder-switch-dialog": "/components/feeder-switch-dialog/feeder-switch-dialog",
+    "van-popup": "@vant/weapp/popup/index"
   },
   "navigationBarTitleText": "我的饭搭子",
   "navigationBarBackgroundColor": "#ffffff",

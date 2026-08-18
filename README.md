@@ -57,8 +57,8 @@ Food-wxapp/
 
 1. 右键点击 `cloudfunctions/login` 目录
 2. 选择"上传并部署：云端安装依赖"
-3. 重复以上步骤部署全部云函数：`login`、`user`、`recipe`、`order`、`wish`、`notification`、`friend`、`favorite`、`cart`、`admin`、`feedback`、`blessing`
-4. `login`、`user`、`recipe`、`blessing` 需要内容安全接口权限；`order`、`blessing` 需要订阅消息发送权限，请保留各目录下的 `config.json`
+3. 重复以上步骤部署全部云函数：`login`、`user`、`recipe`、`order`、`wish`、`notification`、`friend`、`favorite`、`cart`、`admin`、`feedback`、`blessing`、`analytics`
+4. `login`、`user`、`recipe`、`blessing` 需要内容安全接口权限；`order`、`blessing`、`friend` 需要订阅消息发送权限，请保留各目录下的 `config.json`
 5. 上传 `blessing` 时选择“上传并部署：云端安装依赖”，并确认其 `blessingScheduler` 定时触发器已经创建；该触发器每 5 分钟处理一次到期祝福
 
 ### 4. 数据库初始化
@@ -66,6 +66,8 @@ Food-wxapp/
 在云开发控制台中创建以下集合：
 - `users` - 用户信息、身份，以及每位点菜人唯一的 `fixedFeederOpenid`
 - `recipes` - 菜谱数据
+  - 备菜内容包括 `ingredients`（食材及用量）、`sideIngredients`（配料文本）、`seasonings`（调料文本）；`steps` 可为空
+- `recipe_views` - 按菜谱与查看者汇总的浏览记录，仅主管理员可查询查看者
 - `orders` - 投喂单记录
 - `wishes` - 饭愿数据
 - `notifications` - 站内通知
@@ -78,6 +80,10 @@ Food-wxapp/
 - `admin_logs` - 管理员身份和固定投喂关系的操作日志
 - `feedbacks` - 用户提交的反馈、建议及相关图片
 - `blessings` - 节日祝福、自定义祝福和定时发送状态
+- `analytics_sessions` - 每次进入小程序的会话与停留时长
+- `analytics_events` - 用户使用核心功能的事件明细
+- `analytics_daily_stats` - 按用户、日期预聚合的访问与功能统计
+- `recipe_interactions` - 每位用户对每道菜的多选口味反馈（好吃、下次还想吃、少辣一点、分量刚好）
 
 ### 数据库权限与云存储
 
@@ -116,6 +122,15 @@ Food-wxapp/
         "thing5": "remark"
       }
     },
+    "friendRequest": {
+      "templateId": "好友申请提醒模板 ID",
+      "page": "pages/friend-requests/friend-requests",
+      "fields": {
+        "name1": "senderName",
+        "thing2": "message",
+        "time3": "requestTime"
+      }
+    },
     "blessingReceived": {
       "templateId": "收到祝福提醒模板 ID",
       "page": "pages/blessing-detail/blessing-detail",
@@ -141,7 +156,9 @@ Food-wxapp/
 > 显示“TA的祝福”，“提醒事项”展示用户填写的祝福标题。现有
 > `phrase5: title`、`thing3: summary` 配置可以继续使用，无需修改数据库。
 
-`fields` 左侧必须换成微信模板中实际的字段名。投喂模板右侧可使用：`dinerName`、`dishes`、`mealTime`、`status`、`remark`；祝福模板可使用：`senderName`、`title`、`summary`、`sendTime`。如果暂时没有祝福模板，站内祝福和定时发送仍可正常使用，只是不发送微信服务通知。
+`fields` 左侧必须换成微信模板中实际的字段名。投喂模板右侧可使用：`dinerName`、`dishes`、`mealTime`、`status`、`remark`；好友申请模板可使用：`senderName`、`message`、`requestTime`；祝福模板可使用：`senderName`、`title`、`summary`、`sendTime`。如果暂时没有对应模板，站内通知仍可正常使用，只是不发送微信服务通知。
+
+好友申请微信提醒还需要重新部署 `friend` 云函数，并在上传时选择“云端安装依赖”。接收方必须提前在首次登录引导或“我的 → 补充微信提醒次数”中允许该模板；微信一次性订阅每允许一次只能发送一次，次数用完后需要再次补充。由于微信单次最多申请 3 个模板，客户端会优先申请好友申请、新投喂单和投喂状态模板。
 
 春节、七夕和中秋的内置日期覆盖 2026～2030 年。2031 年起可按上例在 `festivalDates` 中补充公历月日，不需要修改节日主题代码。
 
@@ -155,14 +172,21 @@ Food-wxapp/
 - `friend_requests`：`targetOpenid + status + createTime(desc)`、`fromOpenid + status + createTime(desc)`
 - `orders`：`creatorId + createdAt(desc)`、`assigneeId + createdAt(desc)`、`creatorId + status + createdAt(desc)`、`assigneeId + status + createdAt(desc)`、`status + createdAt(desc)`
 - `wishes`：`creatorId + createdAt(desc)`、`assigneeId + createdAt(desc)`、`creatorId + assigneeId + createdAt(desc)`
-- `favorites`：`userId + createdAt(desc)`、`userId + recipeId`
+- `favorites`：`userId + createdAt(desc)`、`userId + recipeId`、`recipeId + createdAt(desc)`
 - `carts`：`userId`
 - `feeding_stats`：`chefId`、`dinerId`
 - `notifications`：`recipientId + createdAt(desc)`、`recipientId + read + createdAt(desc)`
 - `users`：`role + createTime(desc)`、`isAdmin + createTime(desc)`、`fixedFeederOpenid`
 - `admin_logs`：`adminOpenid + createdAt(desc)`、`targetOpenid + createdAt(desc)`
 - `feedbacks`：`createdAt(desc)`、`type + createdAt(desc)`
-- `blessings`：`recipientId + status + createdAt(desc)`、`senderId + createdAt(desc)`、`status + sendAt(asc)`
+- `blessings`：`recipientId + status + createdAt(desc)`、`senderId + createdAt(desc)`、`status + sendAt(asc)`、`type + createdAt(desc)`
+- `analytics_sessions`：`userId + startedAt(desc)`、`dateKey + startedAt(desc)`
+- `analytics_events`：`userId + createdAt(desc)`、`eventName + createdAt(desc)`、`dateKey + createdAt(desc)`
+- `analytics_daily_stats`：`dateKey`、`userId + dateKey(desc)`
+- `recipe_interactions`：`recipeId + userId`（唯一反馈查询）、`userId + updatedAt(desc)`、`recipeId + updatedAt(desc)`
+- `recipe_views`：`recipeId + viewCount(desc)`，用于主管理员查看每道菜浏览次数前 20 位用户
+
+埋点数据由 `analytics` 云函数写入，数据库规则禁止小程序直接读写。工作台中的用户活跃、常用功能和投喂官菜谱运营查询会再次核验 `app_config/family.adminOpenid`，只有主管理员可以读取，普通管理员无法通过直接调用云函数绕过权限。
 
 菜谱索引继续参考 `cloudfunctions/recipe/database-indexes.md`。管理员菜品明细还需要在 `recipes` 集合增加 `status + createdAt(desc)` 索引。
 首页按账号推荐还需要在 `recipes` 集合增加 `creatorId + status + createdAt(desc)` 和 `isPublic + status + createdAt(desc)` 索引。
@@ -175,6 +199,14 @@ Food-wxapp/
 4. 所有用户重新进入一次小程序，旧本地饭篮会迁移到当前 OpenID 的独立缓存并同步到 `carts`。
 5. 用户在“我的 → 开启微信消息提醒”中授权；订阅消息通常为一次性授权，用完后需要再次点击授权。
 6. 在微信公众平台的用户隐私保护指引中声明头像、昵称和图片选择能力，然后重新提交审核。
+
+### 8. 新增体验功能
+
+- “我的 → 饮食偏好与忌口”保存辣度、饮食方式、喜欢/不喜欢及过敏食材；首页推荐会按这些偏好过滤和排序，并结合历史点单、评分及口味反馈。
+- 菜谱详情底部提供轻量口味反馈，不会覆盖原有评分；每个用户每道菜使用一条记录保存多个已选反馈标签。
+- 投喂完成后，订单双方都可以添加一句“吃饭记忆”，内容会同步显示在“投喂记忆”的最近投喂区域。
+- 部署时请新建 `recipe_interactions` 集合并创建上方索引；然后重新上传 `user`、`recipe`、`order` 云函数和小程序代码。
+- 部署查看者功能时，请新建 `recipe_views` 集合及其索引，并重新上传 `recipe` 云函数、小程序代码和 `database.rules.json`。历史浏览量无法反推出具体查看者，新部署后开始记录。
 
 ## 功能特性
 

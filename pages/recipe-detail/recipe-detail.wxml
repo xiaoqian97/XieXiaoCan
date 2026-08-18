@@ -3,9 +3,14 @@
   
   <!-- 头图区域 -->
   <view class="hero-section">
-    <!-- 背景图片轮播 -->
-    <swiper 
-      class="hero-swipe" 
+    <!-- 有图走轮播，没图用食材分类占位 -->
+    <view wx:if="{{!recipe.images.length}}" class="hero-placeholder">
+      <text class="hero-placeholder-emoji">{{ingredientCategoryInfo.emoji || '🍽️'}}</text>
+      <text class="hero-placeholder-text">还没有馋图</text>
+    </view>
+    <swiper
+      wx:else
+      class="hero-swipe"
       indicator-dots="{{recipe.images.length > 1}}"
       autoplay="{{recipe.images.length > 1}}"
       interval="3500"
@@ -30,7 +35,7 @@
         <van-icon name="arrow-left" size="20px" color="#ffffff" />
       </view> -->
       <view class="default"></view>
-      <view class="nav-actions">
+      <view wx:if="{{!readOnly}}" class="nav-actions">
         <button class="nav-btn share-native-button" open-type="share">
           <van-icon name="share" size="20px" color="#ffffff" />
         </button>
@@ -114,6 +119,7 @@
         <text>备菜清单</text>
       </view>
       
+      <text class="ingredient-group-title">食材</text>
       <view class="ingredient-list">
         <view 
           wx:for="{{recipe.ingredients}}" 
@@ -124,10 +130,20 @@
           <text class="ingredient-amount">{{item.amount}}</text>
         </view>
       </view>
+
+      <view wx:if="{{recipe.sideIngredients}}" class="ingredient-text-group">
+        <text class="ingredient-group-title">配料</text>
+        <text class="ingredient-text-content">{{recipe.sideIngredients}}</text>
+      </view>
+
+      <view wx:if="{{recipe.seasonings}}" class="ingredient-text-group">
+        <text class="ingredient-group-title">调料</text>
+        <text class="ingredient-text-content">{{recipe.seasonings}}</text>
+      </view>
     </view>
     
     <!-- 投喂步骤 -->
-    <view class="section">
+    <view wx:if="{{recipe.steps && recipe.steps.length}}" class="section">
       <view class="section-title">
         <van-icon name="orders-o" size="16px" color="#E85D4A" />
         <text>投喂步骤</text>
@@ -169,6 +185,20 @@
       </view>
     </view>
 
+    <view wx:if="{{!readOnly}}" class="section interaction-section">
+      <view class="section-title">
+        <van-icon name="like-o" size="16px" color="#E85D4A" />
+        <text>吃过这道菜？留下口味记忆</text>
+      </view>
+      <view class="interaction-list">
+        <view wx:for="{{interactionOptions}}" wx:key="key" class="interaction-chip {{item.selected ? 'active' : ''}}" data-reaction="{{item.key}}" bindtap="onInteractionTap">
+          <text>{{item.icon}}</text>
+          <text>{{item.label}}</text>
+          <text class="interaction-count">{{recipe.interactions[item.key] || 0}}</text>
+        </view>
+      </view>
+    </view>
+
     <!-- 创建者信息 -->
     <view class="section">
       <view class="creator-info">
@@ -194,7 +224,7 @@
   </view>
   
   <!-- 底部操作按钮 -->
-  <view class="action-buttons" wx:if="{{isMyRecipe}}">
+  <view class="action-buttons" wx:if="{{isMyRecipe && !readOnly}}">
     <!-- 草稿状态显示发布按钮 -->
     <view wx:if="{{recipe.status === 'draft'}}" class="action-buttons-draft">
       <view class="action-btn secondary" bindtap="editRecipe">
@@ -225,7 +255,7 @@
   </view>
   
   <!-- 非个人菜谱的底部操作按钮 -->
-  <view class="action-buttons action-buttons-visitor" wx:else>
+  <view class="action-buttons action-buttons-visitor" wx:if="{{!isMyRecipe && !readOnly}}">
     <view class="action-btn secondary" bindtap="toggleFavorite">
       <van-icon 
         name="{{isFavorited ? 'like' : 'like-o'}}" 

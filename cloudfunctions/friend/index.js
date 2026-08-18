@@ -33,6 +33,15 @@ exports.main = async (event, context) => {
       case 'handleFriendRequest':
         return await handleFriendRequest(wxContext.OPENID, event.requestId, event.accept, event.remark)
 
+      case 'cancelFriendRequest':
+        return await cancelFriendRequest(wxContext.OPENID, event.requestId)
+
+      case 'deleteFriendRequestRecord':
+        return await deleteFriendRequestRecord(wxContext.OPENID, event.requestId)
+
+      case 'deleteReceivedFriendRequestRecord':
+        return await deleteReceivedFriendRequestRecord(wxContext.OPENID, event.requestId)
+
       case 'updateRemark':
         return await updateRemark(wxContext.OPENID, event.friendOpenid, event.remark)
 
@@ -352,14 +361,17 @@ async function getFriendRequests(openid) {
       status: 'pending'
     }).orderBy('createTime', 'desc').get()
 
-    // 获取已发送的请求
+    // 获取已发送的申请历史。接受、拒绝、取消的记录均保留，直到发送人主动删除。
     const sentResult = await db.collection('friend_requests').where({
-      fromOpenid: openid,
-      status: 'pending'
-    }).orderBy('createTime', 'desc').get()
+      fromOpenid: openid
+    }).orderBy('createTime', 'desc').limit(100).get()
+    const receivedHistoryResult = await db.collection('friend_requests').where({
+      targetOpenid: openid
+    }).limit(100).get()
 
     const pendingRequests = []
     const sentRequests = []
+    const receivedHistoryRequests = []
 
     // 处理待处理请求
     for (let item of pendingResult.data) {
@@ -369,6 +381,13 @@ async function getFriendRequests(openid) {
       
       if (userResult.data.length > 0) {
         const user = userResult.data[0]
+        await createFriendRequestNotification({
+          requestId: item._id,
+          fromOpenid: item.fromOpenid,
+          targetOpenid: openid,
+          senderName: user.nickname || '一位饭搭子',
+          message: item.message
+        }).catch(() => {})
         pendingRequests.push({
           id: item._id,
           fromOpenid: item.fromOpenid,
@@ -382,28 +401,50 @@ async function getFriendRequests(openid) {
 
     // 处理已发送请求
     for (let item of sentResult.data) {
+      if (item.senderDeletedAt) continue
       const userResult = await db.collection('users').where({
         openid: item.targetOpenid
       }).get()
-      
-      if (userResult.data.length > 0) {
-        const user = userResult.data[0]
-        sentRequests.push({
-          id: item._id,
-          targetOpenid: item.targetOpenid,
-          nickname: user.nickname || '未知用户',
-          avatar: user.avatar || '/images/default-avatar.png',
-          time: formatTime(item.createTime),
-          status: '待确认'
-        })
-      }
+      const user = userResult.data[0] || {}
+      const statusMeta = getSentRequestStatusMeta(item.status)
+      sentRequests.push({
+        id: item._id,
+        targetOpenid: item.targetOpenid,
+        nickname: user.nickname || '未知用户',
+        avatar: user.avatar || '/images/default-avatar.png',
+        time: formatTime(item.createTime),
+        status: statusMeta.label,
+        description: statusMeta.description,
+        statusClass: statusMeta.className,
+        canCancel: item.status === 'pending'
+      })
+    }
+
+    const receivedHistoryItems = receivedHistoryResult.data
+      .filter(item => item.status !== 'pending' && !item.receiverDeletedAt)
+      .sort((a, b) => new Date(b.createTime).getTime() - new Date(a.createTime).getTime())
+    for (let item of receivedHistoryItems) {
+      const userResult = await db.collection('users').where({ openid: item.fromOpenid }).get()
+      const user = userResult.data[0] || {}
+      const statusMeta = getReceivedRequestStatusMeta(item.status)
+      receivedHistoryRequests.push({
+        id: item._id,
+        fromOpenid: item.fromOpenid,
+        nickname: user.nickname || '未知用户',
+        avatar: user.avatar || '/images/default-avatar.png',
+        time: formatTime(item.createTime),
+        status: statusMeta.label,
+        description: statusMeta.description,
+        statusClass: statusMeta.className
+      })
     }
 
     return {
       success: true,
       data: {
         pendingRequests,
-        sentRequests
+        sentRequests,
+        receivedHistoryRequests
       }
     }
   } catch (error) {
@@ -413,7 +454,8 @@ async function getFriendRequests(openid) {
       message: '获取好友请求失败',
       data: {
         pendingRequests: [],
-        sentRequests: []
+        sentRequests: [],
+        receivedHistoryRequests: []
       }
     }
   }
@@ -478,7 +520,7 @@ async function sendFriendRequest(fromOpenid, targetOpenid, message = '') {
   }
 
   // 创建好友请求
-  await db.collection('friend_requests').add({
+  const requestAddResult = await db.collection('friend_requests').add({
     data: {
       fromOpenid,
       targetOpenid,
@@ -488,10 +530,55 @@ async function sendFriendRequest(fromOpenid, targetOpenid, message = '') {
     }
   })
 
+  const requestId = requestAddResult._id
+  const sender = await getUserByOpenid(fromOpenid)
+  const senderName = sender.nickname || '一位饭搭子'
+  const notificationResult = await createFriendRequestNotification({
+    requestId,
+    fromOpenid,
+    targetOpenid,
+    senderName,
+    message
+  }).then(() => ({ created: true })).catch(() => ({ created: false }))
+  const wechatReminder = await sendFriendRequestSubscribeMessage({
+    requestId,
+    targetOpenid,
+    senderName,
+    message
+  }).catch(error => ({
+    sent: false,
+    status: 'failed',
+    message: formatSubscribeError(error)
+  }))
+
   return {
     success: true,
-    message: '绑定申请已发送'
+    message: '绑定申请已发送',
+    data: {
+      requestId,
+      notificationCreated: notificationResult.created,
+      wechatReminder
+    }
   }
+}
+
+function getSentRequestStatusMeta(status) {
+  const metas = {
+    pending: { label: '待确认', description: '等待对方确认', className: 'pending' },
+    accepted: { label: '已接受', description: '已成为饭搭子', className: 'accepted' },
+    rejected: { label: '已拒绝', description: '对方暂未接受本次绑定', className: 'rejected' },
+    cancelled: { label: '已取消', description: '你已取消本次绑定', className: 'cancelled' }
+  }
+  return metas[status] || { label: '已结束', description: '本次申请已结束', className: 'ended' }
+}
+
+function getReceivedRequestStatusMeta(status) {
+  const metas = {
+    accepted: { label: '已接受', description: '你已接受本次绑定', className: 'accepted' },
+    rejected: { label: '已拒绝', description: '你已拒绝本次绑定', className: 'rejected' },
+    cancelled: { label: '已取消', description: '对方已取消本次绑定', className: 'cancelled' }
+  }
+  return metas[status] || { label: '已结束', description: '本次申请已结束', className: 'ended' }
 }
 
 // 处理好友请求
@@ -545,10 +632,214 @@ async function handleFriendRequest(openid, requestId, accept, remark = '') {
     }
   })
 
+  await markFriendRequestNotificationRead(openid, requestId).catch(() => {})
+  await notifyFriendRequestResult({
+    request,
+    handlerOpenid: openid,
+    accepted: accept
+  }).catch(() => {})
+
   return {
     success: true,
     message: accept ? '绑定成功' : '已拒绝绑定申请'
   }
+}
+
+async function notifyFriendRequestResult({ request, handlerOpenid, accepted }) {
+  const handler = await getUserByOpenid(handlerOpenid)
+  const handlerName = handler.nickname || '你的饭搭子'
+  const title = accepted
+    ? `${handlerName}已同意你的饭搭子申请`
+    : `${handlerName}暂未接受你的饭搭子申请`
+  const content = accepted
+    ? '你们已成为饭搭子，快去看看吧'
+    : '你可以稍后再发起新的绑定申请'
+  const targetPage = accepted
+    ? '/pages/friends/friends'
+    : '/pages/friend-requests/friend-requests'
+
+  await createFriendRequestResultNotification({
+    requestId: request._id,
+    senderId: handlerOpenid,
+    recipientId: request.fromOpenid,
+    title,
+    content,
+    targetPage
+  }).catch(() => {})
+  await sendFriendRequestSubscribeMessage({
+    requestId: request._id,
+    targetOpenid: request.fromOpenid,
+    senderName: handlerName,
+    message: accepted ? '已同意你的饭搭子申请' : '暂未接受你的饭搭子申请',
+    page: targetPage.replace(/^\//, '')
+  }).catch(() => {})
+}
+
+async function cancelFriendRequest(openid, requestId) {
+  const result = await db.collection('friend_requests').doc(requestId).get()
+  const request = result.data
+  if (!request || request.fromOpenid !== openid) {
+    return { success: false, message: '申请不存在或无权限取消' }
+  }
+  if (request.status !== 'pending') {
+    return { success: false, message: '只有待确认的申请可以取消' }
+  }
+
+  await db.collection('friend_requests').doc(requestId).update({
+    data: { status: 'cancelled', cancelTime: new Date() }
+  })
+  await markFriendRequestNotificationRead(request.targetOpenid, requestId).catch(() => {})
+  return { success: true, message: '已取消绑定申请' }
+}
+
+async function deleteFriendRequestRecord(openid, requestId) {
+  const result = await db.collection('friend_requests').doc(requestId).get()
+  const request = result.data
+  if (!request || request.fromOpenid !== openid) {
+    return { success: false, message: '申请记录不存在或无权限删除' }
+  }
+  await db.collection('friend_requests').doc(requestId).update({
+    data: { senderDeletedAt: new Date() }
+  })
+  return { success: true, message: '申请记录已删除' }
+}
+
+async function deleteReceivedFriendRequestRecord(openid, requestId) {
+  const result = await db.collection('friend_requests').doc(requestId).get()
+  const request = result.data
+  if (!request || request.targetOpenid !== openid) {
+    return { success: false, message: '申请记录不存在或无权限删除' }
+  }
+  if (request.status === 'pending') {
+    return { success: false, message: '待处理申请请先接受或拒绝' }
+  }
+  await db.collection('friend_requests').doc(requestId).update({
+    data: { receiverDeletedAt: new Date() }
+  })
+  return { success: true, message: '申请记录已删除' }
+}
+
+async function createFriendRequestNotification({ requestId, fromOpenid, targetOpenid, senderName, message }) {
+  const existingResult = await db.collection('notifications').where({ targetId: requestId }).limit(5).get()
+  const existing = existingResult.data.some(item => (
+    item.type === 'friend_request' && item.recipientId === targetOpenid
+  ))
+  if (existing) return
+
+  await db.collection('notifications').add({
+    data: {
+      type: 'friend_request',
+      senderId: fromOpenid,
+      recipientId: targetOpenid,
+      title: `${senderName}向你发来饭搭子申请`,
+      content: String(message || '想和你绑定成为饭搭子').slice(0, 36),
+      targetPage: '/pages/friend-requests/friend-requests',
+      targetId: requestId,
+      read: false,
+      createdAt: new Date()
+    }
+  })
+}
+
+async function createFriendRequestResultNotification({ requestId, senderId, recipientId, title, content, targetPage }) {
+  const existingResult = await db.collection('notifications').where({ targetId: requestId }).limit(10).get()
+  const existing = existingResult.data.some(item => (
+    item.type === 'friend_request_result' && item.recipientId === recipientId
+  ))
+  if (existing) return
+
+  await db.collection('notifications').add({
+    data: {
+      type: 'friend_request_result',
+      senderId,
+      recipientId,
+      title,
+      content,
+      targetPage,
+      targetId: requestId,
+      read: false,
+      createdAt: new Date()
+    }
+  })
+}
+
+async function markFriendRequestNotificationRead(openid, requestId) {
+  const result = await db.collection('notifications').where({ targetId: requestId }).limit(5).get()
+  const notification = result.data.find(item => (
+    item.type === 'friend_request' && item.recipientId === openid && !item.read
+  ))
+  if (!notification) return
+  await db.collection('notifications').doc(notification._id).update({
+    data: {
+      read: true,
+      readAt: new Date()
+    }
+  })
+}
+
+async function sendFriendRequestSubscribeMessage({ requestId, targetOpenid, senderName, message, page = '' }) {
+  const config = await getFamilyConfig()
+  const template = config.subscribeTemplates && config.subscribeTemplates.friendRequest
+  const templateId = template && (template.templateId || template.template_id)
+  if (!templateId) {
+    return { sent: false, status: 'skipped', message: '好友申请提醒模板尚未配置' }
+  }
+
+  const payload = {
+    senderName: String(senderName || '一位饭搭子'),
+    message: String(message || '想和你绑定成为饭搭子'),
+    requestTime: formatChinaTime(new Date())
+  }
+  const data = {}
+  Object.keys(template.fields || {}).forEach(key => {
+    const value = formatTemplateValue(key, payload[template.fields[key]])
+    if (value) data[key] = { value }
+  })
+  if (!Object.keys(data).length) {
+    return { sent: false, status: 'skipped', message: '好友申请模板字段映射为空' }
+  }
+
+  const result = await cloud.openapi.subscribeMessage.send({
+    touser: targetOpenid,
+    page: `${page || template.page || 'pages/friend-requests/friend-requests'}?requestId=${requestId}`,
+    lang: 'zh_CN',
+    miniprogramState: config.miniprogramState || 'formal',
+    templateId,
+    data
+  })
+  const errCode = Number(result && (result.errCode || result.errcode) || 0)
+  if (errCode) {
+    const error = new Error(result.errMsg || result.errmsg || '微信提醒发送失败')
+    error.errCode = errCode
+    throw error
+  }
+  return { sent: true, status: 'sent', message: '' }
+}
+
+function formatTemplateValue(key, value) {
+  if (value === undefined || value === null) return ''
+  const text = String(value).trim()
+  if (!text) return ''
+  if (/^time\d+$/i.test(key)) return text.slice(0, 20)
+  if (/^(name|thing)\d+$/i.test(key)) return text.slice(0, 20)
+  if (/^phrase\d+$/i.test(key)) return text.slice(0, 5)
+  return text.slice(0, 20)
+}
+
+function formatChinaTime(value) {
+  const date = new Date(value)
+  const pad = number => String(number).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+function formatSubscribeError(error) {
+  const code = Number(error && (error.errCode || error.errcode || error.code))
+  const detail = String(error && (error.errMsg || error.errmsg || error.message) || '').trim()
+  if (code === 43101) return '对方尚未允许该提醒，或订阅次数已经用完'
+  if (code === 40037) return '好友申请订阅模板 ID 无效'
+  if (code === 47003) return detail ? `好友申请模板参数不正确：${detail}` : '好友申请模板字段配置不正确'
+  if (code === 41030) return '好友申请提醒的跳转页面不存在'
+  return detail || '微信提醒发送失败'
 }
 
 function formatLastActive(value) {

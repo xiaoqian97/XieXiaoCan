@@ -4,6 +4,7 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 const _ = db.command
+const PRIMARY_ADMIN_OPENID = 'oyWDkxVwYIHb3adMU4PpCl9rWUqI'
 
 const FESTIVALS = {
   new_year: { name: '元旦', icon: '🎆', themeKey: 'new-year', title: '新年第一份祝福', content: '新的一年，也要继续和喜欢的人好好吃饭。' },
@@ -46,12 +47,117 @@ exports.main = async (event = {}, context) => {
       case 'cancel': return await cancelBlessing(openid, event.id)
       case 'ensureFestivalGreeting': return await ensureFestivalGreeting(openid)
       case 'processDue': return await processDueBlessings()
+      case 'getAdminLogs':
+        await requirePrimaryAdmin(openid)
+        return await getAdminLogs(event)
+      case 'getAdminLogDetail':
+        await requirePrimaryAdmin(openid)
+        return await getAdminLogDetail(event.id)
       default: return { success: false, message: '未知操作' }
     }
   } catch (error) {
     console.error('祝福操作失败:', error)
     return { success: false, message: error.message || '祝福暂时没有送达' }
   }
+}
+
+async function getAdminLogs(event) {
+  const category = event.category === 'friend' ? 'friend' : 'festival'
+  const statusFilter = ['all', 'sent', 'opened', 'unopened', 'dismissed', 'failed', 'scheduled'].includes(event.status)
+    ? event.status
+    : 'all'
+  const page = Math.max(1, Number(event.page) || 1)
+  const pageSize = Math.min(30, Math.max(1, Number(event.pageSize) || 20))
+  const type = category === 'festival' ? 'festival' : 'custom'
+  const records = await getAllRecords('blessings', { type })
+  const filtered = records.filter(item => matchesAdminStatus(item, statusFilter))
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+  const currentPage = filtered.slice((page - 1) * pageSize, page * pageSize)
+  const userIds = [...new Set(currentPage.flatMap(item => [item.senderId, item.recipientId]).filter(id => id && id !== 'system'))]
+  const users = await getUsers(userIds)
+
+  return {
+    success: true,
+    data: {
+      category,
+      status: statusFilter,
+      summary: summarizeBlessings(records),
+      items: currentPage.map(item => formatAdminLogItem(item, users)),
+      total: filtered.length,
+      page,
+      hasMore: page * pageSize < filtered.length
+    }
+  }
+}
+
+async function getAdminLogDetail(id) {
+  if (!id) throw new Error('祝福日志不存在')
+  const item = await getRecord('blessings', id)
+  if (!item) throw new Error('祝福日志不存在')
+  const users = await getUsers([item.senderId, item.recipientId].filter(id => id && id !== 'system'))
+  return {
+    success: true,
+    data: {
+      ...formatAdminLogItem(item, users),
+      content: item.content || '',
+      contentHtml: item.contentHtml || '',
+      wechatMessage: item.wechatMessage || '',
+      failReason: item.failReason || ''
+    }
+  }
+}
+
+function summarizeBlessings(records) {
+  return records.reduce((summary, item) => {
+    summary.total += 1
+    if (item.status === 'sent') summary.sent += 1
+    if (item.status === 'failed') summary.failed += 1
+    if (item.status === 'scheduled' || item.status === 'processing') summary.pending += 1
+    if (item.status === 'sent' && item.readAt) summary.opened += 1
+    if (item.status === 'sent' && item.dismissedAt && !item.readAt) summary.dismissed += 1
+    if (item.status === 'sent' && !item.readAt && !item.dismissedAt) summary.unopened += 1
+    if (item.wechatStatus === 'sent') summary.wechatSent += 1
+    if (item.wechatStatus === 'failed') summary.wechatFailed += 1
+    return summary
+  }, { total: 0, sent: 0, failed: 0, pending: 0, opened: 0, dismissed: 0, unopened: 0, wechatSent: 0, wechatFailed: 0 })
+}
+
+function matchesAdminStatus(item, status) {
+  if (status === 'all') return true
+  if (status === 'opened') return item.status === 'sent' && Boolean(item.readAt)
+  if (status === 'dismissed') return item.status === 'sent' && Boolean(item.dismissedAt) && !item.readAt
+  if (status === 'unopened') return item.status === 'sent' && !item.readAt && !item.dismissedAt
+  if (status === 'scheduled') return ['scheduled', 'processing'].includes(item.status)
+  return item.status === status
+}
+
+function formatAdminLogItem(item, users) {
+  const sender = item.senderId === 'system' ? { nickname: '谢小馋', avatar: '' } : (users[item.senderId] || {})
+  const recipient = users[item.recipientId] || {}
+  return {
+    _id: item._id,
+    type: item.type,
+    festivalKey: item.festivalKey || '',
+    title: item.title || '一份祝福',
+    senderName: sender.nickname || item.senderName || '饭搭子',
+    senderAvatar: sender.avatar || '/images/default-avatar.png',
+    recipientName: recipient.nickname || '饭搭子',
+    recipientAvatar: recipient.avatar || '/images/default-avatar.png',
+    status: item.status || '',
+    deliveryStatus: getAdminDeliveryStatus(item),
+    sentAt: item.sentAt || null,
+    readAt: item.readAt || null,
+    dismissedAt: item.dismissedAt || null,
+    wechatStatus: item.wechatStatus || 'skipped',
+    createdAt: item.createdAt || null
+  }
+}
+
+function getAdminDeliveryStatus(item) {
+  if (item.status === 'sent' && item.readAt) return '已拆开'
+  if (item.status === 'sent' && item.dismissedAt) return '已收起未拆'
+  if (item.status === 'sent') return '未拆开'
+  return { scheduled: '等待送达', processing: '正在送达', failed: '发送失败', cancelled: '已取消' }[item.status] || '状态未知'
 }
 
 async function createBlessing(openid, event) {
@@ -450,6 +556,24 @@ async function getFamilyConfig() {
   }
 }
 
+async function requirePrimaryAdmin(openid) {
+  const config = await getFamilyConfig()
+  const primaryAdminOpenid = config.adminOpenid || PRIMARY_ADMIN_OPENID
+  if (openid !== primaryAdminOpenid) throw new Error('仅主管理员可以查看祝福日志')
+}
+
+async function getAllRecords(collection, condition) {
+  const records = []
+  let skip = 0
+  while (true) {
+    const result = await db.collection(collection).where(condition || {}).skip(skip).limit(100).get()
+    const page = result.data || []
+    records.push(...page)
+    if (page.length < 100) return records
+    skip += 100
+  }
+}
+
 async function getUser(openid) {
   if (!openid) return {}
   const result = await db.collection('users').where({ openid }).limit(1).get()
@@ -457,9 +581,14 @@ async function getUser(openid) {
 }
 
 async function getUsers(openids) {
-  if (!openids.length) return {}
-  const result = await db.collection('users').where({ openid: _.in(openids.slice(0, 100)) }).get()
-  return result.data.reduce((map, user) => {
+  const ids = [...new Set((openids || []).filter(Boolean))]
+  if (!ids.length) return {}
+  const batches = []
+  for (let index = 0; index < ids.length; index += 100) batches.push(ids.slice(index, index + 100))
+  const results = await Promise.all(batches.map(batch => (
+    db.collection('users').where({ openid: _.in(batch) }).get()
+  )))
+  return results.flatMap(result => result.data || []).reduce((map, user) => {
     map[user.openid] = user
     return map
   }, {})

@@ -16,6 +16,8 @@ Page({
       description: '',
       images: [],
       ingredients: [],
+      sideIngredients: '',
+      seasonings: '',
       steps: [],
       preparationTime: {},
       difficulty: {},
@@ -27,6 +29,9 @@ Page({
         nickname: '',
         avatar: ''
       },
+      interactions: {},
+      myInteraction: '',
+      myInteractions: [],
       createTime: ''
     },
     
@@ -39,18 +44,28 @@ Page({
     loading: true,
     isFavorited: false,
     isMyRecipe: false, // 是否为当前用户的菜谱
+    readOnly: false,
+    interactionLoading: false,
+    interactionOptions: [
+      { key: 'tasty', label: '好吃', icon: '😋', selected: false },
+      { key: 'want_again', label: '下次还想吃', icon: '🔁', selected: false },
+      { key: 'less_spicy', label: '少辣一点', icon: '🌶️', selected: false },
+      { key: 'just_right', label: '分量刚好', icon: '👌', selected: false }
+    ],
     
     // 页面参数
     recipeId: ''
   },
 
   onLoad(options) {
+    const readOnly = options.readonly === '1'
     
     if (isValidRecipeId(options.id)) {
       this.setData({
-        recipeId: options.id
+        recipeId: options.id,
+        readOnly
       })
-      this.loadRecipeDetail(true)
+      this.loadRecipeDetail(!readOnly)
     } else {
       wx.showToast({
           title: '这道菜找不到编号',
@@ -68,7 +83,7 @@ Page({
       this.loadRecipeDetail(false, true)
     }
     // 检查收藏状态
-    this.checkFavoriteStatus()
+    if (!this.data.readOnly) this.checkFavoriteStatus()
   },
 
   onPullDownRefresh() {
@@ -120,10 +135,12 @@ Page({
 
   // 处理菜谱数据
   processRecipeData(recipe) {
-    recipe.images = Array.isArray(recipe.images) && recipe.images.length
-      ? recipe.images
-      : ['/images/default-recipe.jpg']
+    // 没图就保持空数组：头图改成分类占位块，也避免发布时把本地兜底图写进数据库
+    recipe.images = Array.isArray(recipe.images) ? recipe.images.filter(Boolean) : []
     recipe.optionalTags = Array.isArray(recipe.optionalTags) ? recipe.optionalTags : []
+    recipe.myInteractions = Array.isArray(recipe.myInteractions)
+      ? recipe.myInteractions
+      : (recipe.myInteraction ? [recipe.myInteraction] : [])
     recipe.creator = {
       id: recipe.creator && recipe.creator.id ? recipe.creator.id : recipe.creatorId,
       nickname: recipe.creator && recipe.creator.nickname ? recipe.creator.nickname : '未知用户',
@@ -154,8 +171,16 @@ Page({
       sceneCategoryInfo,
       ingredientCategoryInfo,
       optionalTagsInfo,
-      isMyRecipe
+      isMyRecipe,
+      interactionOptions: this.getInteractionOptions(recipe.myInteractions)
     })
+  },
+
+  getInteractionOptions(selectedReactions = []) {
+    return this.data.interactionOptions.map(item => ({
+      ...item,
+      selected: selectedReactions.includes(item.key)
+    }))
   },
 
   // 检查收藏状态
@@ -183,6 +208,7 @@ Page({
 
   // 切换收藏状态
   toggleFavorite() {
+    if (this.data.readOnly) return
     if (!util.requireLogin('收藏菜品需要登录')) return
 
     util.callCloudFunction('favorite', {
@@ -190,11 +216,33 @@ Page({
       recipeId: this.data.recipeId
     }).then(res => {
       const isFavorited = !!(res.data && res.data.isFavorited)
+      const app = getApp()
+      app.globalData.favoriteDataVersion = (app.globalData.favoriteDataVersion || 0) + 1
       this.setData({ isFavorited })
       util.showSuccess(isFavorited ? '已加入收藏' : '已取消收藏')
     }).catch(err => {
       util.showError(err.message || '收藏没保存成功')
     })
+  },
+
+  onInteractionTap(e) {
+    if (this.data.readOnly || this.data.interactionLoading || !util.requireLogin('记录口味反馈需要登录')) return
+    const reaction = e.currentTarget.dataset.reaction
+    this.setData({ interactionLoading: true })
+    util.callCloudFunction('recipe', { action: 'saveInteraction', recipeId: this.data.recipeId, reaction }).then(res => {
+      const summary = res.data || {}
+      const myInteractions = Array.isArray(summary.myReactions)
+        ? summary.myReactions
+        : (summary.myReaction ? [summary.myReaction] : [])
+      this.setData({
+        'recipe.interactions': summary.counts || {},
+        'recipe.myInteraction': summary.myReaction || '',
+        'recipe.myInteractions': myInteractions,
+        interactionOptions: this.getInteractionOptions(myInteractions)
+      })
+      util.showSuccess(myInteractions.includes(reaction) ? '口味反馈已记住' : '已取消这条反馈')
+    }).catch(error => util.showError(error.message || '反馈保存失败'))
+      .finally(() => this.setData({ interactionLoading: false }))
   },
 
   // 预览图片
@@ -297,16 +345,13 @@ Page({
   viewCreatorRecipes() {
     const creatorId = this.data.recipe.creatorId || (this.data.recipe.creator && this.data.recipe.creator.id)
     if (creatorId) {
-      wx.setStorageSync('recipeListCreatorFilter', creatorId)
-      wx.switchTab({
-        url: '/pages/recipe-list/recipe-list',
-        fail: () => {
-          wx.removeStorageSync('recipeListCreatorFilter')
-          wx.showToast({
-            title: '页面跳转失败',
-            icon: 'none'
-          })
-        }
+      if (this.data.isMyRecipe) {
+        wx.navigateTo({ url: '/pages/my-recipe/my-recipe' })
+        return
+      }
+      const creatorName = this.data.recipe.creator && this.data.recipe.creator.nickname || 'TA'
+      wx.navigateTo({
+        url: `/pages/friend-recipes/friend-recipes?friendId=${encodeURIComponent(creatorId)}&friendName=${encodeURIComponent(creatorName)}`
       })
     } else {
       wx.showToast({
@@ -328,6 +373,7 @@ Page({
 
   // 编辑菜谱
   editRecipe() {
+    if (this.data.readOnly) return
     const recipeId = this.data.recipeId
     wx.navigateTo({
       url: `/pages/recipe-form/recipe-form?id=${recipeId}`,
@@ -339,6 +385,7 @@ Page({
 
   // 删除菜谱
   deleteRecipe() {
+    if (this.data.readOnly) return
     const recipe = this.data.recipe
     this.selectComponent('#themeConfirmDialog').open({
       icon: '🗑️',
@@ -366,6 +413,9 @@ Page({
       wx.hideLoading()
       
       if (res.result.success) {
+        const app = getApp()
+        app.globalData.recipeDataVersion = (app.globalData.recipeDataVersion || 0) + 1
+        app.globalData.favoriteDataVersion = (app.globalData.favoriteDataVersion || 0) + 1
         wx.showToast({
           title: '删除成功',
           icon: 'success'
@@ -393,6 +443,7 @@ Page({
 
   // 发布菜谱
   publishRecipe() {
+    if (this.data.readOnly) return
     const recipe = this.data.recipe
     this.selectComponent('#themeConfirmDialog').open({
       icon: '🍽️',
@@ -416,6 +467,8 @@ Page({
       description: recipe.description,
       images: recipe.images,
       ingredients: recipe.ingredients,
+      sideIngredients: recipe.sideIngredients || '',
+      seasonings: recipe.seasonings || '',
       steps: recipe.steps,
       xiaohongshuUrl: recipe.xiaohongshuUrl || '',
       preparationTime: recipe.preparationTime,

@@ -91,22 +91,59 @@
     </view>
   </view>
 
+  <!-- 已收到记录 -->
+  <view class="sent-requests-section" wx:if="{{receivedHistoryRequests.length > 0}}">
+    <text class="section-title">已收到记录 ({{receivedHistoryRequests.length}})</text>
+    <view class="request-list">
+      <view class="sent-swipe-row" wx:for="{{displayedReceivedHistoryRequests}}" wx:key="id" data-id="{{item.id}}" bindtouchstart="onReceivedTouchStart" bindtouchend="onReceivedTouchEnd">
+        <view wx:if="{{item.swiped}}" class="sent-delete-action" data-id="{{item.id}}" catchtap="onDeleteReceivedRequest">删除</view>
+        <view class="request-item sent-request-item {{item.swiped ? 'is-swiped' : ''}}">
+          <view class="request-content">
+            <image class="request-avatar" src="{{item.avatar}}" mode="aspectFill"></image>
+            <view class="request-info">
+              <text class="request-name">{{item.nickname}}</text>
+              <text class="request-desc">{{item.description}}</text>
+              <text class="request-time">{{item.time}}</text>
+            </view>
+          </view>
+          <view class="request-status">
+            <text class="status-tag {{item.statusClass}}">{{item.status}}</text>
+          </view>
+        </view>
+      </view>
+      <view wx:if="{{receivedHistoryRequests.length > 3}}" class="history-toggle" bindtap="toggleReceivedHistory">
+        <text>{{receivedHistoryExpanded ? '收起记录' : '展开全部记录'}}</text>
+        <text class="history-toggle-arrow">{{receivedHistoryExpanded ? '⌃' : '⌄'}}</text>
+      </view>
+    </view>
+  </view>
+
   <!-- 已发送请求 -->
   <view class="sent-requests-section">
     <text class="section-title">已发送请求 ({{sentRequests.length}})</text>
     <view class="request-list">
-      <view class="request-item" wx:for="{{sentRequests}}" wx:key="id">
-        <view class="request-content">
-          <image class="request-avatar" src="{{item.avatar}}" mode="aspectFill"></image>
-          <view class="request-info">
-            <text class="request-name">{{item.nickname}}</text>
-            <text class="request-desc">等待对方确认</text>
-            <text class="request-time">{{item.time}}</text>
+      <view class="sent-swipe-row" wx:for="{{displayedSentRequests}}" wx:key="id" data-id="{{item.id}}" bindtouchstart="onSentTouchStart" bindtouchend="onSentTouchEnd">
+        <view wx:if="{{item.swiped}}" class="sent-delete-action" data-id="{{item.id}}" catchtap="onDeleteSentRequest">删除</view>
+        <view class="request-item sent-request-item {{item.swiped ? 'is-swiped' : ''}}">
+          <view class="request-content">
+            <image class="request-avatar" src="{{item.avatar}}" mode="aspectFill"></image>
+            <view class="request-info">
+              <text class="request-name">{{item.nickname}}</text>
+              <text class="request-desc">{{item.description}}</text>
+              <text class="request-time">{{item.time}}</text>
+            </view>
+          </view>
+          <view class="sent-request-footer">
+            <button wx:if="{{item.canCancel}}" class="cancel-request-btn" data-id="{{item.id}}" catchtap="onCancelSentRequest">取消绑定</button>
+            <view class="request-status">
+              <text class="status-tag {{item.statusClass}}">{{item.status}}</text>
+            </view>
           </view>
         </view>
-        <view class="request-status">
-          <text class="status-tag">{{item.status}}</text>
-        </view>
+      </view>
+      <view wx:if="{{sentRequests.length > 3}}" class="history-toggle" bindtap="toggleSentRequests">
+        <text>{{sentRequestsExpanded ? '收起记录' : '展开全部记录'}}</text>
+        <text class="history-toggle-arrow">{{sentRequestsExpanded ? '⌃' : '⌄'}}</text>
       </view>
     </view>
   </view>

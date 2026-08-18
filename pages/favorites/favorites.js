@@ -22,6 +22,7 @@ Page({
   },
 
   onLoad(options = {}) {
+    this._favoriteDataVersion = getApp().globalData.favoriteDataVersion || 0
     const readOnly = options.mode === 'friend'
     const friendName = safeDecode(options.friendName) || 'TA'
     const pageTitle = readOnly ? `${friendName}的收藏` : '我的收藏'
@@ -39,8 +40,10 @@ Page({
       this.setData({ loading: false, recipes: [] })
       return
     }
-    if (!this._loaded) {
-      this.loadFavorites(true)
+    const favoriteDataChanged = this._favoriteDataVersion !== (getApp().globalData.favoriteDataVersion || 0)
+    if (favoriteDataChanged) this._favoriteDataVersion = getApp().globalData.favoriteDataVersion || 0
+    if (!this._loaded || favoriteDataChanged) {
+      this.loadFavorites(true, favoriteDataChanged && this._loaded)
       return
     }
     if (this._viewedRecipeId) {
@@ -58,11 +61,11 @@ Page({
     this.loadFavorites(false)
   },
 
-  loadFavorites(reset = true) {
+  loadFavorites(reset = true, silent = false) {
     if (!util.isLoggedIn()) return
     if (!reset && (!this.data.hasMore || this.data.loadingMore)) return
     const page = reset ? 1 : this.data.page + 1
-    this.setData(reset ? { loading: true } : { loadingMore: true })
+    this.setData(reset ? { loading: !silent } : { loadingMore: true })
     util.callCloudFunction('favorite', {
       action: this.data.readOnly ? 'listFriend' : 'list',
       friendOpenid: this.data.friendId,
@@ -99,11 +102,11 @@ Page({
       })
     }).catch(err => {
       this.setData({
-        recipes: reset ? [] : this.data.recipes,
+        recipes: reset && !silent ? [] : this.data.recipes,
         loading: false,
         loadingMore: false
       })
-      util.showError(err.message || '收藏没加载出来')
+      if (!silent) util.showError(err.message || '收藏没加载出来')
     }).finally(() => {
       wx.stopPullDownRefresh()
     })
@@ -135,6 +138,8 @@ Page({
       return util.callCloudFunction('favorite', { action: 'toggle', recipeId })
     }).then(res => {
       if (!res) return
+      const app = getApp()
+      app.globalData.favoriteDataVersion = (app.globalData.favoriteDataVersion || 0) + 1
       this.setData({ recipes: this.data.recipes.filter(recipe => recipe._id !== recipeId) })
       util.showSuccess('已移出收藏')
     }).catch(err => {

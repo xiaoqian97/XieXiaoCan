@@ -54,5 +54,25 @@
   "blessings": {
     "read": false,
     "write": false
+  },
+  "analytics_sessions": {
+    "read": false,
+    "write": false
+  },
+  "analytics_events": {
+    "read": false,
+    "write": false
+  },
+  "analytics_daily_stats": {
+    "read": false,
+    "write": false
+  },
+  "recipe_interactions": {
+    "read": false,
+    "write": false
+  },
+  "recipe_views": {
+    "read": false,
+    "write": false
   }
 }

@@ -7,12 +7,14 @@
     <!-- 馋图 -->
     <view class="form-section">
       <text class="section-label {{imageRequiredClass}}">{{imageLabel}}（{{formData.images.length}}/5）</text>
-      <text class="image-ratio-tip">建议使用横图，上传后统一裁剪为 16:9</text>
+      <text class="image-ratio-tip">建议使用方形图片，上传后统一裁剪为 1:1；可自行设置封面</text>
       <view class="images-container">
         <!-- 已上传的图片 -->
         <block wx:for="{{formData.images}}" wx:key="index">
           <view class="image-item">
             <image class="uploaded-image" src="{{item}}" mode="aspectFill" />
+            <view wx:if="{{index === 0}}" class="cover-badge">封面</view>
+            <view wx:else class="set-cover-button" data-index="{{index}}" catchtap="setCoverImage">设为封面</view>
             <view class="image-delete" bindtap="removeImage" data-index="{{index}}">
               <van-icon name="cross" size="16px" color="#fff" />
             </view>
@@ -28,7 +30,7 @@
     </view>
 
     <!-- 基本信息 -->
-    <view class="form-section">
+    <view class="form-section {{filledFlash ? 'just-filled' : ''}}">
       <view class="input-group">
         <text class="input-label required">{{nameLabel}}</text>
         <van-field 
@@ -184,9 +186,12 @@
     </view>
 
     <!-- 备菜清单 -->
-    <view class="form-section">
+    <view class="form-section {{filledFlash ? 'just-filled' : ''}}">
       <view class="section-header">
-        <text class="section-label {{ingredientRequiredClass}}">备菜清单{{optionalSuffix}}</text>
+        <view>
+          <text class="section-label {{ingredientRequiredClass}}">食材{{optionalSuffix}}</text>
+          <text class="section-tip">填写主要食材和用量</text>
+        </view>
         <text class="section-action" bindtap="addIngredient">
           <van-icon name="plus" size="14px" />加个食材
         </text>
@@ -221,10 +226,36 @@
           />
         </view>
       </block>
+
+      <view class="ingredient-extra-group">
+        <text class="input-label">配料（可选）</text>
+        <van-field
+          value="{{formData.sideIngredients}}"
+          placeholder="例如：葱花、姜片、蒜末，可用顿号分隔"
+          type="textarea"
+          autosize
+          maxlength="100"
+          show-word-limit
+          bind:change="onSideIngredientsChange"
+        />
+      </view>
+
+      <view class="ingredient-extra-group">
+        <text class="input-label">调料（可选）</text>
+        <van-field
+          value="{{formData.seasonings}}"
+          placeholder="例如：生抽、盐、白糖，可用顿号分隔"
+          type="textarea"
+          autosize
+          maxlength="100"
+          show-word-limit
+          bind:change="onSeasoningsChange"
+        />
+      </view>
     </view>
 
     <!-- 投喂步骤 -->
-    <view class="form-section">
+    <view class="form-section {{filledFlash ? 'just-filled' : ''}}">
       <view class="section-header">
         <text class="section-label {{stepRequiredClass}}">投喂步骤{{optionalSuffix}}</text>
         <text class="section-action" bindtap="addStep">
@@ -316,6 +347,18 @@
     <!-- 底部占位 -->
     <view class="bottom-placeholder"></view>
   </scroll-view>
+
+  <!-- AI 填表悬浮入口，可拖动 -->
+  <view
+    wx:if="{{showTemplateEntry}}"
+    class="ai-fab {{fabDragging ? 'dragging' : ''}}"
+    style="left: {{fabLeft}}px; top: {{fabTop}}px;"
+    catchtouchstart="onFabTouchStart"
+    catchtouchmove="onFabTouchMove"
+    catchtouchend="onFabTouchEnd"
+  >
+    <text class="ai-fab-icon">🤖</text>
+  </view>
 
   <!-- 底部按钮 -->
   <view class="footer {{footerClass}}">

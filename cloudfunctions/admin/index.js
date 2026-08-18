@@ -17,7 +17,7 @@ exports.main = async event => {
     const admin = await requireAdmin(openid)
     switch (event.action) {
       case 'getDashboard':
-        return await getDashboard()
+        return await getDashboard(admin)
       case 'getUsers':
         return await getUsers(event)
       case 'updateUserRole':
@@ -29,7 +29,7 @@ exports.main = async event => {
       case 'getActiveOrders':
         return await getActiveOrders(event)
       case 'getPublishedRecipes':
-        return await getPublishedRecipes(event)
+        return await getPublishedRecipes(event, admin)
       case 'setFixedFeeder':
         return await setFixedFeeder(admin, event)
       case 'clearFixedFeeder':
@@ -52,7 +52,7 @@ async function requireAdmin(openid) {
   return { ...user, primaryAdminOpenid }
 }
 
-async function getDashboard() {
+async function getDashboard(admin) {
   const [users, admins, chefs, recipes, pendingOrders, relationships] = await Promise.all([
     db.collection('users').count(),
     db.collection('users').where(_.or([{ isAdmin: true }, { role: 'admin' }])).count(),
@@ -70,7 +70,8 @@ async function getDashboard() {
       feederCount: chefs.total || 0,
       recipeCount: recipes.total || 0,
       activeOrderCount: pendingOrders.total || 0,
-      relationshipCount: relationships.total || 0
+      relationshipCount: relationships.total || 0,
+      isPrimaryAdmin: admin.openid === admin.primaryAdminOpenid
     }
   }
 }
@@ -293,7 +294,7 @@ async function getActiveOrders(event) {
   }
 }
 
-async function getPublishedRecipes(event) {
+async function getPublishedRecipes(event, admin) {
   const page = Math.max(1, Number(event.page) || 1)
   const pageSize = Math.min(30, Math.max(1, Number(event.pageSize) || 20))
   const query = db.collection('recipes').where({ status: 'published' })
@@ -347,6 +348,7 @@ async function getPublishedRecipes(event) {
     success: true,
     data: {
       recipes,
+      isPrimaryAdmin: admin.openid === admin.primaryAdminOpenid,
       total: countResult.total || 0,
       page,
       hasMore: page * pageSize < (countResult.total || 0)

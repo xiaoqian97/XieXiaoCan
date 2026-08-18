@@ -62,6 +62,7 @@ Page({
       wx.switchTab({ url: '/pages/order-list/order-list' })
       return
     }
+    require('../../utils/analytics').trackEvent('cart_view')
 
     // 更新自定义tabbar的选中状态
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
@@ -345,6 +346,7 @@ Page({
       wx.hideLoading()
       
       if (res.result.success) {
+        getApp().globalData.orderDataVersion = (getApp().globalData.orderDataVersion || 0) + 1
         const reminder = res.result.data && res.result.data.reminder
         // 清空已选择的商品
         recipes.forEach(recipe => {

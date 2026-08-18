@@ -1,5 +1,7 @@
 const app = getApp()
 const util = require('../../utils/util')
+const recipeTemplate = require('../../utils/recipeTemplate')
+const recipeParser = require('../../utils/recipeParser')
 const {
   getSceneCategories,
   getIngredientCategories,
@@ -13,9 +15,23 @@ const {
   validateRequiredFields
 } = require('../../utils/tagData')
 
+// 复制过模板的人才会看到「要不要从剪贴板填充」的提示，避免无谓地读剪贴板
+const TEMPLATE_COPIED_KEY = 'recipe_ai_template_copied_at'
+const TEMPLATE_HINT_WINDOW = 30 * 60 * 1000
+// 悬浮球位置记在本地，下次进来还在用户放的地方
+const FAB_POSITION_KEY = 'recipe_ai_fab_position'
+const FAB_SIZE_RPX = 96
+const FAB_EDGE_PX = 8
+const FAB_TAP_SLOP = 6
+
 Page({
   data: {
     loading: false,
+    showTemplateEntry: false,
+    filledFlash: false,
+    fabLeft: 0,
+    fabTop: 0,
+    fabDragging: false,
     inputDebounceTimer: null,
     formMode: 'recipe',
     isWishMode: false,
@@ -26,13 +42,13 @@ Page({
     draftText: '先存着',
     showDraftAction: true,
     imageLabel: '先来张馋图',
-    imageRequiredClass: 'required',
+    imageRequiredClass: '',
     nameLabel: '这道菜叫什么',
     descriptionLabel: '馋点备注',
     descriptionPlaceholder: '简单说说这道菜需要特别注意啥...',
     optionalSuffix: '',
     ingredientRequiredClass: 'required',
-    stepRequiredClass: 'required',
+    stepRequiredClass: '',
     showRecipePrivacy: true,
     showCookingInfo: true,
     footerClass: '',
@@ -51,6 +67,8 @@ Page({
         { id: 'ing_1', name: '', amount: '' },
         { id: 'ing_2', name: '', amount: '' }
       ],
+      sideIngredients: '',
+      seasonings: '',
       steps: [
         { id: 'step_1', content: '', image: '' },
         { id: 'step_2', content: '', image: '' }
@@ -66,7 +84,8 @@ Page({
     difficultyLevels: [],
     servingSizes: [],
     // UI状态
-    showMoreTags: false,
+    // 标签区域默认展开，方便直接浏览和选择口味
+    showMoreTags: true,
     
     // 编辑模式
     isEditMode: false,
@@ -104,6 +123,8 @@ Page({
       difficultyLevels: getDifficultyLevels(),
       servingSizes: getServingSizes(),
       formMode,
+      showTemplateEntry: formMode === 'recipe',
+      ...this.getInitialFabPosition(),
       isWishMode,
       isWishSubmitMode,
       isAcceptWishMode,
@@ -125,7 +146,13 @@ Page({
     
     if (isEditMode) {
       this.loadRecipeData(options.id)
+      return
     }
+    this._shouldCheckLocalDraft = formMode === 'recipe'
+  },
+
+  onReady() {
+    if (this._shouldCheckLocalDraft) this.promptEntryChoice()
   },
 
   getModeConfig(formMode, isEditMode = false) {
@@ -158,7 +185,7 @@ Page({
         descriptionPlaceholder: '可以按实际做法调整这道菜的描述...',
         optionalSuffix: '',
         ingredientRequiredClass: 'required',
-        stepRequiredClass: 'required',
+        stepRequiredClass: '',
         showRecipePrivacy: false,
         showCookingInfo: true,
         footerClass: 'single-action'
@@ -172,13 +199,13 @@ Page({
         draftText: '保存草稿',
         showDraftAction: true,
         imageLabel: '更新菜品馋图',
-        imageRequiredClass: 'required',
+        imageRequiredClass: '',
         nameLabel: '菜品名称',
         descriptionLabel: '馋点备注',
         descriptionPlaceholder: '修改这道菜需要特别注意的地方...',
         optionalSuffix: '',
         ingredientRequiredClass: 'required',
-        stepRequiredClass: 'required',
+        stepRequiredClass: '',
         showRecipePrivacy: false,
         showCookingInfo: true,
         footerClass: ''
@@ -189,13 +216,13 @@ Page({
       navTitle: '添一道拿手菜',
       submitText: '添一道拿手菜',
       imageLabel: '先来张馋图',
-      imageRequiredClass: 'required',
+      imageRequiredClass: '',
       nameLabel: '这道菜叫什么',
       descriptionLabel: '馋点备注',
       descriptionPlaceholder: '简单说说这道菜需要特别注意啥...',
       optionalSuffix: '',
       ingredientRequiredClass: 'required',
-      stepRequiredClass: 'required',
+      stepRequiredClass: '',
       showRecipePrivacy: false,
       showCookingInfo: true,
       footerClass: ''
@@ -245,8 +272,13 @@ Page({
               xiaohongshuUrl: recipe.xiaohongshuUrl || '',
               sceneCategory: recipe.sceneCategory || '',
               ingredientCategory: recipe.ingredientCategory || '',
+              preparationTimeIndex: this.findOptionIndex(this.data.preparationTimes, recipe.preparationTime, 'value'),
+              difficultyIndex: this.findOptionIndex(this.data.difficultyLevels, recipe.difficulty, 'value'),
+              servingSizeIndex: this.findOptionIndex(this.data.servingSizes, recipe.servingSize, 'value'),
               optionalTags: optionalTags,
               ingredients: recipe.ingredients || [{ id: 'ing_1', name: '', amount: '' }],
+              sideIngredients: recipe.sideIngredients || '',
+              seasonings: recipe.seasonings || '',
               steps: recipe.steps || [{ id: 'step_1', content: '', image: '' }],
               isPublic: recipe.isPublic !== false
             },
@@ -330,12 +362,14 @@ Page({
         servingSizeIndex: this.findOptionIndex(this.data.servingSizes, record.servingSize, 'value'),
         optionalTags,
         ingredients: record.ingredients && record.ingredients.length ? record.ingredients : [{ id: 'ing_1', name: '', amount: '' }],
+        sideIngredients: record.sideIngredients || '',
+        seasonings: record.seasonings || '',
         steps: record.steps && record.steps.length ? record.steps : [{ id: 'step_1', content: '', image: '' }],
         isPublic: true
       },
       cookingMethods,
       flavorTypes,
-      showMoreTags: optionalTags.length > 0
+      showMoreTags: true
     })
   },
 
@@ -354,8 +388,10 @@ Page({
            formData.sceneCategory ||
            formData.ingredientCategory ||
            formData.optionalTags.length > 0 ||
-           formData.ingredients.some(ing => ing && ing.name && ing.amount && (ing.name.trim() || ing.amount.trim())) ||
-           formData.steps.some(step => step && step.content && step.content.trim())
+           String(formData.sideIngredients || '').trim() ||
+           String(formData.seasonings || '').trim() ||
+           formData.ingredients.some(ing => ing && (String(ing.name || '').trim() || String(ing.amount || '').trim())) ||
+           formData.steps.some(step => step && (String(step.content || '').trim() || step.image))
   },
 
   // 检查表单脏数据并确认
@@ -385,7 +421,322 @@ Page({
 
   // 保存草稿
   onSave() {
+    if (!this.data.isEditMode && this.data.formMode === 'recipe') {
+      this.saveLocalDraft()
+      return
+    }
     this.saveRecipe(false)
+  },
+
+  getLocalDraftKey() {
+    const openid = app.globalData.openid || wx.getStorageSync('openid') || 'current'
+    return `recipe_form_draft_${openid}`
+  },
+
+  saveLocalDraft() {
+    if (!this.isFormDirty()) {
+      util.showError('先填写一点内容再保存')
+      return
+    }
+    wx.setStorageSync(this.getLocalDraftKey(), {
+      formData: this.data.formData,
+      showMoreTags: this.data.showMoreTags,
+      savedAt: Date.now()
+    })
+    util.showSuccess('已替你存好')
+    setTimeout(() => wx.navigateBack(), 700)
+  },
+
+  getWindowSize() {
+    if (this._windowSize) return this._windowSize
+    const info = (wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync()) || {}
+    this._windowSize = {
+      width: info.windowWidth || 375,
+      height: info.windowHeight || 667
+    }
+    return this._windowSize
+  },
+
+  getFabSize() {
+    return Math.round(FAB_SIZE_RPX * this.getWindowSize().width / 750)
+  },
+
+  clampFabPosition(left, top) {
+    const { width, height } = this.getWindowSize()
+    const size = this.getFabSize()
+    const maxLeft = width - size - FAB_EDGE_PX
+    const maxTop = height - size - FAB_EDGE_PX
+    return {
+      fabLeft: Math.min(Math.max(left, FAB_EDGE_PX), Math.max(maxLeft, FAB_EDGE_PX)),
+      fabTop: Math.min(Math.max(top, FAB_EDGE_PX), Math.max(maxTop, FAB_EDGE_PX))
+    }
+  },
+
+  getInitialFabPosition() {
+    const { width, height } = this.getWindowSize()
+    const size = this.getFabSize()
+    const saved = wx.getStorageSync(FAB_POSITION_KEY)
+    if (saved && typeof saved.left === 'number' && typeof saved.top === 'number') {
+      return this.clampFabPosition(saved.left, saved.top)
+    }
+    // 默认贴右侧、略高于底部按钮
+    return this.clampFabPosition(width - size - 16, height - size - 200)
+  },
+
+  onFabTouchStart(e) {
+    const touch = (e.touches && e.touches[0]) || {}
+    this._fabDrag = {
+      startX: touch.clientX || 0,
+      startY: touch.clientY || 0,
+      originLeft: this.data.fabLeft,
+      originTop: this.data.fabTop,
+      moved: false
+    }
+  },
+
+  onFabTouchMove(e) {
+    const drag = this._fabDrag
+    if (!drag) return
+    const touch = (e.touches && e.touches[0]) || {}
+    const deltaX = (touch.clientX || 0) - drag.startX
+    const deltaY = (touch.clientY || 0) - drag.startY
+    if (!drag.moved && Math.abs(deltaX) < FAB_TAP_SLOP && Math.abs(deltaY) < FAB_TAP_SLOP) return
+    drag.moved = true
+    const position = this.clampFabPosition(drag.originLeft + deltaX, drag.originTop + deltaY)
+    this.setData({ ...position, fabDragging: true })
+  },
+
+  onFabTouchEnd() {
+    const drag = this._fabDrag
+    this._fabDrag = null
+    if (!drag) return
+    if (!drag.moved) {
+      this.setData({ fabDragging: false })
+      this.openAiPanel()
+      return
+    }
+    this.setData({ fabDragging: false })
+    wx.setStorageSync(FAB_POSITION_KEY, { left: this.data.fabLeft, top: this.data.fabTop })
+  },
+
+  openAiPanel() {
+    const dialog = this.selectComponent('#themeConfirmDialog')
+    if (!dialog) return
+    dialog.open({
+      icon: '🤖',
+      title: '让 AI 帮你填表',
+      content: '把模板复制给 AI，补上菜名和参考链接；\n它写好后复制回来，点「从剪贴板填充」。',
+      confirmText: '复制模板',
+      extraText: '从剪贴板填充',
+      cancelText: '关闭'
+    }).then(choice => {
+      if (choice === true) this.onCopyAiTemplate()
+      else if (choice === 'extra') this.fillFromClipboard()
+    })
+  },
+
+  // 刚复制过模板才提示粘贴：iOS 读剪贴板会弹系统提示，不能每次进页面都读一遍
+  hasFreshTemplateCopy() {
+    const copiedAt = Number(wx.getStorageSync(TEMPLATE_COPIED_KEY) || 0)
+    return Boolean(copiedAt) && Date.now() - copiedAt < TEMPLATE_HINT_WINDOW
+  },
+
+  // 草稿和剪贴板可能同时存在，合成一个三选一，避免连着弹两个弹窗
+  promptEntryChoice() {
+    const draft = wx.getStorageSync(this.getLocalDraftKey())
+    const hasDraft = Boolean(draft && draft.formData)
+    const canPaste = this.hasFreshTemplateCopy()
+    if (!hasDraft) {
+      if (canPaste) this.promptClipboardFill()
+      return
+    }
+    if (!canPaste) {
+      this.promptLocalDraft(draft)
+      return
+    }
+
+    const dialog = this.selectComponent('#themeConfirmDialog')
+    if (!dialog) return
+    dialog.open({
+      icon: '📝',
+      title: '从哪儿接着来？',
+      content: '上次还有没填完的内容，你刚才也复制过 AI 模板。想怎么开始？',
+      confirmText: '继续上次填写',
+      extraText: '用剪贴板填充',
+      cancelText: '从头开始',
+      dismissible: false
+    }).then(choice => {
+      if (choice === true) {
+        this.restoreLocalDraft(draft)
+        return
+      }
+      // 选剪贴板时先留着草稿：万一粘贴的内容不对，下次进来还能捡回来
+      if (choice === 'extra') {
+        this.fillFromClipboard()
+        return
+      }
+      wx.removeStorageSync(this.getLocalDraftKey())
+    })
+  },
+
+  promptClipboardFill() {
+    const dialog = this.selectComponent('#themeConfirmDialog')
+    if (!dialog) return
+    dialog.open({
+      icon: '🤖',
+      title: '从剪贴板填充？',
+      content: '你刚复制过模板，如果 AI 已经写好并复制回来了，可以直接填进表单。',
+      confirmText: '填充',
+      cancelText: '先不用'
+    }).then(confirmed => {
+      if (confirmed) this.fillFromClipboard()
+    })
+  },
+
+  onCopyAiTemplate() {
+    wx.setClipboardData({
+      data: recipeTemplate.buildAiPrompt(),
+      success: () => {
+        wx.setStorageSync(TEMPLATE_COPIED_KEY, Date.now())
+        const dialog = this.selectComponent('#themeConfirmDialog')
+        if (!dialog) return
+        dialog.open({
+          icon: '🤖',
+          title: '模板已复制',
+          content: '粘贴给 AI，补上菜名和参考链接。\n它写好后复制回来，点「从剪贴板填充」。',
+          showCancel: false,
+          confirmText: '知道了'
+        })
+      },
+      fail: () => util.showError('复制失败，再试一次')
+    })
+  },
+
+  fillFromClipboard() {
+    wx.getClipboardData({
+      success: res => this.handleClipboardText(res.data),
+      fail: () => util.showError('没读到剪贴板内容')
+    })
+  },
+
+  handleClipboardText(text) {
+    const parsed = recipeParser.parseRecipeTemplate(text)
+    if (!parsed.ok) {
+      util.showError(parsed.warnings[0] || '没认出菜谱内容')
+      return
+    }
+    if (!this.isFormDirty()) {
+      this.applyParsedRecipe(parsed)
+      return
+    }
+    const dialog = this.selectComponent('#themeConfirmDialog')
+    if (!dialog) {
+      this.applyParsedRecipe(parsed)
+      return
+    }
+    dialog.open({
+      icon: '🤖',
+      title: '覆盖当前内容？',
+      content: '表单里已经填了东西，填充会替换识别到的那几项。',
+      confirmText: '覆盖填充',
+      cancelText: '再想想'
+    }).then(confirmed => {
+      if (confirmed) this.applyParsedRecipe(parsed)
+    })
+  },
+
+  applyParsedRecipe(parsed) {
+    const fields = parsed.fields || {}
+    const formData = { ...this.data.formData }
+
+    const TEXT_KEYS = ['name', 'description', 'sceneCategory', 'ingredientCategory', 'sideIngredients', 'seasonings', 'xiaohongshuUrl']
+    TEXT_KEYS.forEach(key => {
+      if (fields[key]) formData[key] = fields[key]
+    })
+    if (fields.ingredients && fields.ingredients.length) formData.ingredients = fields.ingredients
+    if (fields.steps && fields.steps.length) formData.steps = fields.steps
+    if (fields.optionalTags && fields.optionalTags.length) formData.optionalTags = fields.optionalTags
+    if (fields.preparationTime) {
+      formData.preparationTimeIndex = this.findOptionIndex(this.data.preparationTimes, fields.preparationTime, 'value')
+    }
+    if (fields.difficulty) {
+      formData.difficultyIndex = this.findOptionIndex(this.data.difficultyLevels, fields.difficulty, 'value')
+    }
+    if (fields.servingSize) {
+      formData.servingSizeIndex = this.findOptionIndex(this.data.servingSizes, fields.servingSize, 'value')
+    }
+
+    const optionalTags = formData.optionalTags || []
+    this.setData({
+      formData,
+      cookingMethods: this.data.cookingMethods.map(item => ({ ...item, selected: optionalTags.indexOf(item.id) >= 0 })),
+      flavorTypes: this.data.flavorTypes.map(item => ({ ...item, selected: optionalTags.indexOf(item.id) >= 0 })),
+      showMoreTags: true,
+      filledFlash: true
+    })
+    setTimeout(() => this.setData({ filledFlash: false }), 1800)
+    wx.removeStorageSync(TEMPLATE_COPIED_KEY)
+    this.showFillResult(parsed)
+  },
+
+  showFillResult(parsed) {
+    const dialog = this.selectComponent('#themeConfirmDialog')
+    if (!dialog) {
+      util.showSuccess('已填入')
+      return
+    }
+    const notes = ['已填入：' + (parsed.filledLabels || []).join('、')]
+    if (parsed.warnings && parsed.warnings.length) notes.push(parsed.warnings.join('\n'))
+    notes.push('AI 写的内容记得核对，馋图可以自己再加。')
+    dialog.open({
+      icon: '✅',
+      title: '填好了',
+      content: notes.join('\n'),
+      showCancel: false,
+      confirmText: '知道了'
+    })
+  },
+
+  promptLocalDraft(cached) {
+    const draft = cached || wx.getStorageSync(this.getLocalDraftKey())
+    if (!draft || !draft.formData) return
+    const dialog = this.selectComponent('#themeConfirmDialog')
+    if (!dialog) return
+    dialog.open({
+      icon: '📝',
+      title: '继续上次填写？',
+      content: '发现一份还没完成的拿手菜，是否继续填写？选择清空后将从头开始。',
+      cancelText: '清空',
+      confirmText: '继续填写',
+      dismissible: false
+    }).then(continued => {
+      if (continued) this.restoreLocalDraft(draft)
+      else wx.removeStorageSync(this.getLocalDraftKey())
+    })
+  },
+
+  restoreLocalDraft(draft) {
+    const formData = draft.formData || {}
+    const optionalTags = Array.isArray(formData.optionalTags) ? formData.optionalTags : []
+    this.setData({
+      formData: {
+        ...this.data.formData,
+        ...formData,
+        images: Array.isArray(formData.images) ? formData.images : [],
+        optionalTags,
+        ingredients: Array.isArray(formData.ingredients) && formData.ingredients.length
+          ? formData.ingredients
+          : [{ id: 'ing_1', name: '', amount: '' }],
+        steps: Array.isArray(formData.steps) && formData.steps.length
+          ? formData.steps
+          : [{ id: 'step_1', content: '', image: '' }],
+        sideIngredients: formData.sideIngredients || '',
+        seasonings: formData.seasonings || ''
+      },
+      cookingMethods: this.data.cookingMethods.map(item => ({ ...item, selected: optionalTags.includes(item.id) })),
+      flavorTypes: this.data.flavorTypes.map(item => ({ ...item, selected: optionalTags.includes(item.id) })),
+      showMoreTags: true
+    })
   },
 
   // 提交表单
@@ -407,11 +758,6 @@ Page({
         title: errors[0],
         icon: 'none'
       })
-      return
-    }
-
-    // 发布时的额外验证
-    if (isPublish && !this.data.isWishMode && !this.validateForPublish()) {
       return
     }
 
@@ -447,6 +793,7 @@ Page({
       success: (res) => {
         
         if (res.result && res.result.success) {
+          if (isPublish && !this.data.isEditMode) wx.removeStorageSync(this.getLocalDraftKey())
           const successMessage = this.data.isEditMode 
             ? (isPublish ? '这道菜更新好了' : '先替你存好了')
             : (isPublish ? '已加入菜谱' : '先替你存好了')
@@ -455,6 +802,7 @@ Page({
             title: successMessage,
             icon: 'success'
           })
+          this.markHomeRecommendRefresh()
           
           setTimeout(() => {
             wx.navigateBack()
@@ -506,13 +854,8 @@ Page({
     const hasIngredient = formData.ingredients.some(item =>
       item && item.name && item.amount && item.name.trim() && item.amount.trim()
     )
-    const hasStep = formData.steps.some(step => step && step.content && step.content.trim())
-
     if (!hasIngredient) {
       errors.push('请补上备菜清单')
-    }
-    if (!hasStep) {
-      errors.push('请写下投喂步骤')
     }
 
     return errors
@@ -591,30 +934,14 @@ Page({
     })
   },
 
-  // 发布时的额外验证
-  validateForPublish() {
-    const { formData } = this.data
-
-    if (formData.images.length === 0) {
-      wx.showToast({
-        title: '先来一张馋图',
-        icon: 'none'
-      })
-      return false
+  markHomeRecommendRefresh() {
+    const app = getApp()
+    app.globalData.recipeDataVersion = (app.globalData.recipeDataVersion || 0) + 1
+    const pages = getCurrentPages()
+    const previousPage = pages[pages.length - 2]
+    if (previousPage && previousPage.route === 'pages/index/index') {
+      previousPage._needsRecommendRefresh = true
     }
-
-    // 验证所有步骤都有内容
-    for (let i = 0; i < formData.steps.length; i++) {
-      if (!formData.steps[i].content.trim()) {
-        wx.showToast({
-          title: `第${i + 1}步还没写`,
-          icon: 'none'
-        })
-        return false
-      }
-    }
-
-    return true
   },
 
   // 准备表单数据
@@ -649,6 +976,8 @@ Page({
       servingSize: servingSizes[formData.servingSizeIndex],
       optionalTags: formData.optionalTags,
       ingredients: ingredients,
+      sideIngredients: String(formData.sideIngredients || '').trim(),
+      seasonings: String(formData.seasonings || '').trim(),
       steps: steps,
       isPublic: formData.isPublic !== false,
       status: isPublish ? 'published' : 'draft'
@@ -736,6 +1065,14 @@ Page({
     this.setData({
       'formData.xiaohongshuUrl': e.detail
     })
+  },
+
+  onSideIngredientsChange(e) {
+    this.setData({ 'formData.sideIngredients': e.detail })
+  },
+
+  onSeasoningsChange(e) {
+    this.setData({ 'formData.seasonings': e.detail })
   },
 
   onPreparationTimeChange(e) {
@@ -927,6 +1264,23 @@ Page({
     images.splice(index, 1)
     this.setData({
       'formData.images': images
+    })
+  },
+
+  // 全局统一使用图片数组第一项作为菜谱封面
+  setCoverImage(e) {
+    const index = Number(e.currentTarget.dataset.index)
+    const images = [...this.data.formData.images]
+    if (!Number.isInteger(index) || index <= 0 || index >= images.length) return
+
+    const [coverImage] = images.splice(index, 1)
+    images.unshift(coverImage)
+    this.setData({
+      'formData.images': images
+    })
+    wx.showToast({
+      title: '已设为封面',
+      icon: 'success'
     })
   },
 

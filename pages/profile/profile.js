@@ -26,6 +26,14 @@ function getIdentityMeta(userInfo, isPreviewMode) {
     : { identityText: roleText, identityClass: 'diner' }
 }
 
+function formatSubscribeError(error) {
+  const message = String(error && (error.errMsg || error.message) || '')
+  if (/No template data|template id/i.test(message)) {
+    return '订阅模板 ID 无效，请检查云数据库中的模板配置'
+  }
+  return message || '消息提醒授权失败'
+}
+
 Page({
   data: {
     userInfo: null,
@@ -40,6 +48,7 @@ Page({
     isPreviewMode: false,
     isDataLoaded: false,
     unreadNotificationCount: 0,
+    pendingFriendRequestCount: 0,
     pendingFeedbackCount: 0,
     subscribeTemplateIds: [],
     subscribeConfigLoading: false,
@@ -81,6 +90,7 @@ Page({
     }
 
     this.loadUnreadNotificationCount()
+    this.loadPendingFriendRequestCount()
     this.loadPendingFeedbackCount()
     this.preloadSubscribeConfig()
     this.refreshProfileStats()
@@ -252,6 +262,11 @@ Page({
     })
   },
 
+  onDietPreferences: function() {
+    if (!util.requireLogin('设置饮食偏好需要登录')) return
+    wx.navigateTo({ url: '/pages/diet-preferences/diet-preferences' })
+  },
+
   onAdminCenter: function() {
     const userInfo = this.data.userInfo || {}
     if (!userInfo.isAdmin && userInfo.role !== 'admin') {
@@ -290,7 +305,7 @@ Page({
               ? util.showSuccess(`已补充${acceptedCount}项提醒，各可接收1次`)
               : util.showError('未补充微信提醒次数')
           },
-          fail: error => util.showError(error.errMsg || '消息提醒授权失败'),
+          fail: error => util.showError(formatSubscribeError(error)),
           complete: releaseRequest
         })
       } catch (error) {
@@ -417,6 +432,20 @@ Page({
       })
     }).catch(err => {
       console.error('获取未读通知失败:', err)
+    })
+  },
+
+  loadPendingFriendRequestCount: function() {
+    if (!app.isLoggedIn() || this.data.isPreviewMode) {
+      this.setData({ pendingFriendRequestCount: 0 })
+      return
+    }
+
+    util.callCloudFunction('friend', { action: 'getFriendRequests' }).then(res => {
+      const pendingRequests = (res.data && res.data.pendingRequests) || []
+      this.setData({ pendingFriendRequestCount: pendingRequests.length })
+    }).catch(() => {
+      this.setData({ pendingFriendRequestCount: 0 })
     })
   },
 

@@ -1,4 +1,5 @@
 const assert = require('assert')
+const fs = require('fs')
 
 const storage = Object.create(null)
 global.getApp = () => ({ globalData: { openid: 'diner-a' } })
@@ -21,4 +22,8 @@ const cart = cartManager.getCartData()
 assert.deepStrictEqual(cart.cartItems.map(item => item.recipeId), ['2'])
 assert.strictEqual(cart.totalCount, 1)
 assert.strictEqual(cart.selectedCount, 0)
+
+const cartManagerSource = fs.readFileSync('utils/cartManager.js', 'utf8')
+assert(!cartManagerSource.includes('isSelected: false'))
+assert(cartManagerSource.includes('isSelected: true'))
 console.log('cart relation cleanup: pass')

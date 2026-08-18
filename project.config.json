@@ -5,6 +5,42 @@
       {
         "value": ".eslintrc.js",
         "type": "file"
+      },
+      {
+        "value": "cloudfunctions",
+        "type": "folder"
+      },
+      {
+        "value": "outputs",
+        "type": "folder"
+      },
+      {
+        "value": "tmp",
+        "type": "folder"
+      },
+      {
+        "value": "tests",
+        "type": "folder"
+      },
+      {
+        "value": "README.md",
+        "type": "file"
+      },
+      {
+        "value": "package.json",
+        "type": "file"
+      },
+      {
+        "value": "package-lock.json",
+        "type": "file"
+      },
+      {
+        "value": "database.rules.json",
+        "type": "file"
+      },
+      {
+        "value": "storage.rules",
+        "type": "file"
       }
     ],
     "include": []

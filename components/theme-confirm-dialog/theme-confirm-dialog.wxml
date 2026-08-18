@@ -6,7 +6,12 @@
       <text class="dialog-title">{{title}}</text>
     </view>
     <text class="dialog-content">{{content}}</text>
-    <view class="dialog-actions {{showCancel ? '' : 'single'}}">
+    <view wx:if="{{extraText}}" class="dialog-actions stacked">
+      <button class="dialog-button confirm" bindtap="confirm">{{confirmText}}</button>
+      <button class="dialog-button extra" bindtap="extra">{{extraText}}</button>
+      <button wx:if="{{showCancel}}" class="dialog-button cancel" bindtap="cancel">{{cancelText}}</button>
+    </view>
+    <view wx:else class="dialog-actions {{showCancel ? '' : 'single'}}">
       <button wx:if="{{showCancel}}" class="dialog-button cancel" bindtap="cancel">{{cancelText}}</button>
       <button class="dialog-button confirm" bindtap="confirm">{{confirmText}}</button>
     </view>

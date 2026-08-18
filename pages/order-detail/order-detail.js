@@ -14,6 +14,8 @@ Page({
     showActionSheet: false,
     userInfo: null,
     showRatingModal: false,
+    showMemoryModal: false,
+    memoryNote: '',
     ratingRecipes: [],
     ratingContent: '',
     ratingStars: [1, 2, 3, 4, 5]
@@ -369,6 +371,36 @@ Page({
     this.setData({ showRatingModal: false })
   },
 
+  openMemoryModal: function() {
+    const { order, userInfo } = this.data
+    if (!order || order.status !== 'completed' || !userInfo || (order.creatorId !== userInfo.openid && order.assigneeId !== userInfo.openid)) return
+    this.setData({ showMemoryModal: true, memoryNote: order.memoryNote || '' })
+  },
+
+  onMemoryNoteInput: function(e) {
+    this.setData({ memoryNote: e.detail.value })
+  },
+
+  closeMemoryModal: function() {
+    this.setData({ showMemoryModal: false })
+  },
+
+  stopPropagation: function() {},
+
+  saveMemoryNote: function() {
+    const note = String(this.data.memoryNote || '').trim()
+    util.showLoading('记录这顿饭中...')
+    util.callCloudFunction('order', { action: 'saveMemoryNote', orderId: this.data.orderId, note }).then(res => {
+      util.hideLoading()
+      const memoryNote = res.data && res.data.memoryNote !== undefined ? res.data.memoryNote : note
+      this.setData({ showMemoryModal: false, 'order.memoryNote': memoryNote })
+      util.showSuccess(memoryNote ? '这顿饭已记住' : '已清空这段记忆')
+    }).catch(error => {
+      util.hideLoading()
+      util.showError(error.message || '记忆保存失败')
+    })
+  },
+
   submitRating: function() {
     const { ratingRecipes, ratingContent, orderId } = this.data
     if (!ratingRecipes.length) {
@@ -417,6 +449,7 @@ Page({
       wx.hideLoading()
       
       if (res.result.success) {
+        getApp().globalData.orderDataVersion = (getApp().globalData.orderDataVersion || 0) + 1
         // 重新加载订单详情
         this.loadOrderDetail(this.data.orderId)
         const reminder = res.result.data && res.result.data.reminder

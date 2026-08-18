@@ -110,8 +110,14 @@ const flavorTypes = [
 
 // 制作时间选项
 const preparationTimes = [
+  { value: '5', label: '5分钟' },
   { value: '10', label: '10分钟' },
+  { value: '15', label: '15分钟' },
+  { value: '20', label: '20分钟' },
+  { value: '25', label: '25分钟' },
   { value: '30', label: '30分钟' },
+  { value: '40', label: '40分钟' },
+  { value: '50', label: '50分钟' },
   { value: '60', label: '1小时' },
   { value: '120', label: '2小时+' }
 ]
@@ -291,12 +297,11 @@ function validateRequiredFields(data) {
     errors.push('选一下主角食材')
   }
   
-  if (!data.ingredients || data.ingredients.length === 0) {
+  const hasIngredient = Array.isArray(data.ingredients) && data.ingredients.some(item => (
+    item && String(item.name || '').trim() && String(item.amount || '').trim()
+  ))
+  if (!hasIngredient) {
     errors.push('请补上备菜清单')
-  }
-  
-  if (!data.steps || data.steps.length === 0) {
-    errors.push('请写下投喂步骤')
   }
   
   return errors

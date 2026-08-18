@@ -23,6 +23,43 @@
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
 }
 
+/* AI 填表悬浮球 */
+.ai-fab {
+  position: fixed;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 96rpx;
+  height: 96rpx;
+  border: 4rpx solid rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  background: linear-gradient(135deg, #E85D4A, #D94A3A);
+  box-shadow: 0 10rpx 24rpx rgba(232, 93, 74, 0.32);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.ai-fab.dragging {
+  opacity: 0.86;
+  transform: scale(1.06);
+  transition: none;
+}
+
+.ai-fab-icon {
+  font-size: 44rpx;
+  line-height: 1;
+}
+
+/* 自动填充后的字段高亮 */
+.form-section.just-filled {
+  animation: fillFlash 1.6s ease-out 1;
+}
+
+@keyframes fillFlash {
+  0% { box-shadow: 0 0 0 4rpx rgba(232, 93, 74, 0.35); }
+  100% { box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05); }
+}
+
 .section-label {
   display: block;
   font-size: 32rpx;
@@ -54,7 +91,7 @@
 .image-item {
   position: relative;
   width: 216rpx;
-  height: 122rpx;
+  height: 216rpx;
   border-radius: 12rpx;
   overflow: hidden;
   background-color: #F5ECE6;
@@ -79,9 +116,41 @@
   justify-content: center;
 }
 
+.cover-badge,
+.set-cover-button {
+  position: absolute;
+  left: 10rpx;
+  bottom: 10rpx;
+  min-width: 72rpx;
+  height: 40rpx;
+  padding: 0 14rpx;
+  border-radius: 20rpx;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 20rpx;
+  line-height: 1;
+}
+
+.cover-badge {
+  background: #E85D4A;
+  box-shadow: 0 4rpx 12rpx rgba(232, 93, 74, 0.28);
+}
+
+.set-cover-button {
+  background: rgba(63, 48, 43, 0.72);
+  backdrop-filter: blur(8rpx);
+}
+
+.set-cover-button:active {
+  background: rgba(63, 48, 43, 0.9);
+}
+
 .image-upload {
   width: 216rpx;
-  height: 122rpx;
+  height: 216rpx;
   border: 2rpx dashed #D8CCC6;
   border-radius: 12rpx;
   display: flex;
@@ -564,6 +633,21 @@
   font-size: 32rpx;
   font-weight: 500;
 }
+
+.section-tip {
+  display: block;
+  margin-top: -16rpx;
+  color: #A9958E;
+  font-size: 22rpx;
+}
+
+.ingredient-extra-group {
+  margin-top: 24rpx;
+  padding-top: 24rpx;
+  border-top: 1rpx solid #F5ECE6;
+}
+
+.ingredient-extra-group .input-label { margin-bottom: 8rpx; }
 
 .footer.single-action {
   justify-content: center;

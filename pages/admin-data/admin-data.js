@@ -12,7 +12,13 @@ Page({
     page: 1,
     pageSize: 20,
     hasMore: true,
-    loading: false
+    loading: false,
+    isPrimaryAdmin: false,
+    showAudienceModal: false,
+    audienceTitle: '',
+    audienceTotal: 0,
+    audienceUsers: [],
+    showAudienceViewCount: false
   },
 
   onLoad(options) {
@@ -68,6 +74,7 @@ Page({
           items: allItems,
           orderGroups: isRecipes ? [] : this.groupOrdersByAssignee(allItems),
           recipeGroups: isRecipes ? this.groupRecipesByCreator(allItems) : [],
+          isPrimaryAdmin: isRecipes ? data.isPrimaryAdmin === true : this.data.isPrimaryAdmin,
           total: Number(data.total) || 0,
           page: page + 1,
           hasMore: Boolean(data.hasMore),
@@ -126,6 +133,52 @@ Page({
     })
     return [...groupMap.values()]
   },
+
+  onRecipeAudienceTap(event) {
+    if (!this.data.isPrimaryAdmin) return
+    const recipe = event.currentTarget.dataset.recipe || {}
+    const audienceType = event.currentTarget.dataset.type
+    if (!recipe._id || !['viewers', 'favorites'].includes(audienceType)) return
+
+    const isViewer = audienceType === 'viewers'
+    this.setData({
+      showAudienceModal: true,
+      audienceTitle: `${recipe.name || '这道菜'}的${isViewer ? '查看者' : '收藏者'}`,
+      audienceTotal: 0,
+      audienceUsers: [],
+      showAudienceViewCount: isViewer
+    })
+    util.callCloudFunction('recipe', {
+      action: isViewer ? 'getViewers' : 'getFavoriteUsers',
+      recipeId: recipe._id
+    }).then(res => {
+      if (!this.data.showAudienceModal) return
+      const data = res.data || {}
+      const users = Array.isArray(isViewer ? data.viewers : data.users)
+        ? (isViewer ? data.viewers : data.users)
+        : []
+      this.setData({
+        audienceTotal: Number(data.total || 0),
+        audienceUsers: users.map(user => ({ ...user, displayAvatar: util.DEFAULT_AVATAR }))
+      })
+      return util.resolveCloudImages(users.map(user => user.avatar), util.DEFAULT_AVATAR).then(avatars => {
+        if (!this.data.showAudienceModal) return
+        this.setData({
+          audienceUsers: users.map((user, index) => ({ ...user, displayAvatar: avatars[index] }))
+        })
+      })
+    }).catch(error => {
+      if (!this.data.showAudienceModal) return
+      this.setData({ showAudienceModal: false })
+      util.showError(error.message || '加载名单失败')
+    })
+  },
+
+  closeAudienceModal() {
+    this.setData({ showAudienceModal: false })
+  },
+
+  stopPropagation() {},
 
   formatTime(value) {
     if (!value) return '时间未记录'

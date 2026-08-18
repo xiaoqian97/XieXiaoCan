@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "祝福日志",
+  "navigationBarBackgroundColor": "#FFF9ED",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#FFF9ED",
+  "enablePullDownRefresh": true
+}

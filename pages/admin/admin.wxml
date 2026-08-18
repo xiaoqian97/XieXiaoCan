@@ -1,4 +1,4 @@
-<view class="admin-page">
+<view wx:if="{{hasLoaded}}" class="admin-page">
   <view class="admin-hero">
     <view class="admin-crown">♛</view>
     <view class="admin-hero-content">
@@ -33,6 +33,22 @@
 
   <view class="section-title">管理功能</view>
   <view class="admin-modules">
+    <view wx:if="{{isPrimaryAdmin}}" class="module-card" bindtap="openAnalytics">
+      <view class="module-icon analytics">▥</view>
+      <view class="module-content">
+        <text class="module-title">数据看板</text>
+        <text class="module-desc">用户活跃、功能使用与投喂官菜谱</text>
+      </view>
+      <text class="module-arrow">›</text>
+    </view>
+    <view wx:if="{{isPrimaryAdmin}}" class="module-card" bindtap="openBlessingLogs">
+      <view class="module-icon blessing-log">✦</view>
+      <view class="module-content">
+        <text class="module-title">祝福日志</text>
+        <text class="module-desc">节日与好友祝福的送达、拆开记录</text>
+      </view>
+      <text class="module-arrow">›</text>
+    </view>
     <view class="module-card" bindtap="openUsers">
       <view class="module-icon users">👥</view>
       <view class="module-content">
@@ -53,9 +69,13 @@
 
   <view class="admin-tip">
     <text class="tip-icon">🔒</text>
-    <text>管理员操作由云端校验，并记录关键身份和关系变更。</text>
+    <text>{{isPrimaryAdmin ? '埋点与运营数据仅主管理员可见，所有查询均由云端校验。' : '管理员操作由云端校验，并记录关键身份和关系变更。'}}</text>
   </view>
 
-  <view wx:if="{{loading}}" class="loading-text">工作台加载中...</view>
+</view>
+<view wx:else class="admin-page-loading">
+  <view class="admin-loading-mark">♛</view>
+  <van-loading type="spinner" size="28px" color="#E85D4A" />
+  <text class="admin-loading-text">工作台加载中...</text>
 </view>
 <global-notification-popup id="globalNotificationPopup" />

@@ -6,7 +6,12 @@ Page({
     userSearchCode: 'FY2024',
     searchCode: '',
     pendingRequests: [],
+    receivedHistoryRequests: [],
+    displayedReceivedHistoryRequests: [],
+    receivedHistoryExpanded: false,
     sentRequests: [],
+    displayedSentRequests: [],
+    sentRequestsExpanded: false,
     loading: true,
     statusBarHeight: 20,
     currentUserOpenid: ''
@@ -157,16 +162,34 @@ Page({
     this.setData({ loading: true })
 
     return util.callCloudFunction('friend', { action: 'getFriendRequests' }).then(res => {
-      this.setData({
-        pendingRequests: (res.data && res.data.pendingRequests) || [],
-        sentRequests: (res.data && res.data.sentRequests) || [],
-        loading: false
+      const data = res.data || {}
+      const pendingRequests = data.pendingRequests || []
+      const receivedHistoryRequests = data.receivedHistoryRequests || []
+      const sentRequests = data.sentRequests || []
+      return Promise.all([
+        util.resolveCloudImages(pendingRequests.map(item => item.avatar), '/images/default-avatar.png'),
+        util.resolveCloudImages(receivedHistoryRequests.map(item => item.avatar), '/images/default-avatar.png'),
+        util.resolveCloudImages(sentRequests.map(item => item.avatar), '/images/default-avatar.png')
+      ]).then(([pendingAvatars, receivedHistoryAvatars, sentAvatars]) => {
+        this.setData({
+          pendingRequests: pendingRequests.map((item, index) => ({ ...item, avatar: pendingAvatars[index] })),
+          receivedHistoryRequests: receivedHistoryRequests.map((item, index) => ({ ...item, avatar: receivedHistoryAvatars[index], swiped: false })),
+          displayedReceivedHistoryRequests: receivedHistoryRequests.map((item, index) => ({ ...item, avatar: receivedHistoryAvatars[index], swiped: false })).slice(0, 3),
+          receivedHistoryExpanded: false,
+          sentRequests: sentRequests.map((item, index) => ({ ...item, avatar: sentAvatars[index], swiped: false })),
+          displayedSentRequests: sentRequests.map((item, index) => ({ ...item, avatar: sentAvatars[index], swiped: false })).slice(0, 3),
+          sentRequestsExpanded: false,
+          loading: false
+        })
       })
     }).catch(error => {
       util.showError(error.message || '获取请求列表失败')
       this.setData({
         pendingRequests: [],
+        receivedHistoryRequests: [],
+        displayedReceivedHistoryRequests: [],
         sentRequests: [],
+        displayedSentRequests: [],
         loading: false
       })
     })
@@ -286,19 +309,7 @@ Page({
             icon: 'success'
           })
           
-          // 添加到已发送请求列表
-          const newSentRequest = {
-            id: Date.now().toString(),
-            targetOpenid: targetOpenid,
-            nickname: nickname,
-            avatar: avatar,
-            time: '刚刚',
-            status: '待确认'
-          }
-          
-          this.setData({
-            sentRequests: [newSentRequest, ...this.data.sentRequests]
-          })
+          this.loadRequestsData()
           
           // 清空搜索框
           this.setData({
@@ -423,6 +434,9 @@ Page({
       success: (res) => {
         wx.hideLoading()
         if (res.result.success) {
+          if (accept) {
+            app.globalData.friendDataVersion = (app.globalData.friendDataVersion || 0) + 1
+          }
           // 从待处理列表中移除
           this.removePendingRequest(requestId)
           
@@ -450,6 +464,121 @@ Page({
           icon: 'none'
         })
       }
+    })
+  },
+
+  onCancelSentRequest: function(e) {
+    const requestId = e.currentTarget.dataset.id
+    this.selectComponent('#themeConfirmDialog').open({
+      icon: '↩️',
+      title: '取消绑定申请',
+      content: '取消后对方将无法再接受本次申请。',
+      confirmText: '确认取消',
+      tone: 'danger'
+    }).then(confirmed => {
+      if (!confirmed) return
+      return util.callCloudFunction('friend', { action: 'cancelFriendRequest', requestId }).then(() => {
+        util.showSuccess('已取消绑定申请')
+        this.loadRequestsData()
+      }).catch(error => util.showError(error.message || '取消失败'))
+    })
+  },
+
+  onSentTouchStart: function(e) {
+    this._sentTouchStartX = e.touches && e.touches[0] ? e.touches[0].clientX : 0
+  },
+
+  onSentTouchEnd: function(e) {
+    const endX = e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientX : 0
+    const deltaX = endX - (this._sentTouchStartX || 0)
+    const requestId = e.currentTarget.dataset.id
+    if (!requestId) return
+    const sentRequests = this.data.sentRequests.map(item => ({
+      ...item,
+      swiped: deltaX < -40 ? item.id === requestId : (deltaX > 40 ? false : item.swiped)
+    }))
+    this.setData({
+      sentRequests,
+      displayedSentRequests: sentRequests.slice(0, this.data.sentRequestsExpanded ? sentRequests.length : 3)
+    })
+  },
+
+  onDeleteSentRequest: function(e) {
+    const requestId = e.currentTarget.dataset.id
+    this.selectComponent('#themeConfirmDialog').open({
+      icon: '🗑️',
+      title: '删除申请记录',
+      content: '删除后仅对你隐藏，不影响对方的记录。',
+      confirmText: '删除记录',
+      tone: 'danger'
+    }).then(confirmed => {
+      if (!confirmed) return
+      return util.callCloudFunction('friend', { action: 'deleteFriendRequestRecord', requestId }).then(() => {
+        const sentRequests = this.data.sentRequests.filter(item => item.id !== requestId)
+        this.setData({
+          sentRequests,
+          displayedSentRequests: sentRequests.slice(0, this.data.sentRequestsExpanded ? sentRequests.length : 3)
+        })
+        util.showSuccess('申请记录已删除')
+      }).catch(error => util.showError(error.message || '删除失败'))
+    })
+  },
+
+  onReceivedTouchStart: function(e) {
+    this._receivedTouchStartX = e.touches && e.touches[0] ? e.touches[0].clientX : 0
+  },
+
+  onReceivedTouchEnd: function(e) {
+    const endX = e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientX : 0
+    const deltaX = endX - (this._receivedTouchStartX || 0)
+    const requestId = e.currentTarget.dataset.id
+    if (!requestId) return
+    const receivedHistoryRequests = this.data.receivedHistoryRequests.map(item => ({
+      ...item,
+      swiped: deltaX < -40 ? item.id === requestId : (deltaX > 40 ? false : item.swiped)
+    }))
+    this.setData({
+      receivedHistoryRequests,
+      displayedReceivedHistoryRequests: receivedHistoryRequests.slice(0, this.data.receivedHistoryExpanded ? receivedHistoryRequests.length : 3)
+    })
+  },
+
+  onDeleteReceivedRequest: function(e) {
+    const requestId = e.currentTarget.dataset.id
+    this.selectComponent('#themeConfirmDialog').open({
+      icon: '🗑️',
+      title: '删除申请记录',
+      content: '删除后仅对你隐藏，不影响对方的记录或饭搭子关系。',
+      confirmText: '删除记录',
+      tone: 'danger'
+    }).then(confirmed => {
+      if (!confirmed) return
+      return util.callCloudFunction('friend', { action: 'deleteReceivedFriendRequestRecord', requestId }).then(() => {
+        const receivedHistoryRequests = this.data.receivedHistoryRequests.filter(item => item.id !== requestId)
+        this.setData({
+          receivedHistoryRequests,
+          displayedReceivedHistoryRequests: receivedHistoryRequests.slice(0, this.data.receivedHistoryExpanded ? receivedHistoryRequests.length : 3)
+        })
+        util.showSuccess('申请记录已删除')
+      }).catch(error => util.showError(error.message || '删除失败'))
+    })
+  },
+
+  toggleReceivedHistory: function() {
+    const receivedHistoryExpanded = !this.data.receivedHistoryExpanded
+    const receivedHistoryRequests = this.data.receivedHistoryRequests
+    this.setData({
+      receivedHistoryExpanded,
+      displayedReceivedHistoryRequests: receivedHistoryRequests.slice(0, receivedHistoryExpanded ? receivedHistoryRequests.length : 3)
+    })
+  },
+
+  toggleSentRequests: function() {
+    const sentRequestsExpanded = !this.data.sentRequestsExpanded
+    const sentRequests = this.data.sentRequests
+    this.setData({
+      sentRequestsExpanded,
+      displayedSentRequests: sentRequests.slice(0, sentRequestsExpanded ? sentRequests.length : 3)
     })
   },
 

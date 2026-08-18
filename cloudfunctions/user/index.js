@@ -17,6 +17,10 @@ exports.main = async (event, context) => {
         return await getUserProfile(openid)
       case 'updateProfile':
         return await updateUserProfile(event, openid)
+      case 'getPreferences':
+        return await getPreferences(openid)
+      case 'updatePreferences':
+        return await updatePreferences(event, openid)
       case 'searchUser':
         return await searchUser(event)
       case 'generateSearchCode':
@@ -66,7 +70,12 @@ async function updateUserProfile(event, openid) {
   const { nickname, avatar } = event
   const updateData = { updatedAt: new Date() }
 
-  if (nickname !== undefined) updateData.nickname = nickname
+  if (nickname !== undefined) {
+    const value = String(nickname || '').trim()
+    if (!value) throw new Error('昵称不能为空')
+    await validateText(value, openid)
+    updateData.nickname = value
+  }
   if (avatar !== undefined) {
     const avatarCheck = await validateAvatar(avatar, openid)
     if (!avatarCheck.success) return avatarCheck
@@ -82,6 +91,38 @@ async function updateUserProfile(event, openid) {
   return {
     success: true,
     data: {}
+  }
+}
+
+async function getPreferences(openid) {
+  const user = await getUserByOpenid(openid)
+  return { success: true, data: { preferences: normalizePreferences(user.dietPreferences) } }
+}
+
+async function updatePreferences(event, openid) {
+  const preferences = normalizePreferences(event.preferences)
+  await db.collection('users').where({ openid }).update({ data: { dietPreferences: preferences, updatedAt: new Date() } })
+  return { success: true, data: { preferences }, message: '饮食偏好已保存' }
+}
+
+async function getUserByOpenid(openid) {
+  const result = await db.collection('users').where({ openid }).limit(1).get()
+  if (!result.data[0]) throw new Error('用户不存在')
+  return result.data[0]
+}
+
+function normalizePreferences(value = {}) {
+  const source = value && typeof value === 'object' ? value : {}
+  const allowedSpicy = ['none', 'mild', 'medium', 'hot']
+  const allowedDiet = ['none', 'vegetarian', 'low_fat']
+  const unique = list => [...new Set((Array.isArray(list) ? list : []).map(item => String(item).trim()).filter(Boolean))].slice(0, 20)
+  return {
+    spicy: allowedSpicy.includes(source.spicy) ? source.spicy : 'medium',
+    diet: allowedDiet.includes(source.diet) ? source.diet : 'none',
+    likes: unique(source.likes),
+    dislikes: unique(source.dislikes),
+    allergies: unique(source.allergies),
+    updatedAt: new Date()
   }
 }
 
@@ -129,6 +170,17 @@ async function validateAvatar(fileID, openid) {
     await cloud.deleteFile({ fileList: [fileID] }).catch(() => {})
     return { success: false, message: '头像未通过内容安全检测，请更换后重试' }
   }
+}
+
+async function validateText(content, openid) {
+  const result = await cloud.openapi.security.msgSecCheck({
+    openid,
+    scene: 2,
+    version: 2,
+    content
+  })
+  const suggest = result && result.result && result.result.suggest
+  if (suggest && suggest !== 'pass') throw new Error('昵称未通过内容安全检测，请更换后重试')
 }
 
 // 搜索用户

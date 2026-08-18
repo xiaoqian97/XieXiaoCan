@@ -1,0 +1,23 @@
+const assert = require('assert')
+const fs = require('fs')
+
+const cloud = fs.readFileSync('cloudfunctions/notification/index.js', 'utf8')
+const page = fs.readFileSync('pages/notifications/notifications.js', 'utf8')
+const wxml = fs.readFileSync('pages/notifications/notifications.wxml', 'utf8')
+const wxss = fs.readFileSync('pages/notifications/notifications.wxss', 'utf8')
+
+assert(cloud.includes("case 'delete'"))
+assert(cloud.includes('deleteNotification(openid, event.notificationId)'))
+assert(cloud.includes("where({\n    recipientId: openid\n  }).update"))
+assert(page.includes('onNotificationTouchStart'))
+assert(page.includes('onDeleteNotification'))
+assert(page.includes("action: 'delete'"))
+assert(page.includes('read: item.read === true'))
+assert(wxml.includes('notification-swipe-item'))
+assert(wxml.includes('notification-delete-action'))
+assert(wxml.includes('bindtouchmove="onNotificationTouchMove"'))
+assert(wxss.includes('.notification-swipe-item'))
+assert(wxss.includes('width: 76px;'))
+assert(!wxss.includes('border: 1rpx solid rgba(232, 222, 216, 0.78);'))
+
+console.log('notifications: pass')

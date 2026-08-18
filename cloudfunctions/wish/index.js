@@ -146,10 +146,6 @@ async function acceptAsRecipe(openid, event) {
   if (!data.ingredients.length) {
     return { success: false, message: '请补上备菜清单' }
   }
-  if (!data.steps.length) {
-    return { success: false, message: '请写下投喂步骤' }
-  }
-
   const now = new Date()
   const recipeData = {
     ...data,
@@ -399,6 +395,8 @@ function normalizeWishData(data) {
     servingSize: data.servingSize || { value: '3-4', label: '3-4人' },
     optionalTags: Array.isArray(data.optionalTags) ? data.optionalTags : [],
     ingredients,
+    sideIngredients: String(data.sideIngredients || '').trim(),
+    seasonings: String(data.seasonings || '').trim(),
     steps
   }
 }

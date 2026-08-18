@@ -189,6 +189,7 @@ const callCloudFunction = (name, data = {}) => {
       data,
       success: res => {
         if (res.result && res.result.success) {
+          reportBusinessEvent(name, data)
           resolve(res.result)
         } else {
           reject(new Error(res.result?.message || '操作失败'))
@@ -197,6 +198,51 @@ const callCloudFunction = (name, data = {}) => {
       fail: reject
     })
   })
+}
+
+const BUSINESS_EVENT_MAP = {
+  'recipe:list': 'recipe_list_view',
+  'recipe:myRecipes': 'recipe_list_view',
+  'recipe:friendRecipes': 'recipe_list_view',
+  'recipe:detail': 'recipe_detail_view',
+  'recipe:search': 'recipe_search',
+  'recipe:create': 'recipe_create',
+  'recipe:update': 'recipe_update',
+  'order:getOrderList': 'order_list_view',
+  'order:createOrder': 'order_submit',
+  'order:updateOrderStatus': 'order_status_update',
+  'order:rateOrder': 'order_rate',
+  'wish:listMine': 'wish_view',
+  'wish:listFriend': 'wish_view',
+  'wish:listPool': 'wish_view',
+  'wish:create': 'wish_create',
+  'wish:accept': 'wish_process',
+  'wish:acceptAsRecipe': 'wish_process',
+  'wish:reject': 'wish_process',
+  'favorite:list': 'favorite_view',
+  'favorite:listFriend': 'favorite_view',
+  'favorite:toggle': 'favorite_toggle',
+  'blessing:list': 'blessing_view',
+  'blessing:detail': 'blessing_view',
+  'blessing:create': 'blessing_create',
+  'friend:getFriendList': 'friend_view',
+  'friend:sendFriendRequest': 'friend_request',
+  'friend:handleFriendRequest': 'friend_request',
+  'friend:setFixedFeeder': 'fixed_feeder_change',
+  'friend:clearFixedFeeder': 'fixed_feeder_change',
+  'feedback:submit': 'feedback_submit',
+  'notification:list': 'notification_view'
+}
+
+const reportBusinessEvent = (name, data) => {
+  if (name === 'analytics') return
+  const eventName = BUSINESS_EVENT_MAP[`${name}:${data.action || ''}`]
+  if (!eventName) return
+  const metadata = {}
+  ;['recipeId', 'orderId', 'wishId', 'mode'].forEach(key => {
+    if (data[key] !== undefined) metadata[key] = data[key]
+  })
+  require('./analytics').trackEvent(eventName, metadata)
 }
 
 /**

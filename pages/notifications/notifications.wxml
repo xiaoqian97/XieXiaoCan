@@ -30,10 +30,19 @@
     <view
       wx:for="{{notifications}}"
       wx:key="_id"
+      class="notification-swipe-item"
+    >
+      <view wx:if="{{item.swipeOffset < 0}}" class="notification-delete-action" data-id="{{item._id}}" catchtap="onDeleteNotification">删除</view>
+      <view
       class="notification-card {{item.read ? 'read' : 'unread'}}"
+      style="transform: translateX({{item.swipeOffset || 0}}px);"
       data-id="{{item._id}}"
       data-page="{{item.targetPage}}"
       bindtap="openNotification"
+      bindtouchstart="onNotificationTouchStart"
+      bindtouchmove="onNotificationTouchMove"
+      bindtouchend="onNotificationTouchEnd"
+      bindtouchcancel="onNotificationTouchEnd"
     >
       <view class="notification-icon {{item.themeClass}}">
         <text>{{item.icon}}</text>
@@ -51,6 +60,7 @@
           <text class="notification-action">查看详情 <text class="action-arrow">›</text></text>
         </view>
       </view>
+    </view>
     </view>
   </view>
 </view>

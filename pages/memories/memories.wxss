@@ -239,17 +239,32 @@
   border-bottom: 1rpx solid #F5ECE6;
 }
 
+.recent-meal-content { min-width: 0; flex: 1; }
+
 .meal-date {
+  display: block;
   width: 90rpx;
   color: #E85D4A;
   font-size: 24rpx;
 }
 
 .meal-recipes {
+  display: block;
   flex: 1;
   overflow: hidden;
   color: #6E5852;
   font-size: 25rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meal-memory-note {
+  display: block;
+  margin-top: 8rpx;
+  overflow: hidden;
+  color: #A9958E;
+  font-size: 22rpx;
+  line-height: 1.5;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

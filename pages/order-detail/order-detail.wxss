@@ -147,6 +147,22 @@
   background: #fff;
 }
 
+.memory-modal {
+  width: 100%;
+  padding: 48rpx 32rpx calc(32rpx + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  border-radius: 32rpx 32rpx 0 0;
+  background: #fff;
+}
+
+.memory-modal-desc {
+  display: block;
+  margin: 20rpx 8rpx 24rpx;
+  color: #8C7770;
+  font-size: 26rpx;
+  line-height: 1.6;
+}
+
 .rating-title {
   display: block;
   color: #3F302B;

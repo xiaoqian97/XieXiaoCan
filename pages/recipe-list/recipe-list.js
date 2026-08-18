@@ -79,6 +79,7 @@ Page({
   },
 
   onLoad: function (options) {
+    this._recipeDataVersion = app.globalData.recipeDataVersion || 0
     // 初始化分类数据
     this.setData({
       sceneCategories: getSceneCategories(),
@@ -92,7 +93,7 @@ Page({
         emoji: this.getTimeEmoji(time.value),
         value: parseInt(time.value)
       })),
-      creatorId: options.creator || ''
+      creatorId: ''
     })
     this.updateRecipePermission()
     this.updateComputedData()
@@ -101,15 +102,14 @@ Page({
   },
 
   onShow: function () {
-    const creatorId = wx.getStorageSync('recipeListCreatorFilter')
-    let needsRefresh = !this._hasLoaded
-    if (creatorId) {
-      wx.removeStorageSync('recipeListCreatorFilter')
-      this.setData({ creatorId })
-      needsRefresh = true
-    }
+    const hadLegacyCreatorFilter = Boolean(this.data.creatorId || wx.getStorageSync('recipeListCreatorFilter'))
+    wx.removeStorageSync('recipeListCreatorFilter')
+    let needsRefresh = !this._hasLoaded || hadLegacyCreatorFilter
+    if (hadLegacyCreatorFilter) this.setData({ creatorId: '' })
 
     this.updateRecipePermission()
+    const recipeDataChanged = this._recipeDataVersion !== (app.globalData.recipeDataVersion || 0)
+    if (recipeDataChanged) this._recipeDataVersion = app.globalData.recipeDataVersion || 0
     // 更新自定义tabbar的选中状态
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({
@@ -120,8 +120,8 @@ Page({
     // 更新购物车统计
     this.updateCartStats()
     
-    if (needsRefresh) {
-      this.refreshData()
+    if (needsRefresh || recipeDataChanged) {
+      this.refreshData(recipeDataChanged && !needsRefresh)
       return
     }
 
@@ -152,20 +152,24 @@ Page({
     })
   },
 
-  refreshData: function() {
+  refreshData: function(silent = false) {
+    this._silentRecipeRefresh = silent
     const isSearchLoading = Boolean(String(this.data.searchValue || '').trim())
-    this.setData({
-      recipes: [],
-      recipeSections: [],
+    const resetState = {
       page: 1,
       hasMore: true,
-      loading: true,
-      recipeScrollTop: 0,
-      recipeScrollIntoView: '',
-      activeCategoryId: '',
+      loading: !silent,
       isSearchEmpty: false,
       isSearchLoading
+    }
+    if (!silent) Object.assign(resetState, {
+      recipes: [],
+      recipeSections: [],
+      recipeScrollTop: 0,
+      recipeScrollIntoView: '',
+      activeCategoryId: ''
     })
+    this.setData(resetState)
     this.loadRecipes()
   },
 
@@ -233,9 +237,10 @@ Page({
           }, () => {
             this._hasLoaded = true
             this.updateCategoryOffsets()
-            if (page === 1 && recipeSections.length) {
+            if (page === 1 && recipeSections.length && !this._silentRecipeRefresh) {
               this.scrollToCategory(recipeSections[0].id)
             }
+            this._silentRecipeRefresh = false
           })
           wx.stopPullDownRefresh()
         })

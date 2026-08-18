@@ -822,6 +822,19 @@
   white-space: nowrap;
 }
 
+.viewer-user-pill {
+  padding-right: 12rpx;
+}
+
+.viewer-user-count {
+  flex-shrink: 0;
+  padding: 3rpx 10rpx;
+  border-radius: 18rpx;
+  background: #F5ECE6;
+  color: #A06B5C;
+  font-size: 20rpx;
+}
+
 .favorite-modal-limit {
   margin-top: 22rpx;
   color: #A9958E;

@@ -31,10 +31,12 @@ App({
 
   onShow: function () {
     this.startNotificationPolling()
+    require('./utils/analytics').startSession()
   },
 
   onHide: function () {
     this.stopNotificationPolling()
+    require('./utils/analytics').updateSession(true)
   },
 
   onError: function (msg) {
@@ -96,6 +98,7 @@ App({
 
   // 退出登录
   logout: function() {
+    require('./utils/analytics').updateSession(true)
     this.stopNotificationPolling()
     this._shownNotificationIds = Object.create(null)
     this.globalData.userInfo = null
@@ -119,6 +122,7 @@ App({
       // 保存登录数据到本地存储
       this.saveLoginData(res.userInfo, res.openid)
       this.startNotificationPolling()
+      require('./utils/analytics').startSession()
       
       return res
     })
@@ -308,6 +312,10 @@ App({
     isPreviewMode: false, // 预览模式标志
     version: FALLBACK_APP_VERSION, // 开发工具未返回线上版本号时的兜底值
     envVersion: 'develop',
+    recipeDataVersion: 0,
+    favoriteDataVersion: 0,
+    orderDataVersion: 0,
+    friendDataVersion: 0,
     systemInfo: {}, // 设备信息
     navHeight: "",// 导航栏的高度
     deviceName: "",// 设备机型

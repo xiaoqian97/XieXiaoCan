@@ -7,15 +7,18 @@ Component({
     content: '',
     cancelText: '再想想',
     confirmText: '确定',
+    extraText: '',
     tone: 'primary',
     showCancel: true,
     dismissible: true
   },
 
   methods: {
+    // 传了 extraText 就是三选一，此时 confirm 返回 true、extra 返回 'extra'、cancel 返回 false
     open(options = {}) {
       this.setData({
         visible: true,
+        extraText: options.extraText || '',
         icon: options.icon || '🍲',
         kicker: options.kicker || '谢小馋提醒你',
         title: options.title || '确认操作',
@@ -31,6 +34,10 @@ Component({
 
     cancel() {
       this.close(false)
+    },
+
+    extra() {
+      this.close('extra')
     },
 
     onMaskTap() {

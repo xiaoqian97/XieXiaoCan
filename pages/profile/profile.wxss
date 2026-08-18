@@ -301,6 +301,7 @@
 }
 
 .action-icon {
+  position: relative;
   width: 80rpx;
   height: 80rpx;
   border-radius: 20rpx;
@@ -308,6 +309,25 @@
   align-items: center;
   justify-content: center;
   margin: 0 auto 16rpx;
+}
+
+.friend-request-badge {
+  position: absolute;
+  top: -12rpx;
+  right: -14rpx;
+  min-width: 32rpx;
+  height: 32rpx;
+  padding: 0 7rpx;
+  border: 3rpx solid #FFF9ED;
+  border-radius: 18rpx;
+  box-sizing: border-box;
+  background: #E5484D;
+  box-shadow: 0 5rpx 12rpx rgba(229, 72, 77, 0.3);
+  color: #fff;
+  font-size: 18rpx;
+  font-weight: 600;
+  line-height: 27rpx;
+  text-align: center;
 }
 
 .action-icon.recipes {

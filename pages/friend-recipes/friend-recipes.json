@@ -1,0 +1,11 @@
+{
+  "navigationBarTitleText": "TA 的菜谱",
+  "navigationBarBackgroundColor": "#ffffff",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#FFF9ED",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {
+    "recipe-item": "/components/recipe-item/recipe-item"
+  }
+}

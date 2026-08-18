@@ -126,6 +126,12 @@
   justify-content: space-between;
 }
 
+.request-reminder.has-pending {
+  background: #FFF1F0;
+  border-color: #FFCCC7;
+  box-shadow: 0 10rpx 24rpx rgba(229, 72, 77, 0.1);
+}
+
 .reminder-content {
   display: flex;
   align-items: center;
@@ -151,6 +157,12 @@
   flex-direction: column;
 }
 
+.reminder-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
 .reminder-title {
   font-size: 28rpx;
   font-weight: 500;
@@ -161,6 +173,25 @@
 .reminder-count {
   font-size: 24rpx;
   color: #8C7770;
+}
+
+.reminder-count.pending {
+  color: #D4383D;
+  font-weight: 500;
+}
+
+.request-count-badge {
+  min-width: 34rpx;
+  height: 34rpx;
+  padding: 0 8rpx;
+  border-radius: 18rpx;
+  box-sizing: border-box;
+  background: #E5484D;
+  color: #fff;
+  font-size: 19rpx;
+  font-weight: 600;
+  line-height: 34rpx;
+  text-align: center;
 }
 
 .reminder-arrow {
@@ -367,6 +398,92 @@
   color: #E85D4A;
   font-size: 20rpx;
   letter-spacing: 2rpx;
+}
+
+.friend-menu-panel {
+  overflow: hidden;
+  padding: 12rpx 24rpx calc(24rpx + env(safe-area-inset-bottom));
+  border-radius: 32rpx 32rpx 0 0;
+  background: #FFF9ED;
+}
+
+.friend-menu-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 22rpx 16rpx 24rpx;
+  border-bottom: 1rpx solid #F0E3DA;
+}
+
+.friend-menu-kicker {
+  color: #A9958E;
+  font-size: 21rpx;
+}
+
+.friend-menu-title {
+  max-width: 80%;
+  margin-top: 6rpx;
+  overflow: hidden;
+  color: #3F302B;
+  font-size: 30rpx;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.friend-menu-list {
+  max-height: 58vh;
+}
+
+.friend-menu-item {
+  display: flex;
+  align-items: center;
+  min-height: 88rpx;
+  padding: 0 18rpx;
+  border-bottom: 1rpx solid #F5ECE6;
+}
+
+.friend-menu-item:active {
+  background: #FFF0E8;
+}
+
+.friend-menu-item-icon {
+  width: 48rpx;
+  font-size: 28rpx;
+  text-align: center;
+}
+
+.friend-menu-item-label {
+  flex: 1;
+  margin-left: 16rpx;
+  color: #59443D;
+  font-size: 27rpx;
+}
+
+.friend-menu-item-arrow {
+  color: #C7AAA0;
+  font-size: 32rpx;
+}
+
+.friend-menu-item.danger .friend-menu-item-label,
+.friend-menu-item.danger .friend-menu-item-arrow {
+  color: #D94A3A;
+}
+
+.friend-menu-cancel {
+  height: 82rpx;
+  margin: 18rpx 0 0;
+  padding: 0;
+  color: #8C7770;
+  font-size: 27rpx;
+  line-height: 82rpx;
+  border: 0;
+  border-radius: 20rpx;
+  background: #FFFFFF;
+}
+
+.friend-menu-cancel::after {
+  border: 0;
 }
 
 .diner-stats {

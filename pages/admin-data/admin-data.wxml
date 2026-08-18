@@ -63,8 +63,10 @@
             <text class="visibility-badge">{{recipe.isPublic ? '公开' : '饭搭子'}}</text>
           </view>
           <view class="recipe-stats">
-            <view class="stat-item"><van-icon name="eye-o" size="11px" /><text>{{recipe.viewCount}}</text></view>
-            <view class="stat-item"><van-icon name="like-o" size="11px" /><text>{{recipe.favoriteCount}}</text></view>
+            <view wx:if="{{isPrimaryAdmin && recipe.viewCount > 0}}" class="stat-item stat-item-action" data-recipe="{{recipe}}" data-type="viewers" catchtap="onRecipeAudienceTap"><van-icon name="eye-o" size="11px" /><text>{{recipe.viewCount}}</text></view>
+            <view wx:else class="stat-item"><van-icon name="eye-o" size="11px" /><text>{{recipe.viewCount}}</text></view>
+            <view wx:if="{{isPrimaryAdmin && recipe.favoriteCount > 0}}" class="stat-item stat-item-action favorite-action" data-recipe="{{recipe}}" data-type="favorites" catchtap="onRecipeAudienceTap"><van-icon name="like-o" size="11px" /><text>{{recipe.favoriteCount}}</text></view>
+            <view wx:else class="stat-item"><van-icon name="like-o" size="11px" /><text>{{recipe.favoriteCount}}</text></view>
             <view class="stat-item"><van-icon name="orders-o" size="11px" /><text>{{recipe.salesCount}}</text></view>
             <view class="stat-item rating"><van-icon name="star-o" size="11px" /><text>{{recipe.ratingAverage}}</text></view>
           </view>
@@ -77,5 +79,28 @@
   <view wx:if="{{loading}}" class="list-state">正在加载...</view>
   <view wx:if="{{!loading && items.length === 0}}" class="empty-state">暂无{{title}}</view>
   <view wx:if="{{!loading && items.length > 0 && !hasMore}}" class="list-state">— 已加载全部 —</view>
+
+  <view wx:if="{{showAudienceModal}}" class="audience-modal-mask" bindtap="closeAudienceModal" catchtouchmove="stopPropagation">
+    <view class="audience-modal" catchtap="stopPropagation">
+      <view class="audience-modal-header">
+        <view>
+          <text class="audience-modal-title">{{audienceTitle}}</text>
+          <text class="audience-modal-count">共 {{audienceTotal}} 人{{showAudienceViewCount ? '查看' : '收藏'}}</text>
+        </view>
+        <view class="audience-modal-close" bindtap="closeAudienceModal">×</view>
+      </view>
+      <scroll-view class="audience-user-scroll" scroll-y="true" show-scrollbar="{{false}}">
+        <view class="audience-user-list">
+          <view wx:for="{{audienceUsers}}" wx:key="openid" class="audience-user-pill">
+            <image class="audience-user-avatar" src="{{item.displayAvatar}}" mode="aspectFill" />
+            <text class="audience-user-name">{{item.nickname || '微信用户'}}</text>
+            <text wx:if="{{showAudienceViewCount}}" class="audience-user-count">{{item.viewCount}} 次</text>
+          </view>
+        </view>
+      </scroll-view>
+      <text wx:if="{{audienceTotal > 20}}" class="audience-modal-limit">仅展示{{showAudienceViewCount ? '查看次数前 20 位用户' : '前 20 位收藏者'}}</text>
+      <button class="audience-modal-confirm" bindtap="closeAudienceModal">知道了</button>
+    </view>
+  </view>
 </view>
 <global-notification-popup id="globalNotificationPopup" />

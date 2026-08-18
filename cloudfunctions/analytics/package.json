@@ -1,0 +1,9 @@
+{
+  "name": "analytics",
+  "version": "1.0.0",
+  "description": "用户行为埋点与主管理员数据看板",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

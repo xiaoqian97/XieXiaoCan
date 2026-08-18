@@ -1,0 +1,22 @@
+const assert = require('assert')
+const fs = require('fs')
+
+const page = fs.readFileSync('pages/friends/friends.js', 'utf8')
+const view = fs.readFileSync('pages/friends/friends.wxml', 'utf8')
+const config = JSON.parse(fs.readFileSync('pages/friends/friends.json', 'utf8'))
+const menuSource = page.slice(page.indexOf('onFriendMenu: function'), page.indexOf('closeFriendMenu: function'))
+
+assert(page.includes('this.loadFriendsDataDirect()'))
+assert(!page.includes('testCloudFunction'))
+assert(page.includes('this._friendsRequestId = requestId'))
+assert(page.includes('if (requestId !== this._friendsRequestId) return null'))
+assert(menuSource.includes("key: 'admin'"))
+assert(menuSource.includes("key: 'delete'"))
+assert(menuSource.includes("label: '查看TA的菜谱'"))
+assert(!menuSource.includes('wx.showActionSheet'))
+assert(view.includes('<van-popup'))
+assert(view.includes('wx:for="{{friendMenuActions}}"'))
+assert(view.includes('bindtap="onFriendMenuAction"'))
+assert.strictEqual(config.usingComponents['van-popup'], '@vant/weapp/popup/index')
+
+console.log('friend menu: pass')

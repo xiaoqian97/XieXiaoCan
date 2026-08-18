@@ -4,7 +4,7 @@ const device = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync()
 const width = device.windowWidth
 const height = device.windowHeight - 72
 const cutWidth = width - 32
-const cutHeight = cutWidth * 9 / 16
+const cutHeight = cutWidth
 
 Page({
   data: {
@@ -93,7 +93,7 @@ Page({
     this.cropper.getCropperImage({
       original: true,
       destWidth: 720,
-      destHeight: 405,
+      destHeight: 720,
       fileType: 'jpg',
       quality: 0.9
     }, (path, error) => {

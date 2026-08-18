@@ -1,0 +1,49 @@
+<view class="friend-recipes-page">
+  <login-prompt id="loginPrompt" />
+
+  <view class="page-intro">
+    <text class="page-title">{{friendName}}的菜谱</text>
+    <text class="page-desc">只展示 TA 已发布且你有权限查看的菜谱</text>
+  </view>
+
+  <view class="search-box">
+    <van-icon name="search" size="16px" color="#A9958E" />
+    <input
+      class="search-input"
+      value="{{searchValue}}"
+      placeholder="搜索菜名、食材或调料"
+      confirm-type="search"
+      bindinput="onSearchInput"
+      bindconfirm="onSearchConfirm"
+    />
+    <view wx:if="{{searchValue}}" class="clear-search" bindtap="onClearSearch">×</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="page-state">
+    <view class="loading-spinner"></view>
+    <text>正在翻 TA 的菜谱...</text>
+  </view>
+
+  <view wx:elif="{{recipes.length}}" class="recipe-list">
+    <recipe-item
+      wx:for="{{recipes}}"
+      wx:key="_id"
+      recipe="{{item}}"
+      compact="{{true}}"
+      show-stats="{{true}}"
+      show-cart-action="{{false}}"
+      cooking-methods="{{cookingMethods}}"
+      flavor-types="{{flavorTypes}}"
+      bind:recipeclick="onRecipeTap"
+    />
+    <text wx:if="{{loadingMore}}" class="list-tip">继续加载中...</text>
+    <text wx:elif="{{!hasMore}}" class="list-tip">已经看完啦</text>
+  </view>
+
+  <view wx:else class="page-state empty-state">
+    <text class="empty-icon">🍽️</text>
+    <text class="empty-title">{{searchValue ? '没有找到相关菜谱' : 'TA 还没有发布菜谱'}}</text>
+    <text class="empty-desc">{{searchValue ? '换个关键词再试试' : '等 TA 添一道拿手菜吧'}}</text>
+  </view>
+</view>
+<global-notification-popup id="globalNotificationPopup" />

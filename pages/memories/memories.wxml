@@ -96,8 +96,11 @@
       <view wx:if="{{activePerson.recentMeals.length}}" class="memory-section">
         <text class="section-title">最近投喂</text>
         <view wx:for="{{activePerson.recentMeals}}" wx:key="id" class="recent-meal" bindtap="onOrderTap" data-id="{{item.id}}">
-          <text class="meal-date">{{item.date}}</text>
-          <text class="meal-recipes">{{item.recipeNames}}</text>
+          <view class="recent-meal-content">
+            <text class="meal-date">{{item.date}}</text>
+            <text class="meal-recipes">{{item.recipeNames}}</text>
+            <text wx:if="{{item.memoryNote}}" class="meal-memory-note">{{item.memoryNote}}</text>
+          </view>
           <text class="meal-arrow">›</text>
         </view>
       </view>

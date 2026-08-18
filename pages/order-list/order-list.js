@@ -49,6 +49,7 @@ Page({
 
 
   onLoad: function() {
+    this._orderDataVersion = getApp().globalData.orderDataVersion || 0
     if (!util.requireLogin('查看投喂单需要登录')) {
       this.setData({ loading: false })
       return
@@ -66,6 +67,8 @@ Page({
   },
 
   onShow: function() {
+    const orderDataChanged = this._orderDataVersion !== (getApp().globalData.orderDataVersion || 0)
+    if (orderDataChanged) this._orderDataVersion = getApp().globalData.orderDataVersion || 0
     // 更新自定义tabbar的选中状态
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({
@@ -76,7 +79,9 @@ Page({
     // 更新用户信息
     this.getUserInfo()
 
-    if (this._viewedOrderId) {
+    if (orderDataChanged) {
+      this.refreshData(true)
+    } else if (this._viewedOrderId) {
       const orderId = this._viewedOrderId
       this._viewedOrderId = ''
       this.syncOrderCard(orderId)
@@ -99,14 +104,15 @@ Page({
   },
 
   // 刷新数据
-  refreshData: function() {
-    this.setData({
-      orders: [],
+  refreshData: function(silent = false) {
+    const resetState = {
       page: 1,
       hasMore: true,
-      loading: true,
-      refreshing: true
-    })
+      loading: !silent,
+      refreshing: !silent
+    }
+    if (!silent) resetState.orders = []
+    this.setData(resetState)
     this.loadOrders()
   },
 
@@ -354,6 +360,7 @@ Page({
     }).then(confirmed => {
       if (!confirmed) return
       util.callCloudFunction('order', { action: 'hideOrder', orderId }).then(() => {
+        getApp().globalData.orderDataVersion = (getApp().globalData.orderDataVersion || 0) + 1
         this.setData({ orders: this.data.orders.filter(item => item._id !== orderId) })
         util.showSuccess('已删除')
       }).catch(error => util.showError(error.message || '删除失败'))
@@ -473,6 +480,7 @@ Page({
       wx.hideLoading()
       
       if (res.result.success) {
+        getApp().globalData.orderDataVersion = (getApp().globalData.orderDataVersion || 0) + 1
         wx.showToast({
           title: `${actionName}成功`,
           icon: 'success'

@@ -62,6 +62,26 @@
   flex-shrink: 0;
 }
 
+/* 没图时的占位块：按食材分类显示图标 */
+.recipe-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 1rpx dashed #E8DED8;
+  background: linear-gradient(135deg, #FFF3EC, #FFF8E4);
+}
+
+.recipe-placeholder-emoji {
+  font-size: 56rpx;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+.recipe-content.compact .recipe-placeholder-emoji {
+  font-size: 46rpx;
+}
+
 .recipe-info {
   flex: 1;
   display: flex;
@@ -218,6 +238,12 @@
 .view-metric,
 .view-stats {
   color: #8C7770;
+}
+
+.viewer-info-action {
+  padding: 4rpx 10rpx;
+  border-radius: 20rpx;
+  background: #F5ECE6;
 }
 
 .rating-metric,

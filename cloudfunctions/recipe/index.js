@@ -6,6 +6,7 @@ cloud.init({
 
 const db = cloud.database()
 const _ = db.command
+const PRIMARY_ADMIN_OPENID = 'oyWDkxVwYIHb3adMU4PpCl9rWUqI'
 const SAMPLE_RECIPES = [
   ['红烧肉', '五花肉', '肉类经典，软糯下饭。', 'meat', 'heavy', ['stew', 'home_style', 'sweet']],
   ['宫保鸡丁', '鸡腿肉', '香辣微甜的快手下饭菜。', 'meat', 'quick', ['stir_fry', 'sichuan', 'spicy']],
@@ -36,7 +37,7 @@ exports.main = async (event, context) => {
   const openid = wxContext.OPENID
   const { action } = event
 
-  if (['detail', 'getById', 'update', 'delete'].includes(action) && !isValidRecipeId(event.recipeId)) {
+  if (['detail', 'getById', 'update', 'delete', 'getViewers', 'getFavoriteUsers'].includes(action) && !isValidRecipeId(event.recipeId)) {
     return { success: false, message: '菜谱不存在' }
   }
 
@@ -56,6 +57,14 @@ exports.main = async (event, context) => {
         return await deleteRecipe(event, openid)
       case 'recommend':
         return await getRecommendRecipes(event, openid)
+      case 'getInteractions':
+        return await getRecipeInteractions(event.recipeId, openid)
+      case 'getViewers':
+        return await getRecipeViewers(event.recipeId, openid)
+      case 'getFavoriteUsers':
+        return await getRecipeFavoriteUsers(event.recipeId, openid)
+      case 'saveInteraction':
+        return await saveRecipeInteraction(event, openid)
       case 'search':
         return await searchRecipes(event)
       case 'myRecipes':
@@ -168,6 +177,8 @@ async function createRecipe(event, openid) {
     description, 
     images, 
     ingredients, 
+    sideIngredients,
+    seasonings,
     steps, 
     xiaohongshuUrl,
     preparationTime, 
@@ -209,13 +220,7 @@ async function createRecipe(event, openid) {
     }
   }
 
-  if (!steps || steps.length === 0) {
-    return {
-      success: false,
-      message: '请添加制作步骤'
-    }
-  }
-
+  await validateRecipeText(name, description, ingredients, steps, openid, sideIngredients, seasonings)
   const imageCheck = await validateRecipeImages(images, steps, openid)
   if (!imageCheck.success) return imageCheck
 
@@ -225,6 +230,8 @@ async function createRecipe(event, openid) {
       description: description ? description.trim() : '',
       images: images || [],
       ingredients: ingredients || [],
+      sideIngredients: String(sideIngredients || '').trim(),
+      seasonings: String(seasonings || '').trim(),
       steps: steps || [],
       xiaohongshuUrl: xiaohongshuUrl ? xiaohongshuUrl.trim() : '',
       preparationTime: preparationTime || { value: '30', label: '30分钟' },
@@ -302,6 +309,18 @@ async function getRecipeList(event, openid) {
             regexp: keyword,
             options: 'i'
           })
+        },
+        {
+          sideIngredients: db.RegExp({
+            regexp: keyword,
+            options: 'i'
+          })
+        },
+        {
+          seasonings: db.RegExp({
+            regexp: keyword,
+            options: 'i'
+          })
         }
       ])
     )
@@ -332,27 +351,7 @@ async function getRecipeList(event, openid) {
   // 制作时间筛选
   if (preparationTime) {
     const timeValue = parseInt(preparationTime)
-    if (timeValue === 10) {
-      // 10分钟
-      conditions.push({
-        'preparationTime.value': '10'
-      })
-    } else if (timeValue === 30) {
-      // 30分钟
-      conditions.push({
-        'preparationTime.value': '30'
-      })
-    } else if (timeValue === 60) {
-      // 1小时
-      conditions.push({
-        'preparationTime.value': '60'
-      })
-    } else if (timeValue === 120) {
-      // 2小时+
-      conditions.push({
-        'preparationTime.value': '120'
-      })
-    }
+    if (Number.isFinite(timeValue)) conditions.push({ 'preparationTime.value': String(timeValue) })
   }
 
   // 权限条件
@@ -525,6 +524,7 @@ async function getRecipeDetail(event, openid, recordView) {
           data: { viewCount: _.inc(1) }
         })
         recipe.viewCount += 1
+        await recordRecipeView(recipeId, openid)
       } catch (error) {
         console.error('记录菜谱浏览量失败:', error)
       }
@@ -546,6 +546,10 @@ async function getRecipeDetail(event, openid, recordView) {
       recipe.creator = { nickname: '未知用户', avatar: '' }
     }
     recipe.createTime = formatTime(recipe.createdAt)
+    const interaction = await getRecipeInteractionSummary(recipeId, openid)
+    recipe.interactions = interaction.counts
+    recipe.myInteraction = interaction.myReaction
+    recipe.myInteractions = interaction.myReactions
     
     return {
       success: true,
@@ -614,6 +618,8 @@ async function updateRecipe(event, openid) {
     description, 
     images, 
     ingredients, 
+    sideIngredients,
+    seasonings,
     steps, 
     xiaohongshuUrl,
     preparationTime, 
@@ -664,12 +670,16 @@ async function updateRecipe(event, openid) {
   const imageCheck = await validateRecipeImages(images, steps, openid, existingImageIDs)
   if (!imageCheck.success) return imageCheck
 
+  await validateRecipeText(name, description, ingredients, steps, openid, sideIngredients, seasonings)
+
   await db.collection('recipes').doc(recipeId).update({
     data: {
       name: name.trim(),
       description: description ? description.trim() : '',
       images: images || [],
       ingredients: ingredients || [],
+      sideIngredients: String(sideIngredients || '').trim(),
+      seasonings: String(seasonings || '').trim(),
       steps: steps || [],
       xiaohongshuUrl: xiaohongshuUrl ? xiaohongshuUrl.trim() : '',
       preparationTime: preparationTime || { value: '30', label: '30分钟' },
@@ -690,10 +700,184 @@ async function updateRecipe(event, openid) {
   }
 }
 
+async function recordRecipeView(recipeId, openid) {
+  if (!recipeId || !openid) return
+  const viewId = `${recipeId}_${openid}`
+  const viewRef = db.collection('recipe_views').doc(viewId)
+  try {
+    await viewRef.get()
+    await viewRef.update({
+      data: {
+        viewCount: _.inc(1),
+        lastViewedAt: new Date()
+      }
+    })
+  } catch (error) {
+    const message = String(error && (error.errMsg || error.message || ''))
+    if (!/not exist|does not exist|document.*not/i.test(message)) throw error
+    try {
+      await viewRef.set({
+        data: {
+          recipeId,
+          viewerId: openid,
+          viewCount: 1,
+          firstViewedAt: new Date(),
+          lastViewedAt: new Date()
+        }
+      })
+    } catch (setError) {
+      // 多端同时首次打开时，其中一端可能已创建记录；此时补一次累加。
+      const setMessage = String(setError && (setError.errMsg || setError.message || ''))
+      if (!/already exist|duplicate/i.test(setMessage)) throw setError
+      await viewRef.update({
+        data: { viewCount: _.inc(1), lastViewedAt: new Date() }
+      })
+    }
+  }
+}
+
+async function getRecipeViewers(recipeId, openid) {
+  await requirePrimaryAdmin(openid)
+  const [viewResult, totalResult] = await Promise.all([
+    db.collection('recipe_views').where({ recipeId }).orderBy('viewCount', 'desc').limit(20).get(),
+    db.collection('recipe_views').where({ recipeId }).count()
+  ])
+  const views = viewResult.data || []
+  const viewerIds = [...new Set(views.map(item => item.viewerId).filter(Boolean))]
+  let users = []
+  if (viewerIds.length > 0) {
+    const userResult = await db.collection('users').where({ openid: _.in(viewerIds) }).limit(20).get()
+    users = userResult.data || []
+  }
+  const userMap = new Map(users.map(user => [user.openid, user]))
+  return {
+    success: true,
+    data: {
+      total: Number(totalResult.total || 0),
+      viewers: views.map(item => {
+        const user = userMap.get(item.viewerId) || {}
+        return {
+          openid: item.viewerId,
+          nickname: user.nickname || '微信用户',
+          avatar: user.avatar || '',
+          viewCount: Number(item.viewCount || 0)
+        }
+      })
+    }
+  }
+}
+
+async function getRecipeFavoriteUsers(recipeId, openid) {
+  await requirePrimaryAdmin(openid)
+  const [favoriteResult, totalResult] = await Promise.all([
+    db.collection('favorites').where({ recipeId }).orderBy('createdAt', 'desc').limit(20).get(),
+    db.collection('favorites').where({ recipeId }).count()
+  ])
+  const favorites = favoriteResult.data || []
+  const userIds = [...new Set(favorites.map(item => item.userId).filter(Boolean))]
+  let users = []
+  if (userIds.length > 0) {
+    const userResult = await db.collection('users').where({ openid: _.in(userIds) }).limit(20).get()
+    users = userResult.data || []
+  }
+  const userMap = new Map(users.map(user => [user.openid, user]))
+  return {
+    success: true,
+    data: {
+      total: Number(totalResult.total || 0),
+      users: favorites.map(item => {
+        const user = userMap.get(item.userId) || {}
+        return {
+          openid: item.userId,
+          nickname: user.nickname || '微信用户',
+          avatar: user.avatar || ''
+        }
+      })
+    }
+  }
+}
+
+const RECIPE_REACTIONS = ['tasty', 'want_again', 'less_spicy', 'just_right']
+
+function normalizeInteractionReactions(interaction) {
+  const values = interaction && Array.isArray(interaction.reactions)
+    ? interaction.reactions
+    : [interaction && interaction.reaction]
+  return [...new Set(values.filter(item => RECIPE_REACTIONS.includes(item)))]
+}
+
+async function getRecipeInteractionSummary(recipeId, openid) {
+  let result = { data: [] }
+  try {
+    result = await db.collection('recipe_interactions').where({ recipeId }).limit(1000).get()
+  } catch (error) {
+    // 新集合尚未部署时，菜谱详情仍可正常打开。
+    return { counts: {}, myReactions: [], myReaction: '' }
+  }
+  const counts = result.data.reduce((map, item) => {
+    normalizeInteractionReactions(item).forEach(reaction => {
+      map[reaction] = (map[reaction] || 0) + 1
+    })
+    return map
+  }, {})
+  const mine = result.data.find(item => item.userId === openid)
+  const myReactions = normalizeInteractionReactions(mine)
+  return { counts, myReactions, myReaction: myReactions[0] || '' }
+}
+
+async function getRecipeInteractions(eventRecipeId, openid) {
+  if (!isValidRecipeId(eventRecipeId)) return { success: false, message: '菜谱不存在' }
+  const summary = await getRecipeInteractionSummary(eventRecipeId, openid)
+  return { success: true, data: summary }
+}
+
+async function saveRecipeInteraction(event, openid) {
+  const recipeId = String(event.recipeId || '')
+  const reaction = String(event.reaction || '')
+  if (!isValidRecipeId(recipeId) || !RECIPE_REACTIONS.includes(reaction)) {
+    return { success: false, message: '互动内容不正确' }
+  }
+  const recipeResult = await db.collection('recipes').doc(recipeId).get()
+  if (!recipeResult.data) return { success: false, message: '菜谱不存在' }
+  if (!recipeResult.data.isPublic && recipeResult.data.creatorId !== openid && !(await areFamilyMembers(openid, recipeResult.data.creatorId))) {
+    return { success: false, message: '没有权限互动这道菜' }
+  }
+  const existing = await db.collection('recipe_interactions').where({ recipeId, userId: openid }).limit(1).get()
+  const current = existing.data[0]
+  const reactions = normalizeInteractionReactions(current)
+  const nextReactions = reactions.includes(reaction)
+    ? reactions.filter(item => item !== reaction)
+    : [...reactions, reaction]
+
+  if (current && nextReactions.length === 0) {
+    await db.collection('recipe_interactions').doc(current._id).remove()
+  } else {
+    const data = {
+      recipeId,
+      userId: openid,
+      reactions: nextReactions,
+      reaction: nextReactions[0] || '',
+      updatedAt: new Date()
+    }
+    if (current) await db.collection('recipe_interactions').doc(current._id).update({ data })
+    else await db.collection('recipe_interactions').add({ data: { ...data, createdAt: new Date() } })
+  }
+  return { success: true, data: await getRecipeInteractionSummary(recipeId, openid) }
+}
+
 async function canManageRecipes(openid) {
   const result = await db.collection('users').where({ openid }).limit(1).get()
   const user = result.data[0]
   return Boolean(user && ['chef', 'admin'].includes(user.role))
+}
+
+async function requirePrimaryAdmin(openid) {
+  let primaryAdminOpenid = PRIMARY_ADMIN_OPENID
+  try {
+    const config = await db.collection('app_config').doc('family').get()
+    primaryAdminOpenid = (config.data && config.data.adminOpenid) || PRIMARY_ADMIN_OPENID
+  } catch (error) {}
+  if (openid !== primaryAdminOpenid) throw new Error('仅主管理员可以查看菜谱查看者')
 }
 
 function isValidRecipeId(recipeId) {
@@ -744,6 +928,21 @@ async function validateRecipeImages(images = [], steps = [], openid, ignoredFile
   }
 
   return { success: true }
+}
+
+async function validateRecipeText(name, description, ingredients = [], steps = [], openid, sideIngredients = '', seasonings = '') {
+  const content = [
+    name,
+    description,
+    sideIngredients,
+    seasonings,
+    ...ingredients.map(item => `${item && item.name ? item.name : ''} ${item && item.amount ? item.amount : ''}`),
+    ...steps.map(step => step && step.content ? step.content : '')
+  ].map(value => String(value || '').trim()).filter(Boolean).join('\n')
+  if (!content) return
+  const result = await cloud.openapi.security.msgSecCheck({ openid, scene: 2, version: 2, content })
+  const suggest = result && result.result && result.result.suggest
+  if (suggest && suggest !== 'pass') throw new Error('菜谱文字未通过内容安全检测，请修改后再试')
 }
 
 function detectImageContentType(buffer) {
@@ -854,18 +1053,94 @@ async function getRecommendRecipes(event, openid) {
 
   const result = await db.collection('recipes')
     .where(_.and(conditions))
-    .orderBy('createdAt', 'desc')
-    .limit(limit)
+    .limit(100)
     .get()
-  
+  const preferences = normalizeRecommendationPreferences(viewer && viewer.dietPreferences)
+  const recentOrders = await db.collection('orders').where(_.or([{ creatorId: openid }, { assigneeId: openid }])).limit(100).get()
+  const recentCounts = {}
+  ;(recentOrders.data || []).forEach(order => {
+    if (order.status === 'cancelled') return
+    ;(order.recipes || []).forEach(item => {
+      if (item && item.recipeId) recentCounts[item.recipeId] = (recentCounts[item.recipeId] || 0) + 1
+    })
+  })
+  let interactionResult = { data: [] }
+  try {
+    interactionResult = await db.collection('recipe_interactions').where({ userId: openid }).limit(100).get()
+  } catch (error) {
+    interactionResult = { data: [] }
+  }
+  const interactionMap = (interactionResult.data || []).reduce((map, item) => {
+    map[item.recipeId] = normalizeInteractionReactions(item)
+    return map
+  }, {})
+  const recipes = result.data
+    .filter(recipe => !hasAllergy(recipe, preferences.allergies) && !isDietExcluded(recipe, preferences.diet))
+    .map(recipe => ({
+      ...recipe,
+      _recommendScore: scoreRecipeRecommendation(recipe, preferences, recentCounts[recipe._id] || 0, interactionMap[recipe._id])
+    }))
+    .sort((a, b) => b._recommendScore - a._recommendScore || randomTieBreak(a, b))
+    .slice(0, limit)
+    .map(recipe => { const { _recommendScore, ...clean } = recipe; return clean })
+
   return {
     success: true,
     data: {
-      recipes: result.data,
+      recipes,
       needsFixedFeeder
     }
   }
 }
+
+function normalizeRecommendationPreferences(value = {}) {
+  const source = value && typeof value === 'object' ? value : {}
+  return {
+    spicy: ['none', 'mild', 'medium', 'hot'].includes(source.spicy) ? source.spicy : 'medium',
+    diet: ['none', 'vegetarian', 'low_fat'].includes(source.diet) ? source.diet : 'none',
+    likes: normalizePreferenceWords(source.likes),
+    dislikes: normalizePreferenceWords(source.dislikes),
+    allergies: normalizePreferenceWords(source.allergies)
+  }
+}
+
+function normalizePreferenceWords(value) {
+  return (Array.isArray(value) ? value : []).map(item => String(item).trim().toLowerCase()).filter(Boolean)
+}
+
+function recipeSearchText(recipe) {
+  return [recipe.name, recipe.description, recipe.ingredient, recipe.ingredientCategory, recipe.sideIngredients, recipe.seasonings, ...(recipe.optionalTags || []), ...(recipe.ingredients || []).map(item => item && item.name)].join(' ').toLowerCase()
+}
+
+function hasAllergy(recipe, allergies) {
+  const text = recipeSearchText(recipe)
+  return allergies.some(word => word && text.includes(word))
+}
+
+function isDietExcluded(recipe, diet) {
+  if (diet !== 'vegetarian') return false
+  return ['meat', 'seafood'].includes(String(recipe.ingredientCategory || '').toLowerCase())
+}
+
+function scoreRecipeRecommendation(recipe, preferences, recentCount, reactionList) {
+  const text = recipeSearchText(recipe)
+  const reactions = Array.isArray(reactionList) ? reactionList : [reactionList].filter(Boolean)
+  let score = 50
+  preferences.likes.forEach(word => { if (text.includes(word)) score += 12 })
+  preferences.dislikes.forEach(word => { if (text.includes(word)) score -= 18 })
+  if (preferences.spicy === 'none' && text.includes('spicy')) score -= 20
+  if (preferences.spicy === 'hot' && text.includes('spicy')) score += 8
+  if (preferences.diet === 'low_fat' && (text.includes('heavy') || text.includes('fried'))) score -= 12
+  score -= Math.min(20, recentCount * 7)
+  if (reactions.includes('tasty') || reactions.includes('want_again')) score += 24
+  if (reactions.includes('less_spicy')) score += text.includes('spicy') ? -5 : 2
+  if (reactions.includes('just_right')) score += 8
+  const ratingCount = Number(recipe.ratingCount || 0)
+  if (ratingCount) score += Math.min(12, Number(recipe.ratingTotal || 0) / ratingCount * 2)
+  return score + Math.random() * 8
+}
+
+function randomTieBreak() { return Math.random() - 0.5 }
 
 // 搜索菜谱
 async function searchRecipes(event) {

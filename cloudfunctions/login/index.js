@@ -65,6 +65,7 @@ exports.main = async (event, context) => {
       const now = new Date()
       const avatarCheck = await validateAvatar(userInfo && userInfo.avatarUrl, openid)
       if (!avatarCheck.success) return avatarCheck
+      await validateText(userInfo && userInfo.nickName, openid)
 
       // 新用户，创建用户记录
       const createResult = await db.collection('users').add({
@@ -120,6 +121,7 @@ exports.main = async (event, context) => {
         // 只有当数据库中没有自定义昵称时才使用微信昵称
         // 避免用微信昵称覆盖用户自定义的昵称
         if (userInfo.nickName && isDefaultNickname(userData.nickname)) {
+          await validateText(userInfo.nickName, openid)
           updateData.nickname = userInfo.nickName
         }
 
@@ -267,6 +269,14 @@ async function validateAvatar(fileID, openid) {
     await cloud.deleteFile({ fileList: [fileID] }).catch(() => {})
     return { success: false, message: '头像未通过内容安全检测，请更换后重试' }
   }
+}
+
+async function validateText(content, openid) {
+  const value = String(content || '').trim()
+  if (!value) return
+  const result = await cloud.openapi.security.msgSecCheck({ openid, scene: 2, version: 2, content: value })
+  const suggest = result && result.result && result.result.suggest
+  if (suggest && suggest !== 'pass') throw new Error('昵称未通过内容安全检测，请更换后重试')
 }
 
 // 生成用户搜索码（用于好友添加）

@@ -27,6 +27,9 @@ exports.main = async (event, context) => {
 
       case 'rateOrder':
         return await rateOrder(wxContext.OPENID, event.orderId, event.rating, event.recipeRatings)
+
+      case 'saveMemoryNote':
+        return await saveMemoryNote(wxContext.OPENID, event.orderId, event.note)
       
       case 'cancelOrder':
         return await cancelOrder(wxContext.OPENID, event.orderId)
@@ -535,6 +538,20 @@ async function rateOrder(openid, orderId, rating, recipeRatings) {
   return { success: true, data: { score, content, recipeRatings: normalizedRatings } }
 }
 
+async function saveMemoryNote(openid, orderId, note) {
+  const orderResult = await db.collection('orders').doc(orderId).get()
+  const order = orderResult.data
+  if (!order) return { success: false, message: '投喂单不存在' }
+  if (order.creatorId !== openid && order.assigneeId !== openid) return { success: false, message: '没有权限记录这顿饭' }
+  if (order.status !== 'completed') return { success: false, message: '投喂完成后才能记录记忆' }
+  if (!(await areBound(order.creatorId, order.assigneeId))) return { success: false, message: '饭搭子关系已解除，不能修改这段记忆' }
+  const memoryNote = String(note || '').trim()
+  if (memoryNote.length > 100) return { success: false, message: '记忆请控制在 100 字以内' }
+  await db.collection('orders').doc(orderId).update({ data: { memoryNote, memoryNoteUpdatedAt: new Date(), updatedAt: new Date() } })
+  await updateFeedingStats(order, 'memoryNote', { memoryNote })
+  return { success: true, data: { memoryNote } }
+}
+
 // 取消订单
 async function cancelOrder(openid, orderId) {
   const orderResult = await db.collection('orders').doc(orderId).get()
@@ -706,7 +723,8 @@ async function getMemoryOverview(openid) {
       .map(order => ({
         id: order._id,
         date: order.orderDate || formatMemoryDate(order.completedAt || order.updatedAt || order.createdAt),
-        recipeNames: (order.recipes || []).map(recipe => recipe.recipeName).filter(Boolean).join('、') || '这一顿饭'
+        recipeNames: (order.recipes || []).map(recipe => recipe.recipeName).filter(Boolean).join('、') || '这一顿饭',
+        memoryNote: order.memoryNote || ''
       }))
 
     return {
@@ -983,8 +1001,14 @@ async function updateFeedingStats(order, event, extra = {}) {
       data.recentMeals = [{
         id: order._id || '',
         date: order.orderDate || formatMemoryDate(order.completedAt || order.updatedAt || order.createdAt),
-        recipeNames: (order.recipes || []).map(recipe => recipe.recipeName).filter(Boolean).join('、') || '这一顿饭'
+        recipeNames: (order.recipes || []).map(recipe => recipe.recipeName).filter(Boolean).join('、') || '这一顿饭',
+        memoryNote: order.memoryNote || ''
       }, ...data.recentMeals].slice(0, 3)
+    }
+    if (event === 'memoryNote') {
+      data.recentMeals = data.recentMeals.map(item => item.id === order._id
+        ? { ...item, memoryNote: String(extra.memoryNote || '') }
+        : item)
     }
     if (event === 'rated') {
       data.ratingTotal += Number(extra.score) || 0

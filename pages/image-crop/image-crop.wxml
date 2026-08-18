@@ -1,7 +1,7 @@
 <import src="../avatar-cropper/we-cropper/we-cropper.wxml" />
 
 <view class="cropper-wrapper">
-  <view class="crop-tip">拖动图片、双指缩放，亮框内将作为 16:9 菜品封面</view>
+  <view class="crop-tip">拖动图片、双指缩放，亮框内将作为 1:1 菜谱图片</view>
   <view
     class="cropper-area"
     catch:touchstart="touchStart"

@@ -19,6 +19,7 @@ Page({
 
   onLoad: function () {
     this._initialLoadStarted = true
+    this._recipeDataVersion = app.globalData.recipeDataVersion || 0
     this.checkLoginAndLoad()
   },
 
@@ -31,13 +32,16 @@ Page({
       if (this.data.isDataLoaded && identityChanged) {
         this.setData({ recommendRecipes: [], recommendNeedsFixedFeeder: false })
         this.loadRecommendRecipes()
+      } else if (this._recipeDataVersion !== (app.globalData.recipeDataVersion || 0)) {
+        this._recipeDataVersion = app.globalData.recipeDataVersion || 0
+        this.loadRecommendRecipes(true)
       } else if (this._viewedRecipeId) {
         const recipeId = this._viewedRecipeId
         this._viewedRecipeId = ''
         this.refreshRecipeViewCount(recipeId)
       } else if (this._needsRecommendRefresh) {
         this._needsRecommendRefresh = false
-        this.loadRecommendRecipes()
+        this.loadRecommendRecipes(true)
       }
     }
     
@@ -114,10 +118,10 @@ Page({
   },
 
 
-  loadRecommendRecipes: function() {
+  loadRecommendRecipes: function(silent = false) {
     const requestId = (this._recommendRequestId || 0) + 1
     this._recommendRequestId = requestId
-    this.setData({ loading: true })
+    if (!silent) this.setData({ loading: true })
     util.callCloudFunction('recipe', {
       action: 'recommend',
       limit: 6,
@@ -211,6 +215,7 @@ Page({
       recipeId
     }).then(res => {
       const isFavorited = !!(res.data && res.data.isFavorited)
+      app.globalData.favoriteDataVersion = (app.globalData.favoriteDataVersion || 0) + 1
       this.setData({
         [`recommendRecipes[${index}].isFavorited`]: isFavorited,
         [`recommendRecipes[${index}].favoriteLoading`]: false
@@ -252,10 +257,7 @@ Page({
     if (!util.requireLogin('添一道拿手菜需要登录')) return
 
     wx.navigateTo({
-      url: '/pages/recipe-form/recipe-form',
-      success: () => {
-        this._needsRecommendRefresh = true
-      }
+      url: '/pages/recipe-form/recipe-form'
     })
   },
 
@@ -304,10 +306,7 @@ Page({
 
     if (this.data.isChef) {
       wx.navigateTo({
-        url: '/pages/recipe-form/recipe-form',
-        success: () => {
-          this._needsRecommendRefresh = true
-        }
+        url: '/pages/recipe-form/recipe-form'
       })
       return
     }

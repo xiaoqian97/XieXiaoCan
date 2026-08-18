@@ -16,45 +16,27 @@ Page({
     isDataLoaded: false,
     showSearch: true,
     searchKeyword: '',
-    searchFocus: false
+    searchFocus: false,
+    showFriendMenu: false,
+    friendMenuName: '',
+    friendMenuActions: []
   },
 
   onLoad: function () {
+    this._friendDataVersion = app.globalData.friendDataVersion || 0
     if (!util.requireLogin('饭搭子功能需要登录')) {
       this.setData({ loading: false })
       return
     }
     
-    // 先测试云函数调用是否正常
-    this.testCloudFunction()
-  },
-
-  // 测试云函数调用
-  testCloudFunction: function() {
-    if (!wx.cloud) {
-      console.error('云开发不可用')
-      return
-    }
-    
-    wx.cloud.callFunction({
-      name: 'user',
-      data: {
-        action: 'getProfile'
-      },
-      success: (res) => {
-        // 测试成功后直接调用好友数据加载，不通过loadFriendsData
-        this.loadFriendsDataDirect()
-      },
-      fail: (error) => {
-        console.error('测试云函数调用失败:', error)
-        // 即使测试失败也尝试加载好友数据
-        this.loadFriendsDataDirect()
-      }
-    })
+    this.loadFriendsDataDirect()
   },
 
   onShow: function () {
     if (!util.isLoggedIn()) return
+    const friendDataChanged = this._friendDataVersion !== (app.globalData.friendDataVersion || 0)
+    if (friendDataChanged) this._friendDataVersion = app.globalData.friendDataVersion || 0
+    this.loadFriendRequestCount()
     // 更新自定义tabbar的选中状态
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({
@@ -63,7 +45,9 @@ Page({
     }
     
     // 只在数据未加载或需要刷新时才加载数据
-    if (!this.data.isDataLoaded) {
+    if (friendDataChanged) {
+      this.loadFriendsDataDirect(true)
+    } else if (!this.data.isDataLoaded) {
       this.loadFriendsData()
     }
   },
@@ -86,7 +70,7 @@ Page({
   // 手动刷新数据
   refreshData: function() {
     this.setData({ isDataLoaded: false })
-    return this.loadFriendsData()
+    return this.loadFriendsDataDirect()
   },
 
   // 刷新按钮点击
@@ -95,7 +79,7 @@ Page({
   },
 
   // 直接加载好友数据（不检查loading状态）
-  loadFriendsDataDirect: function() {
+  loadFriendsDataDirect: function(silent = false) {
     
     // 检查云开发是否可用
     if (!wx.cloud) {
@@ -112,7 +96,9 @@ Page({
       return Promise.resolve()
     }
     
-    this.setData({ loading: true })
+    const requestId = (this._friendsRequestId || 0) + 1
+    this._friendsRequestId = requestId
+    if (!silent) this.setData({ loading: true })
 
     let timeoutId
     const timeout = new Promise((resolve, reject) => {
@@ -129,6 +115,7 @@ Page({
         '/images/default-avatar.png'
       ).then(avatars => friends.map((friend, index) => ({ ...friend, avatar: avatars[index] })))
     }).then(resolvedFriends => {
+      if (requestId !== this._friendsRequestId) return null
       this.setData({
         friends: resolvedFriends,
         filteredFriends: resolvedFriends,
@@ -137,13 +124,18 @@ Page({
       })
       return this.loadFriendRequestCount()
     }).catch(error => {
-      util.showError(error.message || '饭搭子列表加载失败')
-      this.setData({
-        friends: [],
-        filteredFriends: [],
-        loading: false,
-        isDataLoaded: false
-      })
+      if (requestId !== this._friendsRequestId) return
+      if (silent) {
+        this.setData({ loading: false })
+      } else {
+        util.showError(error.message || '饭搭子列表加载失败')
+        this.setData({
+          friends: [],
+          filteredFriends: [],
+          loading: false,
+          isDataLoaded: false
+        })
+      }
     }).finally(() => clearTimeout(timeoutId))
   },
 
@@ -239,47 +231,75 @@ Page({
   // 好友菜单
   onFriendMenu: function(e) {
     const friend = e.currentTarget.dataset.friend
+    if (!friend || !friend.openid) {
+      util.showError('饭搭子信息加载失败，请刷新后重试')
+      return
+    }
     const actions = []
     const currentUser = app.globalData.userInfo || wx.getStorageSync('userInfo') || {}
     actions.push({
+      key: 'blessing',
+      icon: '🎁',
       label: '送 TA 一份祝福',
-      handler: () => wx.navigateTo({
-        url: `/pages/blessing-compose/blessing-compose?recipient=${encodeURIComponent(friend.openid)}`
-      })
     })
     if (friend.canFeed) {
       actions.push({
-        label: friend.isFixedFeeder ? '取消固定投喂官' : '设为固定投喂官',
-        handler: () => friend.isFixedFeeder
-          ? this.clearFixedFeeder(friend)
-          : this.setFixedFeeder(friend)
+        key: friend.isFixedFeeder ? 'clearFeeder' : 'setFeeder',
+        icon: '🍚',
+        label: friend.isFixedFeeder ? '取消固定投喂官' : '设为固定投喂官'
       })
     }
     if (currentUser.isAdmin || currentUser.role === 'admin') {
-      actions.push({ label: '修改身份', handler: () => this.changeFriendRole(friend) })
+      actions.push({ key: 'role', icon: '🎭', label: '修改身份' })
     }
     if (currentUser.isPrimaryAdmin) {
       actions.push({
-        label: friend.isAdmin ? '取消管理员权限' : '授予管理员权限',
-        handler: () => this.toggleFriendAdminPermission(friend)
+        key: 'admin',
+        icon: '🛡️',
+        label: friend.isAdmin ? '取消管理员权限' : '授予管理员权限'
       })
     }
-    actions.push({ label: '修改备注', handler: () => this.editFriendRemark(friend) })
+    actions.push({ key: 'remark', icon: '✏️', label: '修改备注' })
     if (friend.role !== 'consumer') {
-      actions.push({ label: '查看菜谱', handler: () => this.openFriendRecipes(friend) })
+      actions.push({ key: 'recipes', icon: '📖', label: '查看TA的菜谱' })
     }
     actions.push(
-      { label: '复制昵称去微信联系', handler: () => this.copyFriendNickname(friend) },
-      { label: '解除绑定', handler: () => this.deleteFriend(friend) }
+      { key: 'copy', icon: '📋', label: '复制昵称去微信联系' },
+      { key: 'delete', icon: '⛓', label: '解除绑定', danger: true }
     )
 
-    wx.showActionSheet({
-      itemList: actions.map(item => item.label),
-      success: (res) => {
-        const action = actions[res.tapIndex]
-        if (action) action.handler()
-      }
+    this._selectedMenuFriend = friend
+    this.setData({
+      showFriendMenu: true,
+      friendMenuName: friend.nickname || friend.originalNickname || '饭搭子',
+      friendMenuActions: actions
     })
+  },
+
+  closeFriendMenu: function() {
+    this.setData({ showFriendMenu: false })
+  },
+
+  onFriendMenuAction: function(e) {
+    const actionKey = e.currentTarget.dataset.key
+    const friend = this._selectedMenuFriend
+    if (!friend) return
+    this.closeFriendMenu()
+
+    const handlers = {
+      blessing: () => wx.navigateTo({
+        url: `/pages/blessing-compose/blessing-compose?recipient=${encodeURIComponent(friend.openid)}`
+      }),
+      setFeeder: () => this.setFixedFeeder(friend),
+      clearFeeder: () => this.clearFixedFeeder(friend),
+      role: () => this.changeFriendRole(friend),
+      admin: () => this.toggleFriendAdminPermission(friend),
+      remark: () => this.editFriendRemark(friend),
+      recipes: () => this.openFriendRecipes(friend),
+      copy: () => this.copyFriendNickname(friend),
+      delete: () => this.deleteFriend(friend)
+    }
+    if (handlers[actionKey]) handlers[actionKey]()
   },
 
   changeFriendRole: function(friend) {
@@ -374,6 +394,7 @@ Page({
         friendOpenid: friend.openid
       }).then(result => {
         util.hideLoading()
+        app.globalData.friendDataVersion = (app.globalData.friendDataVersion || 0) + 1
         if (current) cartManager.removeByAuthor(current.openid)
         util.showSuccess(result.message || '固定投喂官已更新')
         this.loadFriendsDataDirect()
@@ -394,6 +415,7 @@ Page({
     }).then(confirmed => {
       if (!confirmed) return
       util.callCloudFunction('friend', { action: 'clearFixedFeeder' }).then(() => {
+        app.globalData.friendDataVersion = (app.globalData.friendDataVersion || 0) + 1
         cartManager.removeByAuthor(friend.openid)
         util.showSuccess('已取消固定投喂官')
         this.loadFriendsDataDirect()
@@ -411,8 +433,10 @@ Page({
   },
 
   openFriendRecipes: function(friend) {
-    wx.setStorageSync('recipeListCreatorFilter', friend.openid)
-    wx.switchTab({ url: '/pages/recipe-list/recipe-list' })
+    const friendName = friend.nickname || friend.originalNickname || 'TA'
+    wx.navigateTo({
+      url: `/pages/friend-recipes/friend-recipes?friendId=${encodeURIComponent(friend.openid)}&friendName=${encodeURIComponent(friendName)}`
+    })
   },
 
   editFriendRemark: function(friend) {
@@ -428,6 +452,7 @@ Page({
           friendOpenid: friend.openid,
           remark: modalRes.content
         }).then(() => {
+          app.globalData.friendDataVersion = (app.globalData.friendDataVersion || 0) + 1
           util.showSuccess('备注已更新')
           this.loadFriendsDataDirect()
         }).catch(error => util.showError(error.message || '备注修改失败'))
@@ -455,6 +480,7 @@ Page({
         success: (res) => {
           wx.hideLoading()
           if (res.result.success) {
+            app.globalData.friendDataVersion = (app.globalData.friendDataVersion || 0) + 1
             cartManager.removeByAuthor(friend.openid)
             const friends = this.data.friends.filter(item => item.id !== friend.id)
             this.setData({ friends })

@@ -59,6 +59,11 @@
           <text wx:if="{{order.rating.content}}" class="rating-content">{{order.rating.content}}</text>
         </view>
       </view>
+
+      <view wx:if="{{order.memoryNote}}" class="info-item memory-note-info">
+        <text class="info-label">一起吃饭记忆</text>
+        <text class="info-value notes">{{order.memoryNote}}</text>
+      </view>
     </view>
 
     <!-- 菜品列表 -->
@@ -167,6 +172,11 @@
             评价投喂单
           </van-button>
         </view>
+        <view wx:if="{{order.creatorId === userInfo.openid || order.assigneeId === userInfo.openid}}">
+          <van-button type="default" bind:click="openMemoryModal" round block>
+            {{order.memoryNote ? '编辑吃饭记忆' : '记录吃饭记忆'}}
+          </van-button>
+        </view>
         <view wx:if="{{order.creatorId === userInfo.openid}}">
           <van-button type="primary" bind:click="reorder" round block>
             再来一单
@@ -233,6 +243,18 @@
       <view class="rating-actions">
         <button class="rating-button cancel" bindtap="closeRatingModal">取消</button>
         <button class="rating-button confirm" bindtap="submitRating">存好</button>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{showMemoryModal}}" class="rating-mask" bindtap="closeMemoryModal">
+    <view class="memory-modal" catchtap="stopPropagation">
+      <text class="rating-title">一起吃饭记忆</text>
+      <text class="memory-modal-desc">把这一顿的小事记下来，之后在投喂记忆里随时翻看。</text>
+      <textarea class="rating-textarea" value="{{memoryNote}}" placeholder="例如：今天下雨，TA 说这碗面特别暖和" maxlength="100" bindinput="onMemoryNoteInput" />
+      <view class="rating-actions">
+        <button class="rating-button cancel" bindtap="closeMemoryModal">取消</button>
+        <button class="rating-button confirm" bindtap="saveMemoryNote">存好</button>
       </view>
     </view>
   </view>

@@ -1,0 +1,12 @@
+<view class="preferences-page">
+  <view class="preferences-hero"><text class="hero-title">饮食偏好</text><text class="hero-desc">让推荐更懂你的口味，也避开不适合的食材</text></view>
+  <view wx:if="{{loading}}" class="state">正在加载偏好...</view>
+  <block wx:else>
+    <view class="section"><text class="section-title">辣度</text><view class="options"><view wx:for="{{spicyOptions}}" wx:key="value" class="option {{preferences.spicy === item.value ? 'active' : ''}}" data-value="{{item.value}}" bindtap="selectSpicy">{{item.label}}</view></view></view>
+    <view class="section"><text class="section-title">饮食方式</text><view class="options"><view wx:for="{{dietOptions}}" wx:key="value" class="option {{preferences.diet === item.value ? 'active' : ''}}" data-value="{{item.value}}" bindtap="selectDiet">{{item.label}}</view></view></view>
+    <view class="section"><text class="section-title">喜欢的食材或口味</text><input class="text-input" value="{{likesText}}" data-key="likesText" bindinput="inputText" placeholder="例如：鸡肉、番茄、清淡" /></view>
+    <view class="section"><text class="section-title">不喜欢的食材或口味</text><input class="text-input" value="{{dislikesText}}" data-key="dislikesText" bindinput="inputText" placeholder="例如：香菜、太甜" /></view>
+    <view class="section"><text class="section-title">过敏或必须避开的食材</text><input class="text-input" value="{{allergiesText}}" data-key="allergiesText" bindinput="inputText" placeholder="例如：花生、虾" /></view>
+    <button class="save-button" loading="{{saving}}" bindtap="save">保存饮食偏好</button>
+  </block>
+</view>
