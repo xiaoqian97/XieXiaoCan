@@ -19,13 +19,13 @@ Page({
   },
 
   onPullDownRefresh() {
-    this.loadMemories()
+    this.loadMemories().finally(() => wx.stopPullDownRefresh())
   },
 
   loadMemories() {
-    if (!util.isLoggedIn()) return
+    if (!util.isLoggedIn()) return Promise.resolve()
     this.setData({ loading: true })
-    util.callCloudFunction('order', { action: 'getMemoryOverview' }).then(res => {
+    return util.callCloudFunction('order', { action: 'getMemoryOverview' }).then(res => {
       const memory = res.data || { people: [], completedMeals: 0, totalDishes: 0 }
       return this.resolveMemoryImages(memory).then(resolvedMemory => ({
         memory: resolvedMemory,
@@ -40,8 +40,6 @@ Page({
       console.error('加载投喂记忆失败:', err)
       this.setData({ loading: false, memory: null, activePerson: null })
       util.showError(err.message || '投喂记忆没加载出来')
-    }).finally(() => {
-      wx.stopPullDownRefresh()
     })
   },
 

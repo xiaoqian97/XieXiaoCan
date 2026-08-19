@@ -54,7 +54,7 @@ Page({
   },
 
   onPullDownRefresh() {
-    this.loadFavorites(true)
+    this.loadFavorites(true).finally(() => wx.stopPullDownRefresh())
   },
 
   onReachBottom() {
@@ -62,11 +62,11 @@ Page({
   },
 
   loadFavorites(reset = true, silent = false) {
-    if (!util.isLoggedIn()) return
-    if (!reset && (!this.data.hasMore || this.data.loadingMore)) return
+    if (!util.isLoggedIn()) return Promise.resolve()
+    if (!reset && (!this.data.hasMore || this.data.loadingMore)) return Promise.resolve()
     const page = reset ? 1 : this.data.page + 1
     this.setData(reset ? { loading: !silent } : { loadingMore: true })
-    util.callCloudFunction('favorite', {
+    return util.callCloudFunction('favorite', {
       action: this.data.readOnly ? 'listFriend' : 'list',
       friendOpenid: this.data.friendId,
       page,
@@ -107,8 +107,6 @@ Page({
         loadingMore: false
       })
       if (!silent) util.showError(err.message || '收藏没加载出来')
-    }).finally(() => {
-      wx.stopPullDownRefresh()
     })
   },
 

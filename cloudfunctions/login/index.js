@@ -262,12 +262,14 @@ async function validateAvatar(fileID, openid) {
       scene: 2,
       openid
     })
-    if (result.result && result.result.suggest !== 'pass') throw new Error('头像内容不合规')
+    if (result.result && result.result.suggest !== 'pass') {
+      await cloud.deleteFile({ fileList: [fileID] }).catch(() => {})
+      return { success: false, message: '头像未通过内容安全检测，请更换后重试' }
+    }
     return { success: true }
   } catch (error) {
-    console.error('头像内容安全检测未通过:', error)
-    await cloud.deleteFile({ fileList: [fileID] }).catch(() => {})
-    return { success: false, message: '头像未通过内容安全检测，请更换后重试' }
+    console.error('头像内容安全检测服务异常:', error)
+    return { success: false, message: '头像安全检测服务繁忙，请稍后重试' }
   }
 }
 

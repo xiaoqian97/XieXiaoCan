@@ -40,7 +40,7 @@ Page({
   },
 
   onPullDownRefresh() {
-    this.loadWishes(true)
+    this.loadWishes(true).finally(() => wx.stopPullDownRefresh())
   },
 
   onReachBottom() {
@@ -48,15 +48,15 @@ Page({
   },
 
   loadWishes(reset = true) {
-    if (!util.isLoggedIn()) return
-    if (!reset && (!this.data.hasMore || this.data.loadingMore)) return
+    if (!util.isLoggedIn()) return Promise.resolve()
+    if (!reset && (!this.data.hasMore || this.data.loadingMore)) return Promise.resolve()
     const page = reset ? 1 : this.data.page + 1
     this.setData(reset ? { loading: true } : { loadingMore: true })
 
     const action = this.data.mode === 'pool'
       ? 'listPool'
       : (this.data.mode === 'friend' ? 'listFriend' : 'listMine')
-    util.callCloudFunction('wish', {
+    return util.callCloudFunction('wish', {
       action,
       friendOpenid: this.data.friendId,
       page,
@@ -87,8 +87,6 @@ Page({
     }).catch(err => {
       this.setData({ loading: false, loadingMore: false })
       util.showError(err.message || '饭愿没加载出来')
-    }).finally(() => {
-      wx.stopPullDownRefresh()
     })
   },
 

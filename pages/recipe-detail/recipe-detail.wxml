@@ -1,5 +1,24 @@
 <view class="recipe-detail-container">
   <login-prompt id="loginPrompt" />
+
+  <!-- 首次进入时覆盖整页并拦截点击，避免详情尚未准备完成时误操作 -->
+  <view wx:if="{{loading}}" class="detail-loading-mask" catchtap="stopLoadingEvent" catchtouchmove="stopLoadingEvent">
+    <view class="detail-loading-card">
+      <view class="detail-loading-icon">🍲</view>
+      <van-loading size="26px" color="#E85D4A" />
+      <text class="detail-loading-title">正在端上这道菜</text>
+      <text class="detail-loading-desc">菜谱和图片准备好后就能查看</text>
+    </view>
+  </view>
+
+  <view wx:elif="{{loadError}}" class="detail-loading-mask detail-error-mask" catchtouchmove="stopLoadingEvent">
+    <view class="detail-loading-card detail-error-card">
+      <view class="detail-loading-icon">🥣</view>
+      <text class="detail-loading-title">这道菜暂时没端上来</text>
+      <text class="detail-loading-desc">{{loadError}}</text>
+      <button class="detail-retry-button" bindtap="retryLoadRecipe">重新加载</button>
+    </view>
+  </view>
   
   <!-- 头图区域 -->
   <view class="hero-section">
@@ -269,17 +288,6 @@
       <text>分享</text>
     </button>
   </view>
-  
-  <!-- 加载状态 -->
-  <van-loading 
-    wx:if="{{loading}}" 
-    size="24px" 
-    color="#E85D4A"
-    class="page-loading"
-  >
-    加载中...
-  </van-loading>
-  
   
   <!-- Toast提示 -->
   <van-toast id="van-toast" />

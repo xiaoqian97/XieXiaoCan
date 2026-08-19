@@ -11,6 +11,8 @@
       class="recipe-image"
       src="{{displayImage}}"
       mode="aspectFill"
+      bindload="onImageLoad"
+      binderror="onImageError"
     />
     <view wx:else class="recipe-image recipe-image-placeholder">
       <text class="recipe-placeholder-emoji">{{placeholderEmoji}}</text>

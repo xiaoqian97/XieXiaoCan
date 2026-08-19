@@ -42,14 +42,19 @@ Page({
   },
 
   loadLogs() {
+    const requestId = (this._logRequestId || 0) + 1
+    const category = this.data.category
+    const status = this.data.status
+    this._logRequestId = requestId
     this.setData({ loading: true })
     return util.callCloudFunction('blessing', {
       action: 'getAdminLogs',
-      category: this.data.category,
-      status: this.data.status,
+      category,
+      status,
       page: 1,
       pageSize: 100
     }).then(res => {
+      if (requestId !== this._logRequestId || category !== this.data.category || status !== this.data.status) return
       const data = res.data || {}
       this.setData({
         summary: data.summary || this.data.summary,
@@ -57,6 +62,7 @@ Page({
         loading: false
       })
     }).catch(error => {
+      if (requestId !== this._logRequestId) return
       this.setData({ loading: false, items: [] })
       util.showError(error.message || '祝福日志加载失败')
     })

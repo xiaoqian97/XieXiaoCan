@@ -36,6 +36,12 @@ async function run() {
   assert.strictEqual(result, tempFileURL)
 
   calls.length = 0
+  util.invalidateCloudImage(fileID)
+  const refreshedResult = await util.resolveCloudImage(fileID)
+  assert.strictEqual(refreshedResult, tempFileURL)
+  assert.strictEqual(calls.length, 1)
+
+  calls.length = 0
   const fileIDs = Array.from({ length: 51 }, (_, index) => `cloud://test-env/recipes/${index}.jpg`)
   const urls = await util.resolveCloudImages(fileIDs)
   assert.strictEqual(urls.length, 51)

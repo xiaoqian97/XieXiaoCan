@@ -27,6 +27,8 @@ const FAB_TAP_SLOP = 6
 Page({
   data: {
     loading: false,
+    initialLoading: false,
+    initialLoadError: '',
     showTemplateEntry: false,
     filledFlash: false,
     fabLeft: 0,
@@ -238,8 +240,8 @@ Page({
 
   // 加载菜谱数据（编辑模式）
   loadRecipeData(recipeId) {
-    wx.showLoading({ title: '加载中...' })
-    
+    this.setData({ initialLoading: true, initialLoadError: '' })
+
     wx.cloud.callFunction({
       name: 'recipe',
       data: {
@@ -287,26 +289,29 @@ Page({
             submitText: recipe.status === 'draft' ? '保存并发布' : '保存修改',
             draftText: '保存草稿',
             showDraftAction: recipe.status === 'draft',
-            footerClass: recipe.status === 'draft' ? '' : 'single-action'
+            footerClass: recipe.status === 'draft' ? '' : 'single-action',
+            initialLoading: false
           })
-          // 调试：确认编辑模式下的optionalTags
+        } else {
+          this.setData({
+            initialLoading: false,
+            initialLoadError: res.result.message || '菜谱加载失败，请稍后重试'
+          })
         }
       },
       fail: (err) => {
         console.error('加载菜谱失败:', err)
+        this.setData({ initialLoading: false, initialLoadError: '菜谱加载失败，请检查网络后重试' })
         wx.showToast({
           title: '菜谱没翻出来',
           icon: 'error'
         })
-      },
-      complete: () => {
-        wx.hideLoading()
       }
     })
   },
 
   loadWishData(wishId) {
-    wx.showLoading({ title: '饭愿加载中...' })
+    this.setData({ initialLoading: true, initialLoadError: '' })
 
     wx.cloud.callFunction({
       name: 'wish',
@@ -316,8 +321,12 @@ Page({
       },
       success: (res) => {
         if (res.result.success) {
-          this.applyRecordToForm(res.result.data)
+          this.applyRecordToForm(res.result.data, () => this.setData({ initialLoading: false }))
         } else {
+          this.setData({
+            initialLoading: false,
+            initialLoadError: res.result.message || '饭愿加载失败，请稍后重试'
+          })
           wx.showToast({
             title: res.result.message || '饭愿没加载出来',
             icon: 'none'
@@ -326,18 +335,28 @@ Page({
       },
       fail: (err) => {
         console.error('加载饭愿失败:', err)
+        this.setData({ initialLoading: false, initialLoadError: '饭愿加载失败，请检查网络后重试' })
         wx.showToast({
           title: '饭愿没加载出来',
           icon: 'error'
         })
-      },
-      complete: () => {
-        wx.hideLoading()
       }
     })
   },
 
-  applyRecordToForm(record) {
+  retryInitialLoad() {
+    if (this.data.isEditMode && this.data.editRecipeId) {
+      this.loadRecipeData(this.data.editRecipeId)
+      return
+    }
+    if (this.data.isAcceptWishMode && this.data.wishId) {
+      this.loadWishData(this.data.wishId)
+    }
+  },
+
+  stopInitialLoadingEvent() {},
+
+  applyRecordToForm(record, callback) {
     const optionalTags = record.optionalTags || []
     const cookingMethods = this.data.cookingMethods.map(item => ({
       ...item,
@@ -370,7 +389,7 @@ Page({
       cookingMethods,
       flavorTypes,
       showMoreTags: true
-    })
+    }, callback)
   },
 
   findOptionIndex(list, value, key) {

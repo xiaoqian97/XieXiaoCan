@@ -383,30 +383,7 @@ async function getRecipeList(event, openid) {
     .get()
 
   // 获取创建者信息，添加错误处理
-  const recipes = await Promise.all(result.data.map(async (recipe) => {
-    try {
-      const userResult = await db.collection('users').where({
-        openid: recipe.creatorId
-      }).get()
-      
-      const user = userResult.data.length > 0 ? userResult.data[0] : null
-      return {
-        ...recipe,
-        creator: user ? { 
-          nickname: user.nickname || '未知用户', 
-          avatar: user.avatar || '' 
-        } : { nickname: '未知用户', avatar: '' },
-        createTime: formatTime(recipe.createdAt)
-      }
-    } catch (error) {
-      console.error('获取用户信息失败:', error)
-      return {
-        ...recipe,
-        creator: { nickname: '未知用户', avatar: '' },
-        createTime: formatTime(recipe.createdAt)
-      }
-    }
-  }))
+  const recipes = await attachCreators(result.data)
 
   const recipesWithFavorites = await attachFavoriteStats(recipes)
   const recipesWithStats = await attachSalesStats(recipesWithFavorites)
@@ -418,6 +395,37 @@ async function getRecipeList(event, openid) {
       total: result.data.length
     }
   }
+}
+
+// 一次把作者信息查回来：原来每条菜谱单独查一次 users，一页 20 条就是 20 次查询
+async function attachCreators(list) {
+  const recipes = Array.isArray(list) ? list : []
+  const creatorIds = [...new Set(recipes.map(recipe => recipe.creatorId).filter(Boolean))]
+  let creatorMap = {}
+
+  if (creatorIds.length) {
+    try {
+      const userResult = await db.collection('users')
+        .where({ openid: _.in(creatorIds) })
+        .limit(Math.min(creatorIds.length, 100))
+        .get()
+      creatorMap = userResult.data.reduce((map, user) => {
+        map[user.openid] = {
+          nickname: user.nickname || '未知用户',
+          avatar: user.avatar || ''
+        }
+        return map
+      }, {})
+    } catch (error) {
+      console.error('批量获取作者信息失败:', error)
+    }
+  }
+
+  return recipes.map(recipe => ({
+    ...recipe,
+    creator: creatorMap[recipe.creatorId] || { nickname: '未知用户', avatar: '' },
+    createTime: formatTime(recipe.createdAt)
+  }))
 }
 
 async function attachFavoriteStats(recipes, includeUsers = false) {
@@ -1002,10 +1010,40 @@ async function deleteRecipe(event, openid) {
   }
   
   await db.collection('recipes').doc(recipeId).remove()
-  
+  await cleanupRecipeReferences(recipeId)
+
   return {
     success: true,
     data: {}
+  }
+}
+
+// 菜谱删掉之后，收藏、互动、浏览记录和饭篮里的引用都要跟着清，
+// 否则统计数字会一直虚高，饭篮里还会留下下不了单的钉子。
+async function cleanupRecipeReferences(recipeId) {
+  const removals = [
+    ['favorites', db.collection('favorites').where({ recipeId })],
+    ['recipe_interactions', db.collection('recipe_interactions').where({ recipeId })],
+    ['recipe_views', db.collection('recipe_views').where({ recipeId })]
+  ]
+
+  await Promise.all(removals.map(([name, query]) => query.remove().catch(error => {
+    console.error(`清理 ${name} 失败:`, recipeId, error)
+  })))
+
+  try {
+    const cartResult = await db.collection('carts')
+      .where({ cartItems: _.elemMatch({ recipeId }) })
+      .limit(100)
+      .get()
+    await Promise.all(cartResult.data.map(cart => {
+      const cartItems = (cart.cartItems || []).filter(item => item && item.recipeId !== recipeId)
+      return db.collection('carts').doc(cart._id).update({
+        data: { cartItems, updatedAt: new Date() }
+      })
+    }))
+  } catch (error) {
+    console.error('清理饭篮引用失败:', recipeId, error)
   }
 }
 
@@ -1297,30 +1335,7 @@ async function getMyRecipes(event, openid) {
     .get()
 
   // 获取创建者信息，添加错误处理
-  const recipes = await Promise.all(result.data.map(async (recipe) => {
-    try {
-      const userResult = await db.collection('users').where({
-        openid: recipe.creatorId
-      }).get()
-      
-      const user = userResult.data.length > 0 ? userResult.data[0] : null
-      return {
-        ...recipe,
-        creator: user ? { 
-          nickname: user.nickname || '未知用户', 
-          avatar: user.avatar || '' 
-        } : { nickname: '未知用户', avatar: '' },
-        createTime: formatTime(recipe.createdAt)
-      }
-    } catch (error) {
-      console.error('获取用户信息失败:', error)
-      return {
-        ...recipe,
-        creator: { nickname: '未知用户', avatar: '' },
-        createTime: formatTime(recipe.createdAt)
-      }
-    }
-  }))
+  const recipes = await attachCreators(result.data)
 
   const recipesWithFavorites = await attachFavoriteStats(recipes, isOwnerView)
   const recipesWithStats = await attachSalesStats(recipesWithFavorites)
@@ -1453,30 +1468,7 @@ async function getFriendRecipes(event, openid) {
     .get()
 
   // 获取创建者信息，添加错误处理
-  const recipes = await Promise.all(result.data.map(async (recipe) => {
-    try {
-      const userResult = await db.collection('users').where({
-        openid: recipe.creatorId
-      }).get()
-      
-      const user = userResult.data.length > 0 ? userResult.data[0] : null
-      return {
-        ...recipe,
-        creator: user ? { 
-          nickname: user.nickname || '未知用户', 
-          avatar: user.avatar || '' 
-        } : { nickname: '未知用户', avatar: '' },
-        createTime: formatTime(recipe.createdAt)
-      }
-    } catch (error) {
-      console.error('获取用户信息失败:', error)
-      return {
-        ...recipe,
-        creator: { nickname: '未知用户', avatar: '' },
-        createTime: formatTime(recipe.createdAt)
-      }
-    }
-  }))
+  const recipes = await attachCreators(result.data)
 
   return {
     success: true,

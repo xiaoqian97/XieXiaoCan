@@ -1,6 +1,24 @@
 <view class="recipe-container">
   <login-prompt id="loginPrompt" />
 
+  <view wx:if="{{initialLoading}}" class="form-loading-mask" catchtap="stopInitialLoadingEvent" catchtouchmove="stopInitialLoadingEvent">
+    <view class="form-loading-card">
+      <text class="form-loading-icon">📝</text>
+      <van-loading size="26px" color="#E85D4A" />
+      <text class="form-loading-title">正在准备菜谱</text>
+      <text class="form-loading-desc">原来的内容加载完成后才能编辑</text>
+    </view>
+  </view>
+
+  <view wx:elif="{{initialLoadError}}" class="form-loading-mask" catchtouchmove="stopInitialLoadingEvent">
+    <view class="form-loading-card">
+      <text class="form-loading-icon">🥣</text>
+      <text class="form-loading-title">内容暂时没加载出来</text>
+      <text class="form-loading-desc">{{initialLoadError}}</text>
+      <button class="form-retry-button" bindtap="retryInitialLoad">重新加载</button>
+    </view>
+  </view>
+
   <!-- 表单内容 -->
   <scroll-view class="form-content" scroll-y="true" show-scrollbar="{{false}}">
     

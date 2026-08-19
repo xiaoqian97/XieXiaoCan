@@ -89,6 +89,36 @@ Page({
     }
   },
 
+  onPullDownRefresh: function() {
+    this.refreshHomeUserInfo()
+      .then(() => this.loadRecommendRecipes(true))
+      .then(refreshed => {
+        if (refreshed) {
+          wx.showToast({ title: '已刷新', icon: 'success', duration: 900 })
+        }
+      })
+      .catch(err => {
+        console.error('首页下拉刷新失败:', err)
+        wx.showToast({ title: '刷新失败，请重试', icon: 'none' })
+      })
+      .then(() => wx.stopPullDownRefresh())
+  },
+
+  refreshHomeUserInfo: function() {
+    if (!app.isLoggedIn()) return Promise.resolve()
+
+    return util.callCloudFunction('user', { action: 'getProfile' }).then(res => {
+      const latestUser = res.data && res.data.user
+      if (!latestUser) return
+      app.globalData.userInfo = { ...(app.globalData.userInfo || {}), ...latestUser }
+      wx.setStorageSync('userInfo', app.globalData.userInfo)
+      this.updateUserRole()
+    }).catch(err => {
+      // 用户资料刷新失败不阻断推荐菜刷新。
+      console.error('刷新首页用户资料失败:', err)
+    })
+  },
+
   updateUserRole: function() {
     const userInfo = app.globalData.userInfo || wx.getStorageSync('userInfo')
     const current = this.data.userInfo || {}
@@ -122,7 +152,7 @@ Page({
     const requestId = (this._recommendRequestId || 0) + 1
     this._recommendRequestId = requestId
     if (!silent) this.setData({ loading: true })
-    util.callCloudFunction('recipe', {
+    return util.callCloudFunction('recipe', {
       action: 'recommend',
       limit: 6,
       scope: this.data.hasUserInfo ? 'account' : 'public'
@@ -135,15 +165,19 @@ Page({
         needsFixedFeeder
       }))
     }).then(result => {
-      if (!result || requestId !== this._recommendRequestId) return
-      this.setData({
-        recommendRecipes: result.recipes,
-        recommendNeedsFixedFeeder: result.needsFixedFeeder,
-        loading: false,
-        isDataLoaded: true
-      }, () => this.loadFavoriteStatuses())
+      if (!result || requestId !== this._recommendRequestId) return false
+      return new Promise(resolve => {
+        this.setData({
+          recommendRecipes: result.recipes,
+          recommendNeedsFixedFeeder: result.needsFixedFeeder,
+          loading: false,
+          isDataLoaded: true
+        }, () => {
+          this.loadFavoriteStatuses().then(() => resolve(true))
+        })
+      })
     }).catch(err => {
-      if (requestId !== this._recommendRequestId) return
+      if (requestId !== this._recommendRequestId) return false
       console.error('加载推荐菜谱失败:', err)
       this.setData({
         recommendRecipes: [],
@@ -151,6 +185,7 @@ Page({
         loading: false,
         isDataLoaded: true
       })
+      return false
     })
   },
 
@@ -187,9 +222,9 @@ Page({
   },
 
   loadFavoriteStatuses: function() {
-    if (!app.isLoggedIn() || !this.data.recommendRecipes.length) return
+    if (!app.isLoggedIn() || !this.data.recommendRecipes.length) return Promise.resolve()
 
-    util.callCloudFunction('favorite', { action: 'list' }).then(res => {
+    return util.callCloudFunction('favorite', { action: 'list' }).then(res => {
       const favoriteIds = new Set(((res.data && res.data.recipes) || []).map(recipe => recipe._id))
       this.setData({
         recommendRecipes: this.data.recommendRecipes.map(recipe => ({

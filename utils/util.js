@@ -31,8 +31,36 @@ const formatNumber = n => {
 const DEFAULT_RECIPE_IMAGE = '/images/default-recipe.jpg'
 const DEFAULT_AVATAR = '/images/default-avatar.png'
 const cloudImageCache = Object.create(null)
+const cloudImageCacheAt = Object.create(null)
+// 云存储临时地址有有效期，内存中只短时复用，避免小程序长时间停留后继续使用旧地址。
+const CLOUD_IMAGE_CACHE_TTL = 30 * 60 * 1000
 
 const isCloudFile = url => typeof url === 'string' && url.indexOf('cloud://') === 0
+
+const getCachedCloudImage = fileID => {
+  if (!cloudImageCache[fileID]) return ''
+  if (Date.now() - Number(cloudImageCacheAt[fileID] || 0) < CLOUD_IMAGE_CACHE_TTL) {
+    return cloudImageCache[fileID]
+  }
+  delete cloudImageCache[fileID]
+  delete cloudImageCacheAt[fileID]
+  return ''
+}
+
+const cacheCloudImages = urlMap => {
+  const now = Date.now()
+  Object.keys(urlMap || {}).forEach(fileID => {
+    if (!urlMap[fileID]) return
+    cloudImageCache[fileID] = urlMap[fileID]
+    cloudImageCacheAt[fileID] = now
+  })
+}
+
+const invalidateCloudImage = fileID => {
+  if (!fileID) return
+  delete cloudImageCache[fileID]
+  delete cloudImageCacheAt[fileID]
+}
 
 const resolveCloudImagesByFunction = fileIDs => {
   const batches = []
@@ -57,19 +85,19 @@ const resolveCloudImagesByFunction = fileIDs => {
 const resolveCloudImages = (images = [], fallback = DEFAULT_RECIPE_IMAGE) => {
   const list = (Array.isArray(images) ? images : [images]).map(item => item || fallback)
   if (!list.length) return Promise.resolve([])
-  const cloudFiles = [...new Set(list.filter(item => isCloudFile(item) && !cloudImageCache[item]))]
+  const cloudFiles = [...new Set(list.filter(item => isCloudFile(item) && !getCachedCloudImage(item)))]
 
   if (!cloudFiles.length) {
-    return Promise.resolve(list.map(item => isCloudFile(item) ? (cloudImageCache[item] || fallback) : item))
+    return Promise.resolve(list.map(item => isCloudFile(item) ? (getCachedCloudImage(item) || fallback) : item))
   }
 
   const finish = clientUrlMap => {
     const missingFiles = cloudFiles.filter(fileID => !clientUrlMap[fileID])
-    Object.assign(cloudImageCache, clientUrlMap)
+    cacheCloudImages(clientUrlMap)
     const mergeUrls = serverUrlMap => {
-      Object.assign(cloudImageCache, serverUrlMap)
+      cacheCloudImages(serverUrlMap)
       return list.map(item => (
-        isCloudFile(item) ? (cloudImageCache[item] || fallback) : item
+        isCloudFile(item) ? (getCachedCloudImage(item) || fallback) : item
       ))
     }
 
@@ -302,6 +330,7 @@ module.exports = {
   formatDate,
   resolveCloudImage,
   resolveCloudImages,
+  invalidateCloudImage,
   DEFAULT_RECIPE_IMAGE,
   DEFAULT_AVATAR,
   showLoading,

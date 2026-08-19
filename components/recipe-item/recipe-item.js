@@ -113,32 +113,75 @@ Component({
       })
     },
 
+    onImageLoad: function() {
+      this._imageRetryCount = 0
+    },
+
+    onImageError: function() {
+      const images = this.data.recipe && Array.isArray(this.data.recipe.images)
+        ? this.data.recipe.images
+        : []
+      const cloudSrc = images.find(item => typeof item === 'string' && item.indexOf('cloud://') === 0)
+      if (!cloudSrc || Number(this._imageRetryCount || 0) >= 2) {
+        this.showImagePlaceholder(this.data.recipe)
+        return
+      }
+
+      this._imageRetryCount = Number(this._imageRetryCount || 0) + 1
+      util.invalidateCloudImage(cloudSrc)
+      this.setData({ displayImage: '', hasRealImage: false })
+      setTimeout(() => this.resolveRecipeImage(cloudSrc, this.data.recipe), 350 * this._imageRetryCount)
+    },
+
+    showImagePlaceholder: function(recipe) {
+      const category = getIngredientCategoryById(recipe && recipe.ingredientCategory) || {}
+      this._pendingImageSrc = ''
+      this.setData({
+        displayImage: '',
+        hasRealImage: false,
+        placeholderEmoji: category.emoji || '🍽️'
+      })
+    },
+
+    resolveRecipeImage: function(src, recipe) {
+      this._pendingImageSrc = src
+      util.resolveCloudImage(src).then(displayImage => {
+        if (this._pendingImageSrc !== src) return
+        if (!displayImage || displayImage === DEFAULT_RECIPE_IMAGE) {
+          if (Number(this._imageRetryCount || 0) < 2) {
+            this._imageRetryCount = Number(this._imageRetryCount || 0) + 1
+            util.invalidateCloudImage(src)
+            setTimeout(() => this.resolveRecipeImage(src, recipe), 350 * this._imageRetryCount)
+            return
+          }
+          this.showImagePlaceholder(recipe)
+          return
+        }
+        this.setData({ displayImage, hasRealImage: true })
+      }).catch(() => this.onImageError())
+    },
+
     updateDisplayImage: function(recipe) {
       const images = recipe && Array.isArray(recipe.images) ? recipe.images : []
-      const src = (recipe && recipe.displayImage) || images[0] || ''
+      const rawSrc = images[0] || ''
+      const resolvedSrc = (recipe && recipe.displayImage) || ''
+      // 父页面解析失败时会给出兜底图，此时仍应拿原始 cloud:// 地址重试。
+      const src = resolvedSrc && resolvedSrc !== DEFAULT_RECIPE_IMAGE ? resolvedSrc : rawSrc
+      this._imageRetryCount = 0
 
       // 没图（或者只有那张通用兜底图）就按食材分类显示占位图标，不拿别的菜的照片糊弄
       if (!src || src === DEFAULT_RECIPE_IMAGE) {
-        const category = getIngredientCategoryById(recipe && recipe.ingredientCategory) || {}
-        this._pendingImageSrc = ''
-        this.setData({
-          displayImage: '',
-          hasRealImage: false,
-          placeholderEmoji: category.emoji || '🍽️'
-        })
+        this.showImagePlaceholder(recipe)
         return
       }
 
       if (src.indexOf('cloud://') !== 0) {
+        this._pendingImageSrc = ''
         this.setData({ displayImage: src, hasRealImage: true })
         return
       }
 
-      this._pendingImageSrc = src
-      util.resolveCloudImage(src).then(displayImage => {
-        if (this._pendingImageSrc !== src) return
-        this.setData({ displayImage, hasRealImage: Boolean(displayImage) })
-      })
+      this.resolveRecipeImage(src, recipe)
     }
   }
 })

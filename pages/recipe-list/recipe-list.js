@@ -134,7 +134,7 @@ Page({
   },
 
   onPullDownRefresh: function () {
-    this.refreshData()
+    this.refreshData().finally(() => wx.stopPullDownRefresh())
   },
 
   onReachBottom: function () {
@@ -170,7 +170,7 @@ Page({
       activeCategoryId: ''
     })
     this.setData(resetState)
-    this.loadRecipes()
+    return this.loadRecipes()
   },
 
   loadRecipes: function() {
@@ -196,7 +196,7 @@ Page({
     // 获取时间筛选的数值
     const timeValue = this.getSelectedTimeValue()
     
-    wx.cloud.callFunction({
+    return wx.cloud.callFunction({
       name: 'recipe',
       data: {
         action: 'list',
@@ -242,7 +242,6 @@ Page({
             }
             this._silentRecipeRefresh = false
           })
-          wx.stopPullDownRefresh()
         })
       } else {
         console.error('菜谱列表加载失败:', res.result)
@@ -252,11 +251,9 @@ Page({
           icon: 'none'
         })
       }
-      wx.stopPullDownRefresh()
     }).catch(err => {
       if (requestId !== this._recipeRequestId) return
       this.setData({ loading: false, isSearchLoading: false })
-      wx.stopPullDownRefresh()
       wx.showToast({
         title: '菜谱没翻出来',
         icon: 'error'

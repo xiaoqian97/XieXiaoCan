@@ -531,21 +531,31 @@ Page({
   uploadAvatar: function(tempFilePath) {
     util.showLoading('上传中...')
 
-    // 上传到云存储
-    const cloudPath = `avatars/${Date.now()}-${Math.random().toString(36).substr(2)}.jpg`
+    // 裁剪器会按设备像素比导出图片，部分高清设备生成的文件较大。
+    // 先压缩再上传，避免云函数下载和安全检测图片时超时。
+    this.compressAvatar(tempFilePath).then(filePath => {
+      const cloudPath = `avatars/${Date.now()}-${Math.random().toString(36).substr(2)}.jpg`
+      return util.uploadFile(filePath, cloudPath)
+    }).then(res => {
+      this.updateUserAvatar(res.fileID)
+    }).catch(err => {
+      util.hideLoading()
+      util.showError('上传失败，请稍后重试')
+      console.error('上传失败', err)
+    })
+  },
 
-    wx.cloud.uploadFile({
-      cloudPath: cloudPath,
-      filePath: tempFilePath,
-      success: (res) => {
-        // 直接使用fileID，不需要获取临时链接
-        this.updateUserAvatar(res.fileID)
-      },
-      fail: (err) => {
-        util.hideLoading()
-        util.showError('上传失败')
-        console.error('上传失败', err)
-      }
+  compressAvatar: function(filePath) {
+    if (!wx.compressImage) return Promise.resolve(filePath)
+
+    return new Promise(resolve => {
+      wx.compressImage({
+        src: filePath,
+        quality: 72,
+        success: res => resolve(res.tempFilePath || filePath),
+        // 压缩失败不阻断头像更新，继续使用裁剪后的原图。
+        fail: () => resolve(filePath)
+      })
     })
   },
 
@@ -575,10 +585,10 @@ Page({
     }).catch(err => {
       const isTransientCloudError = err && (
         Number(err.errCode) === -504003 ||
-        String(err.errMsg || err.message || '').includes('-504003')
+        /-50400[23]|timeout|timed out|超时/i.test(String(err.errMsg || err.message || ''))
       )
       if (isTransientCloudError && retryCount < 1) {
-        setTimeout(() => this.updateUserAvatar(avatarUrl, retryCount + 1), 800)
+        setTimeout(() => this.updateUserAvatar(avatarUrl, retryCount + 1), 1200)
         return
       }
       util.hideLoading()

@@ -47,19 +47,24 @@ Page({
   },
 
   loadBlessings() {
+    const requestId = (this._blessingRequestId || 0) + 1
+    const mode = this.data.activeTab
+    this._blessingRequestId = requestId
     this.setData({ loading: true })
-    return util.callCloudFunction('blessing', { action: 'list', mode: this.data.activeTab }).then(res => {
+    return util.callCloudFunction('blessing', { action: 'list', mode }).then(res => {
+      if (requestId !== this._blessingRequestId || mode !== this.data.activeTab) return
       this.setData({
-        blessings: (res.data || []).map(item => this.decorate(item)),
+        blessings: (res.data || []).map(item => this.decorate(item, mode)),
         loading: false
       })
     }).catch(error => {
+      if (requestId !== this._blessingRequestId) return
       this.setData({ blessings: [], loading: false })
       util.showError(error.message || '祝福还没加载出来')
     })
   },
 
-  decorate(item) {
+  decorate(item, mode = this.data.activeTab) {
     const theme = getTheme(item.themeKey)
     return {
       ...item,
@@ -68,7 +73,7 @@ Page({
       displayTime: formatTime(item.sendAt || item.createdAt),
       displayStatus: getDisplayStatus(item),
       statusText: getStatusText(item),
-      personText: this.data.activeTab === 'sent' ? `送给 ${item.recipientName}` : `来自 ${item.senderName}`
+      personText: mode === 'sent' ? `送给 ${item.recipientName}` : `来自 ${item.senderName}`
     }
   },
 

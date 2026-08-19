@@ -49,10 +49,14 @@ Page({
   },
 
   loadAnalytics() {
+    const requestId = (this._analyticsRequestId || 0) + 1
+    const days = this.data.days
+    this._analyticsRequestId = requestId
     return util.callCloudFunction('analytics', {
       action: 'getDashboard',
-      days: this.data.days
+      days
     }).then(res => {
+      if (requestId !== this._analyticsRequestId || days !== this.data.days) return
       const data = res.data || {}
       const overview = data.overview || {}
       const maxFeature = Math.max(1, ...((data.features || []).map(item => Number(item.count) || 0)))
@@ -70,6 +74,7 @@ Page({
         width: Math.max(4, Math.round((item.sessions / maxTrend) * 100))
       }))
       return util.resolveCloudImages(users.map(item => item.avatar), util.DEFAULT_AVATAR).then(avatars => {
+        if (requestId !== this._analyticsRequestId || days !== this.data.days) return
         this.setData({
           overview: {
             activeUsers: overview.activeUsers || 0,
@@ -86,6 +91,7 @@ Page({
         })
       })
     }).catch(error => {
+      if (requestId !== this._analyticsRequestId) return
       util.showError(error.message || '埋点数据加载失败')
     })
   },

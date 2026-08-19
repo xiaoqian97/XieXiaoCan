@@ -23,8 +23,7 @@ Page({
       return
     }
     this.getStatusBarHeight()
-    this.loadCurrentUserOpenid()
-    this.loadUserSearchCode()
+    this.loadUserProfileSummary()
     this.loadRequestsData()
   },
 
@@ -33,7 +32,7 @@ Page({
     // 获取状态栏高度
     this.getStatusBarHeight()
     // 刷新数据
-    this.loadUserSearchCode()
+    this.loadUserProfileSummary()
     this.loadRequestsData()
   },
 
@@ -47,9 +46,34 @@ Page({
       wx.stopPullDownRefresh()
       return
     }
-    this.loadCurrentUserOpenid()
-    this.loadUserSearchCode()
-    this.loadRequestsData().finally(() => wx.stopPullDownRefresh())
+    Promise.all([
+      this.loadUserProfileSummary(),
+      this.loadRequestsData()
+    ]).finally(() => wx.stopPullDownRefresh())
+  },
+
+  loadUserProfileSummary: function() {
+    return util.callCloudFunction('user', { action: 'getProfile' }).then(res => {
+      const user = res.data && res.data.user
+      if (!user) return
+      const updates = { currentUserOpenid: user.openid || '' }
+      if (user.searchCode) updates.userSearchCode = user.searchCode
+      this.setData(updates)
+      if (user.searchCode) return
+
+      return util.callCloudFunction('user', { action: 'generateSearchCode' }).then(result => {
+        const searchCode = result.data && result.data.searchCode
+        if (!searchCode) return
+        this.setData({ userSearchCode: searchCode })
+        const app = getApp()
+        if (app.globalData.userInfo) {
+          app.globalData.userInfo.searchCode = searchCode
+          wx.setStorageSync('userInfo', app.globalData.userInfo)
+        }
+      })
+    }).catch(error => {
+      console.error('获取当前用户资料失败:', error)
+    })
   },
 
   // 获取状态栏高度

@@ -42,6 +42,7 @@ Page({
     
     // 页面状态
     loading: true,
+    loadError: '',
     isFavorited: false,
     isMyRecipe: false, // 是否为当前用户的菜谱
     readOnly: false,
@@ -83,7 +84,7 @@ Page({
       this.loadRecipeDetail(false, true)
     }
     // 检查收藏状态
-    if (!this.data.readOnly) this.checkFavoriteStatus()
+    if (!this.data.readOnly && !this.data.loading) this.checkFavoriteStatus()
   },
 
   onPullDownRefresh() {
@@ -92,8 +93,8 @@ Page({
 
   // 加载菜谱详情
   loadRecipeDetail(recordView = false, silent = false) {
-    if (!isValidRecipeId(this.data.recipeId)) return
-    if (!silent) this.setData({ loading: true })
+    if (!isValidRecipeId(this.data.recipeId)) return Promise.resolve(false)
+    if (!silent) this.setData({ loading: true, loadError: '' })
     
     wx.cloud.callFunction({
       name: 'recipe',
@@ -103,35 +104,47 @@ Page({
         recordView
       }
     }).then(res => {
-      
       if (res.result.success) {
         const recipe = res.result.data
         this.processRecipeData(recipe)
-        this.setData({
-          recipe: recipe,
-          loading: false
+        return new Promise(resolve => {
+          this.setData({ recipe, loadError: '' }, resolve)
+        }).then(() => this.resolveRecipeImages()).then(() => {
+          if (!this.data.readOnly) return this.checkFavoriteStatus()
+          return null
+        }).then(() => {
+          if (!silent) this.setData({ loading: false })
+          return true
         })
-        this.resolveRecipeImages()
       } else {
         console.error('加载菜谱详情失败:', res.result)
+        const message = res.result.message || '这道菜没加载出来'
         wx.showToast({
-          title: res.result.message || '这道菜没加载出来',
+          title: message,
           icon: 'error'
         })
-        this.setData({ loading: false })
+        if (!silent) this.setData({ loading: false, loadError: message })
+        return false
       }
-      
-      wx.stopPullDownRefresh()
     }).catch(err => {
       console.error('加载菜谱详情失败:', err)
-      this.setData({ loading: false })
-      wx.stopPullDownRefresh()
+      if (!silent) this.setData({ loading: false, loadError: '菜谱加载失败，请检查网络后重试' })
       wx.showToast({
         title: '这道菜没加载出来',
         icon: 'error'
       })
+      return false
+    }).then(result => {
+      wx.stopPullDownRefresh()
+      return result
     })
   },
+
+  retryLoadRecipe() {
+    this.loadRecipeDetail(false)
+  },
+
+  stopLoadingEvent() {},
 
   // 处理菜谱数据
   processRecipeData(recipe) {
@@ -188,10 +201,10 @@ Page({
     const app = getApp()
     if (!isValidRecipeId(this.data.recipeId) || !app.isLoggedIn()) {
       this.setData({ isFavorited: false })
-      return
+      return Promise.resolve()
     }
 
-    util.callCloudFunction('favorite', {
+    return util.callCloudFunction('favorite', {
       action: 'status',
       recipeId: this.data.recipeId
     }).then(res => {
@@ -273,7 +286,7 @@ Page({
     const recipe = this.data.recipe
     const stepImages = (recipe.steps || []).map(step => step.image).filter(Boolean)
 
-    Promise.all([
+    return Promise.all([
       util.resolveCloudImages([...recipe.images, ...stepImages]),
       util.resolveCloudImage(recipe.creator && recipe.creator.avatar, '/images/default-avatar.png')
     ]).then(([urls, creatorAvatar]) => {
@@ -289,11 +302,16 @@ Page({
         }
       })
 
-      this.setData({
-        'recipe.images': images,
-        'recipe.steps': steps,
-        'recipe.creator.avatar': creatorAvatar
+      return new Promise(resolve => {
+        this.setData({
+          'recipe.images': images,
+          'recipe.steps': steps,
+          'recipe.creator.avatar': creatorAvatar
+        }, resolve)
       })
+    }).catch(error => {
+      // 图片解析失败不阻断详情正文，图片组件仍可使用原始云文件地址或占位图。
+      console.error('菜谱图片解析失败:', error)
     })
   },
 

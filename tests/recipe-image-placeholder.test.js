@@ -46,6 +46,12 @@ assert(!detailPage.includes("['/images/default-recipe.jpg']"))
 assert(detailView.includes('hero-placeholder'))
 assert(detailView.includes('ingredientCategoryInfo.emoji'))
 assert(detailStyle.includes('.hero-placeholder'))
+assert(detailView.includes('detail-loading-mask'))
+assert(detailView.includes('正在端上这道菜'))
+assert(detailView.includes('retryLoadRecipe'))
+assert(detailPage.includes('this.resolveRecipeImages()).then(() =>'))
+assert(detailPage.includes('return this.checkFavoriteStatus()'))
+assert(detailStyle.includes('z-index: 3000'))
 
 // 馋图不再是必填
 const formPage = fs.readFileSync('pages/recipe-form/recipe-form.js', 'utf8')
