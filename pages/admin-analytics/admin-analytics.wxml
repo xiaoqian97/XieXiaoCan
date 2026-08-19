@@ -40,7 +40,7 @@
     <view class="section-title">用户活跃明细</view>
     <view wx:if="{{!users.length}}" class="empty-inline">当前周期暂无活跃用户</view>
     <view class="user-card" wx:for="{{users}}" wx:key="userId">
-      <image class="avatar" src="{{item.avatar}}" mode="aspectFill" />
+      <cloud-image class="avatar" custom-class="avatar" src="{{item.avatar}}" fallback="/images/default-avatar.png" />
       <view class="user-main">
         <view class="user-name-line"><text class="user-name">{{item.nickname}}</text><text class="role-tag">{{item.roleLabel}}</text></view>
         <text class="user-sub">进入 {{item.sessionCount}} 次 · 累计 {{item.durationText}} · 平均 {{item.averageText}}</text>
@@ -55,7 +55,7 @@
     <view wx:if="{{!chefs.length}}" class="empty-inline">暂无投喂官数据</view>
     <view class="chef-card" wx:for="{{chefs}}" wx:key="openid">
       <view class="chef-head" data-openid="{{item.openid}}" bindtap="toggleChef">
-        <image class="avatar" src="{{item.avatar}}" mode="aspectFill" />
+        <cloud-image class="avatar" custom-class="avatar" src="{{item.avatar}}" fallback="/images/default-avatar.png" />
         <view class="chef-name-wrap"><text class="user-name">{{item.nickname}}</text><text class="user-sub">最近添加：{{item.latestRecipeText}}</text></view>
         <text class="expand-icon">{{expandedChef === item.openid ? '⌃' : '⌄'}}</text>
       </view>
@@ -70,7 +70,7 @@
       <view wx:if="{{expandedChef === item.openid}}" class="recipe-list">
         <view wx:if="{{!item.recipes.length}}" class="empty-inline">该投喂官还没有菜谱</view>
         <view class="recipe-row" wx:for="{{item.recipes}}" wx:key="_id" wx:for-item="recipe">
-          <image class="recipe-image" src="{{recipe.displayImage}}" mode="aspectFill" />
+          <cloud-image class="recipe-image" custom-class="recipe-image" src="{{recipe.displayImage}}" original-src="{{recipe.image}}" fallback="/images/default-recipe.jpg" />
           <view class="recipe-body">
             <view class="recipe-title"><text>{{recipe.name}}</text><text class="status-tag {{recipe.status}}">{{recipe.statusLabel}}</text></view>
             <text class="recipe-stats">查看 {{recipe.viewCount}} · 收藏 {{recipe.favoriteCount}} · 下单 {{recipe.salesCount}} · 评分 {{recipe.ratingAverage || '-'}}</text>

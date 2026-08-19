@@ -11,13 +11,13 @@
   <view class="feedback-list">
     <view wx:for="{{items}}" wx:key="_id" wx:for-index="itemIndex" class="feedback-card">
       <view class="card-head">
-        <image class="user-avatar" src="{{item.displayAvatar}}" mode="aspectFill"></image>
+        <cloud-image class="user-avatar" custom-class="user-avatar" src="{{item.displayAvatar}}" original-src="{{item.avatar}}" fallback="/images/default-avatar.png"></cloud-image>
         <view class="user-info"><text class="user-name">{{item.creatorName}}</text><text class="submit-time">{{item.displayTime}}</text></view>
         <text class="type-badge {{item.type}}">{{item.typeLabel}}</text>
       </view>
       <text class="feedback-description">{{item.description}}</text>
       <view wx:if="{{item.displayImages.length}}" class="feedback-images">
-        <image wx:for="{{item.displayImages}}" wx:key="*this" wx:for-index="imageIndex" class="feedback-image" src="{{item}}" mode="aspectFill" data-item-index="{{itemIndex}}" data-image-index="{{imageIndex}}" bindtap="previewImage"></image>
+        <cloud-image wx:for="{{item.displayImages}}" wx:key="*this" wx:for-index="imageIndex" class="feedback-image" custom-class="feedback-image" src="{{item}}" data-item-index="{{itemIndex}}" data-image-index="{{imageIndex}}" bindtap="previewImage"></cloud-image>
       </view>
       <view class="card-actions">
         <text class="status-label {{item.status}}">{{item.status === 'processed' ? '已处理' : '待处理'}}</text>

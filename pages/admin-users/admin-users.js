@@ -55,6 +55,19 @@ Page({
     this.refreshUsers()
   },
 
+  onCopySearchCode(e) {
+    const searchCode = String(e.currentTarget.dataset.code || '').trim()
+    if (!searchCode) {
+      util.showError('该用户还没有搜索码')
+      return
+    }
+    wx.setClipboardData({
+      data: searchCode,
+      success: () => wx.showToast({ title: '搜索码已复制', icon: 'success' }),
+      fail: () => util.showError('复制失败，请稍后重试')
+    })
+  },
+
   onRoleFilter(e) {
     this.setData({ currentRole: e.currentTarget.dataset.role || '' })
     this.refreshUsers()

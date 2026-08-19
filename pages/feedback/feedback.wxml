@@ -39,7 +39,7 @@
     <text class="image-tip">可上传页面截图，单张不超过 5MB</text>
     <view class="image-list">
       <view wx:for="{{images}}" wx:key="*this" class="image-item">
-        <image src="{{item}}" mode="aspectFill" data-index="{{index}}" bindtap="previewImage"></image>
+        <cloud-image src="{{item}}" fallback="/images/default-recipe.jpg" data-index="{{index}}" bindtap="previewImage"></cloud-image>
         <view class="remove-image" data-index="{{index}}" catchtap="removeImage">×</view>
       </view>
       <view wx:if="{{images.length < maxImages}}" class="add-image" bindtap="chooseImages">

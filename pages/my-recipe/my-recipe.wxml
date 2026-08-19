@@ -254,7 +254,7 @@
       <scroll-view class="favorite-user-scroll" scroll-y="true" show-scrollbar="{{false}}">
         <view class="favorite-user-list">
           <view wx:for="{{favoriteUsers}}" wx:key="openid" class="favorite-user-pill">
-            <image class="favorite-user-avatar" src="{{item.displayAvatar}}" mode="aspectFill" />
+            <cloud-image class="favorite-user-avatar" custom-class="favorite-user-avatar" src="{{item.displayAvatar}}" original-src="{{item.avatar}}" fallback="/images/default-avatar.png" />
             <text class="favorite-user-name">{{item.nickname || '微信用户'}}</text>
           </view>
         </view>
@@ -278,7 +278,7 @@
       <scroll-view class="favorite-user-scroll" scroll-y="true" show-scrollbar="{{false}}">
         <view class="favorite-user-list">
           <view wx:for="{{viewerUsers}}" wx:key="openid" class="favorite-user-pill viewer-user-pill">
-            <image class="favorite-user-avatar" src="{{item.displayAvatar}}" mode="aspectFill" />
+            <cloud-image class="favorite-user-avatar" custom-class="favorite-user-avatar" src="{{item.displayAvatar}}" original-src="{{item.avatar}}" fallback="/images/default-avatar.png" />
             <text class="favorite-user-name">{{item.nickname || '微信用户'}}</text>
             <text class="viewer-user-count">{{item.viewCount}} 次</text>
           </view>

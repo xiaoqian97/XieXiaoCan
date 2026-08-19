@@ -3,7 +3,6 @@ const cloud = require('wx-server-sdk')
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
-const PRIMARY_ADMIN_OPENID = 'oyWDkxVwYIHb3adMU4PpCl9rWUqI'
 
 exports.main = async event => {
   const openid = cloud.getWXContext().OPENID
@@ -161,7 +160,8 @@ async function processFeedback(openid, feedbackId) {
 
 async function requireAdmin(openid) {
   const [user, config] = await Promise.all([getUser(openid), getFamilyConfig()])
-  const primaryAdminOpenid = config.adminOpenid || PRIMARY_ADMIN_OPENID
+  const primaryAdminOpenid = config.adminOpenid
+  if (!primaryAdminOpenid) throw new Error('主管理员尚未配置')
   if (openid !== primaryAdminOpenid && !user.isAdmin && user.role !== 'admin') {
     throw new Error('无管理员权限')
   }

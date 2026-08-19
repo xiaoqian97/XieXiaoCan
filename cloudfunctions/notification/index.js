@@ -15,7 +15,7 @@ exports.main = async (event, context) => {
       case 'createShareNotification':
         return await createShareNotification(openid, event)
       case 'list':
-        return await listNotifications(openid)
+        return await listNotifications(openid, event)
       case 'getFirstUnread':
         return await getFirstUnread(openid)
       case 'markRead':
@@ -110,21 +110,31 @@ async function createWishShare(openid, wishId) {
   })
 }
 
-async function listNotifications(openid) {
-  const result = await db.collection('notifications')
-    .where({ recipientId: openid })
-    .orderBy('createdAt', 'desc')
-    .limit(50)
-    .get()
+async function listNotifications(openid, event = {}) {
+  const page = Math.max(1, Number(event.page) || 1)
+  const limit = Math.min(50, Math.max(1, Number(event.limit) || 20))
+  const query = db.collection('notifications').where({ recipientId: openid })
+  const [result, countResult, unreadResult] = await Promise.all([
+    query.orderBy('createdAt', 'desc').skip((page - 1) * limit).limit(limit).get(),
+    query.count(),
+    db.collection('notifications').where({ recipientId: openid, read: false }).count()
+  ])
 
   return {
     success: true,
-    data: result.data.map(item => ({
-      ...item,
-      title: sanitizeTerminology(item.title),
-      content: sanitizeTerminology(sanitizeLegacyWishContent(item)),
-      createdAtText: formatDate(item.createdAt)
-    }))
+    data: {
+      notifications: result.data.map(item => ({
+        ...item,
+        title: sanitizeTerminology(item.title),
+        content: sanitizeTerminology(sanitizeLegacyWishContent(item)),
+        createdAtText: formatDate(item.createdAt)
+      })),
+      total: countResult.total,
+      unreadCount: unreadResult.total,
+      page,
+      limit,
+      hasMore: page * limit < countResult.total
+    }
   }
 }
 
@@ -272,24 +282,9 @@ async function getUser(openid) {
 }
 
 async function getSubscribeConfig() {
-  let config = await getFamilyConfig()
-  let templates = config.subscribeTemplates || {}
-  let templateIds = getTemplateIds(templates)
-  if (!templateIds.length) {
-    const existingConfigs = await db.collection('app_config').limit(20).get()
-    const configuredRecord = existingConfigs.data.find(item => (
-      item && item.chefOpenid && getTemplateIds(item.subscribeTemplates || {}).length
-    ))
-    if (configuredRecord) {
-      const { _id, ...configuredData } = configuredRecord
-      config = configuredData
-      templates = config.subscribeTemplates || {}
-      templateIds = getTemplateIds(templates)
-      await db.collection('app_config').doc('family').set({
-        data: { ...config, updatedAt: new Date() }
-      })
-    }
-  }
+  const config = await getFamilyConfig()
+  const templates = config.subscribeTemplates || {}
+  const templateIds = getTemplateIds(templates)
   if (!templateIds.length) {
     return { success: false, message: '订阅模板 ID 未正确配置，请替换示例文字并填写公众平台中的真实模板 ID' }
   }
@@ -332,14 +327,7 @@ async function getFamilyConfig() {
     const result = await db.collection('app_config').doc('family').get()
     if (result.data) return result.data
   } catch (error) {
-    // 统一转换为用户可理解的配置提示。
-  }
-  const existingConfigs = await db.collection('app_config').limit(20).get()
-  const existingConfig = existingConfigs.data.find(item => item && item.chefOpenid)
-  if (existingConfig) {
-    const { _id, ...config } = existingConfig
-    await db.collection('app_config').doc('family').set({ data: { ...config, updatedAt: new Date() } })
-    return config
+    throw new Error('系统配置读取失败，请检查 app_config/family')
   }
   throw new Error('缺少 app_config/family 配置，请在云数据库中创建记录 ID 为 family 的记录')
 }

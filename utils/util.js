@@ -35,6 +35,25 @@ const cloudImageCacheAt = Object.create(null)
 // 云存储临时地址有有效期，内存中只短时复用，避免小程序长时间停留后继续使用旧地址。
 const CLOUD_IMAGE_CACHE_TTL = 30 * 60 * 1000
 
+const getCloudOwner = explicitOpenid => {
+  let openid = String(explicitOpenid || '')
+  if (!openid) {
+    try {
+      const app = getApp()
+      openid = String((app && app.globalData && app.globalData.openid) || wx.getStorageSync('openid') || '')
+    } catch (error) {
+      openid = String(wx.getStorageSync('openid') || '')
+    }
+  }
+  return openid.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64) || 'pending'
+}
+
+const buildUserCloudPath = (folder, fileName, explicitOpenid) => {
+  const safeFolder = String(folder || 'files').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32) || 'files'
+  const safeFileName = String(fileName || `${Date.now()}.jpg`).replace(/[^a-zA-Z0-9._-]/g, '-').slice(-100)
+  return `${safeFolder}/${getCloudOwner(explicitOpenid)}/${safeFileName}`
+}
+
 const isCloudFile = url => typeof url === 'string' && url.indexOf('cloud://') === 0
 
 const getCachedCloudImage = fileID => {
@@ -333,6 +352,7 @@ module.exports = {
   invalidateCloudImage,
   DEFAULT_RECIPE_IMAGE,
   DEFAULT_AVATAR,
+  buildUserCloudPath,
   showLoading,
   hideLoading,
   showSuccess,

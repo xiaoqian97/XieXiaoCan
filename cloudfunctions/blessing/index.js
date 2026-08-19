@@ -4,7 +4,6 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 const _ = db.command
-const PRIMARY_ADMIN_OPENID = 'oyWDkxVwYIHb3adMU4PpCl9rWUqI'
 
 const FESTIVALS = {
   new_year: { name: '元旦', icon: '🎆', themeKey: 'new-year', title: '新年第一份祝福', content: '新的一年，也要继续和喜欢的人好好吃饭。' },
@@ -75,6 +74,7 @@ async function getAdminLogs(event) {
   const currentPage = filtered.slice((page - 1) * pageSize, page * pageSize)
   const userIds = [...new Set(currentPage.flatMap(item => [item.senderId, item.recipientId]).filter(id => id && id !== 'system'))]
   const users = await getUsers(userIds)
+  const items = await attachAdminAvatarUrls(currentPage.map(item => formatAdminLogItem(item, users)))
 
   return {
     success: true,
@@ -82,7 +82,7 @@ async function getAdminLogs(event) {
       category,
       status: statusFilter,
       summary: summarizeBlessings(records),
-      items: currentPage.map(item => formatAdminLogItem(item, users)),
+      items,
       total: filtered.length,
       page,
       hasMore: page * pageSize < filtered.length
@@ -95,15 +95,47 @@ async function getAdminLogDetail(id) {
   const item = await getRecord('blessings', id)
   if (!item) throw new Error('祝福日志不存在')
   const users = await getUsers([item.senderId, item.recipientId].filter(id => id && id !== 'system'))
+  const [formattedItem] = await attachAdminAvatarUrls([formatAdminLogItem(item, users)])
   return {
     success: true,
     data: {
-      ...formatAdminLogItem(item, users),
+      ...formattedItem,
       content: item.content || '',
       contentHtml: item.contentHtml || '',
       wechatMessage: item.wechatMessage || '',
       failReason: item.failReason || ''
     }
+  }
+}
+
+async function attachAdminAvatarUrls(items = []) {
+  const fileIDs = [...new Set(items.flatMap(item => [item.senderAvatar, item.recipientAvatar])
+    .filter(value => typeof value === 'string' && value.startsWith('cloud://')))]
+  if (!fileIDs.length) {
+    return items.map(item => ({
+      ...item,
+      displaySenderAvatar: item.senderAvatar,
+      displayRecipientAvatar: item.recipientAvatar
+    }))
+  }
+  try {
+    const result = await cloud.getTempFileURL({ fileList: fileIDs })
+    const urlMap = (result.fileList || []).reduce((map, file) => {
+      if (file.fileID && file.tempFileURL) map[file.fileID] = file.tempFileURL
+      return map
+    }, {})
+    return items.map(item => ({
+      ...item,
+      displaySenderAvatar: urlMap[item.senderAvatar] || item.senderAvatar,
+      displayRecipientAvatar: urlMap[item.recipientAvatar] || item.recipientAvatar
+    }))
+  } catch (error) {
+    console.error('祝福日志头像地址转换失败:', error)
+    return items.map(item => ({
+      ...item,
+      displaySenderAvatar: item.senderAvatar,
+      displayRecipientAvatar: item.recipientAvatar
+    }))
   }
 }
 
@@ -558,8 +590,8 @@ async function getFamilyConfig() {
 
 async function requirePrimaryAdmin(openid) {
   const config = await getFamilyConfig()
-  const primaryAdminOpenid = config.adminOpenid || PRIMARY_ADMIN_OPENID
-  if (openid !== primaryAdminOpenid) throw new Error('仅主管理员可以查看祝福日志')
+  if (!config.adminOpenid) throw new Error('主管理员尚未配置')
+  if (openid !== config.adminOpenid) throw new Error('仅主管理员可以查看祝福日志')
 }
 
 async function getAllRecords(collection, condition) {

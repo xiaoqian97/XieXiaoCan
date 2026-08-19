@@ -92,7 +92,7 @@ Page({
   uploadImages() {
     if (!this.data.images.length) return Promise.resolve([])
     return Promise.all(this.data.images.map((filePath, index) => {
-      const cloudPath = `feedbacks/${Date.now()}-${index}-${Math.random().toString(36).slice(-6)}.jpg`
+      const cloudPath = util.buildUserCloudPath('feedbacks', `${Date.now()}-${index}-${Math.random().toString(36).slice(-6)}.jpg`)
       return util.uploadFile(filePath, cloudPath).then(result => result.fileID)
     }))
   }

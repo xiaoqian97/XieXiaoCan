@@ -1,4 +1,5 @@
 const cloud = require('wx-server-sdk')
+const crypto = require('crypto')
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
@@ -46,20 +47,37 @@ async function toggleFavorite(userId, recipeId) {
     return { success: false, message: '这道菜暂时不能收藏' }
   }
 
-  const result = await db.collection('favorites').where({ userId, recipeId }).limit(1).get()
-  if (result.data.length) {
-    await db.collection('favorites').doc(result.data[0]._id).remove()
-    return { success: true, data: { isFavorited: false } }
+  const favoriteId = buildFavoriteId(userId, recipeId)
+  const legacyResult = await db.collection('favorites').where({ userId, recipeId }).get()
+  const legacyIds = legacyResult.data.map(item => item._id).filter(id => id !== favoriteId)
+  if (legacyResult.data.length && !legacyResult.data.some(item => item._id === favoriteId)) {
+    await db.collection('favorites').doc(favoriteId).set({
+      data: { userId, recipeId, createdAt: legacyResult.data[0].createdAt || new Date() }
+    })
+  }
+  if (legacyIds.length) {
+    await Promise.all(legacyIds.map(id => db.collection('favorites').doc(id).remove()))
   }
 
-  await db.collection('favorites').add({
-    data: {
-      userId,
-      recipeId,
-      createdAt: new Date()
+  return db.runTransaction(async transaction => {
+    const favoriteRef = transaction.collection('favorites').doc(favoriteId)
+    try {
+      const existing = await favoriteRef.get()
+      if (existing.data) {
+        await favoriteRef.remove()
+        return { success: true, data: { isFavorited: false } }
+      }
+    } catch (error) {
+      // 文档不存在时继续新增。
     }
+    await favoriteRef.set({ data: { userId, recipeId, createdAt: new Date() } })
+    return { success: true, data: { isFavorited: true } }
   })
-  return { success: true, data: { isFavorited: true } }
+}
+
+function buildFavoriteId(userId, recipeId) {
+  const digest = crypto.createHash('sha256').update(`${userId}:${recipeId}`).digest('hex').slice(0, 32)
+  return `favorite_${digest}`
 }
 
 async function listFriendFavorites(openid, event = {}) {

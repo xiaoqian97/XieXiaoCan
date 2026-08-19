@@ -1237,7 +1237,7 @@ Page({
 
     const uploadPromises = filePaths.map((filePath, index) => {
       return new Promise((resolve, reject) => {
-        const cloudPath = `recipes/${Date.now()}-${index}-${Math.random().toString(36).slice(-6)}.jpg`
+        const cloudPath = util.buildUserCloudPath('recipes', `${Date.now()}-${index}-${Math.random().toString(36).slice(-6)}.jpg`)
 
         wx.cloud.uploadFile({
           cloudPath,
@@ -1392,7 +1392,7 @@ Page({
   uploadStepImage(tempFilePath, stepIndex) {
     wx.showLoading({ title: '上传图片中...' })
 
-    const cloudPath = `steps/${Date.now()}-${Math.random().toString(36).slice(-6)}.jpg`
+    const cloudPath = util.buildUserCloudPath('recipes', `steps-${Date.now()}-${Math.random().toString(36).slice(-6)}.jpg`)
 
     wx.cloud.uploadFile({
       cloudPath,

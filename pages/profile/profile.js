@@ -1,15 +1,7 @@
 const app = getApp()
 const util = require('../../utils/util')
-const PRIMARY_ADMIN_OPENID = 'oyWDkxVwYIHb3adMU4PpCl9rWUqI'
-
 function isPrimaryAdmin(userInfo) {
-  return Boolean(
-    userInfo && (
-      userInfo.isPrimaryAdmin ||
-      userInfo.openid === PRIMARY_ADMIN_OPENID ||
-      app.globalData.openid === PRIMARY_ADMIN_OPENID
-    )
-  )
+  return Boolean(userInfo && userInfo.isPrimaryAdmin)
 }
 
 function getIdentityMeta(userInfo, isPreviewMode) {
@@ -521,7 +513,7 @@ Page({
         const tempFilePath = res.tempFiles[0].tempFilePath
         // 跳转到自定义裁剪页面
         wx.navigateTo({
-          url: `/pages/avatar-cropper/avatar-cropper?src=${tempFilePath}`
+          url: `/pages/avatar-cropper/avatar-cropper?src=${encodeURIComponent(tempFilePath)}`
         })
       }
     })
@@ -534,7 +526,7 @@ Page({
     // 裁剪器会按设备像素比导出图片，部分高清设备生成的文件较大。
     // 先压缩再上传，避免云函数下载和安全检测图片时超时。
     this.compressAvatar(tempFilePath).then(filePath => {
-      const cloudPath = `avatars/${Date.now()}-${Math.random().toString(36).substr(2)}.jpg`
+      const cloudPath = util.buildUserCloudPath('avatars', `${Date.now()}-${Math.random().toString(36).substr(2)}.jpg`)
       return util.uploadFile(filePath, cloudPath)
     }).then(res => {
       this.updateUserAvatar(res.fileID)
@@ -566,22 +558,8 @@ Page({
     util.callCloudFunction('user', {
       action: 'updateProfile',
       avatar: avatarUrl
-    }).then(res => {
-      util.hideLoading()
-
-      // 更新全局用户信息
-      app.globalData.userInfo.avatar = avatarUrl
-
-      // 更新本地存储
-      wx.setStorageSync('userInfo', app.globalData.userInfo)
-
-      // 更新页面显示
-      this.setData({
-        'userInfo.avatar': avatarUrl
-      })
-      this.resolveUserAvatar()
-
-      util.showSuccess('头像更新成功')
+    }).then(() => {
+      this.finishAvatarUpdate(avatarUrl)
     }).catch(err => {
       const isTransientCloudError = err && (
         Number(err.errCode) === -504003 ||
@@ -591,10 +569,33 @@ Page({
         setTimeout(() => this.updateUserAvatar(avatarUrl, retryCount + 1), 1200)
         return
       }
+      if (isTransientCloudError) {
+        util.callCloudFunction('user', { action: 'getProfile' }).then(res => {
+          if (res.data && res.data.user && res.data.user.avatar === avatarUrl) {
+            this.finishAvatarUpdate(avatarUrl)
+          } else {
+            throw err
+          }
+        }).catch(() => {
+          util.hideLoading()
+          util.showError('头像更新超时，请稍后重试')
+        })
+        return
+      }
       util.hideLoading()
       util.showError(isTransientCloudError ? '头像更新超时，请稍后重试' : (err.message || '头像更新失败'))
       console.error('更新失败', err)
     })
+  },
+
+  finishAvatarUpdate: function(avatarUrl) {
+    const app = getApp()
+    util.hideLoading()
+    app.globalData.userInfo = { ...(app.globalData.userInfo || {}), avatar: avatarUrl }
+    wx.setStorageSync('userInfo', app.globalData.userInfo)
+    this.setData({ 'userInfo.avatar': avatarUrl })
+    this.resolveUserAvatar()
+    util.showSuccess('头像更新成功')
   },
 
   // 编辑昵称

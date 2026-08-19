@@ -37,7 +37,7 @@
 
     <view wx:elif="{{isReturningUser && !hasUserInfo}}" class="login-area returning-area">
       <text class="returning-title">欢迎回来</text>
-      <image class="returning-avatar" src="{{returningAvatar || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+      <cloud-image class="returning-avatar" custom-class="returning-avatar" src="{{returningAvatar}}" fallback="/images/default-avatar.png"></cloud-image>
       <text class="returning-name">{{returningUserInfo.nickname}}</text>
       <text class="returning-desc">资料和身份已为你保存，无需重新填写</text>
       <button class="login-btn" bindtap="enterApp">登录并进入</button>
@@ -51,7 +51,7 @@
       </view>
 
       <button class="avatar-picker" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
-        <image class="avatar-preview" src="{{avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+        <cloud-image class="avatar-preview" custom-class="avatar-preview" src="{{avatarUrl}}" fallback="/images/default-avatar.png"></cloud-image>
         <text>选个投喂头像</text>
       </button>
 
@@ -89,12 +89,12 @@
 
     <!-- 已登录状态 -->
     <view wx:else class="logged-in">
-      <image class="user-avatar" src="{{userInfo.avatar}}"></image>
+      <cloud-image class="user-avatar" custom-class="user-avatar" src="{{userInfo.avatar}}" fallback="/images/default-avatar.png"></cloud-image>
       <text class="user-name">{{userInfo.nickname}}</text>
       <text class="login-success">干饭模式已启动</text>
 
       <button class="avatar-picker compact" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
-        <image class="avatar-preview" src="{{avatarUrl || userInfo.avatar || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+        <cloud-image class="avatar-preview" custom-class="avatar-preview" src="{{avatarUrl || userInfo.avatar}}" original-src="{{userInfo.avatar}}" fallback="/images/default-avatar.png"></cloud-image>
         <text>更新投喂头像</text>
       </button>
 

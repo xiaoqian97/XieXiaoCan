@@ -30,7 +30,7 @@
         <!-- 已上传的图片 -->
         <block wx:for="{{formData.images}}" wx:key="index">
           <view class="image-item">
-            <image class="uploaded-image" src="{{item}}" mode="aspectFill" />
+            <cloud-image class="uploaded-image" custom-class="uploaded-image" src="{{item}}" fallback="/images/default-recipe.jpg" />
             <view wx:if="{{index === 0}}" class="cover-badge">封面</view>
             <view wx:else class="set-cover-button" data-index="{{index}}" catchtap="setCoverImage">设为封面</view>
             <view class="image-delete" bindtap="removeImage" data-index="{{index}}">
@@ -312,7 +312,7 @@
             <view class="step-image-section">
               <block wx:if="{{item.image}}">
                 <view class="step-image-item">
-                  <image class="step-uploaded-image" src="{{item.image}}" mode="aspectFill" />
+                  <cloud-image class="step-uploaded-image" custom-class="step-uploaded-image" src="{{item.image}}" fallback="/images/default-recipe.jpg" />
                   <view class="step-image-delete" bindtap="removeStepImage" data-index="{{index}}">
                     <van-icon name="cross" size="12px" color="#fff" />
                   </view>

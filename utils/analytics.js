@@ -11,7 +11,8 @@ const startSession = () => {
   if (currentSession) return Promise.resolve(currentSession.sessionId)
   const app = getApp()
   if (!app || !app.isLoggedIn || !app.isLoggedIn() || app.globalData.isPreviewMode) return Promise.resolve('')
-  const sessionId = `s_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+  const ownerSuffix = String(app.globalData.openid || '').replace(/[^A-Za-z0-9_-]/g, '').slice(-10) || 'anonymous'
+  const sessionId = `s_${ownerSuffix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
   currentSession = { sessionId, startedAt: Date.now() }
   heartbeatTimer = setInterval(() => updateSession(false), 30000)
   return callAnalytics({

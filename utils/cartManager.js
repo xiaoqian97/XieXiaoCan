@@ -6,6 +6,7 @@
 const CART_KEY = 'food_cart_data'
 const MAX_ITEMS = 20
 let syncTimer = null
+let mutationVersion = 0
 
 function getCurrentOpenid() {
   try {
@@ -44,8 +45,13 @@ function getCartData() {
       cartData.cartItems = cartData.cartItems.map(item => ({
         ...item,
         cartKey: getCartKey(item),
-        type: item.type || (item.wishId ? 'wish' : 'recipe')
+        type: item.type || (item.wishId ? 'wish' : 'recipe'),
+        updatedAt: item.updatedAt || item.addedAt || new Date(0).toISOString()
       }))
+      cartData.deletedKeys = cartData.deletedKeys && typeof cartData.deletedKeys === 'object'
+        ? cartData.deletedKeys
+        : {}
+      cartData.revision = Number(cartData.revision) || 0
       cartData.totalCount = cartData.cartItems.length
       cartData.selectedCount = cartData.cartItems.filter(item => item.isSelected).length
     }
@@ -53,6 +59,8 @@ function getCartData() {
       cartItems: [],
       totalCount: 0,
       selectedCount: 0,
+      deletedKeys: {},
+      revision: 0,
       lastUpdated: new Date(0).toISOString()
     }
   } catch (error) {
@@ -61,6 +69,8 @@ function getCartData() {
       cartItems: [],
       totalCount: 0,
       selectedCount: 0,
+      deletedKeys: {},
+      revision: 0,
       lastUpdated: new Date(0).toISOString()
     }
   }
@@ -71,9 +81,11 @@ function getCartData() {
  */
 function saveCartData(cartData) {
   try {
-    cartData.lastUpdated = new Date()
+    cartData.lastUpdated = new Date().toISOString()
+    cartData.deletedKeys = cartData.deletedKeys || {}
+    mutationVersion += 1
     wx.setStorageSync(getStorageKey(), cartData)
-    scheduleCloudSync(cartData)
+    scheduleCloudSync(cartData, mutationVersion)
     return true
   } catch (error) {
     console.error('保存购物车数据失败:', error)
@@ -97,6 +109,7 @@ function addToCart(recipe) {
   }
   
   const cartKey = getCartKey(recipe)
+  const now = new Date().toISOString()
   // 检查是否已存在
   const existingIndex = cartItems.findIndex(item => getCartKey(item) === cartKey)
   
@@ -115,7 +128,8 @@ function addToCart(recipe) {
       preparationTime: recipe.preparationTime ? recipe.preparationTime.label : '',
       difficulty: recipe.difficulty ? recipe.difficulty.label : '',
       servingSize: recipe.servingSize ? recipe.servingSize.label : '',
-      addedAt: new Date().toISOString(),
+      addedAt: cartItems[existingIndex].addedAt || now,
+      updatedAt: now,
       isSelected: true
     }
   } else {
@@ -133,7 +147,8 @@ function addToCart(recipe) {
       preparationTime: recipe.preparationTime ? recipe.preparationTime.label : '',
       difficulty: recipe.difficulty ? recipe.difficulty.label : '',
       servingSize: recipe.servingSize ? recipe.servingSize.label : '',
-      addedAt: new Date().toISOString(),
+      addedAt: now,
+      updatedAt: now,
       isSelected: true
     })
   }
@@ -147,9 +162,10 @@ function addToCart(recipe) {
     success: saveResult,
     message: saveResult ? '已放进饭篮' : '没放进去'
   }
+  delete cartData.deletedKeys[cartKey]
 }
 
-function scheduleCloudSync(cartData) {
+function scheduleCloudSync(cartData, version = mutationVersion) {
   if (!getCurrentOpenid() || !wx.cloud) return
   if (syncTimer) clearTimeout(syncTimer)
   syncTimer = setTimeout(() => {
@@ -158,7 +174,12 @@ function scheduleCloudSync(cartData) {
       name: 'cart',
       data: { action: 'save', cartData }
     }).then(res => {
-      if (res.result && res.result.success) require('./analytics').trackEvent('cart_update')
+      if (res.result && res.result.success) {
+        if (res.result.data && version === mutationVersion) {
+          wx.setStorageSync(getStorageKey(), res.result.data)
+        }
+        require('./analytics').trackEvent('cart_update')
+      }
     }).catch(error => console.error('饭篮云端同步失败:', error))
   }, 300)
 }
@@ -166,21 +187,11 @@ function scheduleCloudSync(cartData) {
 function syncFromCloud() {
   if (!getCurrentOpenid() || !wx.cloud) return Promise.resolve(getCartData())
   const local = getCartData()
-  return wx.cloud.callFunction({ name: 'cart', data: { action: 'get' } }).then(res => {
-    const remote = res.result && res.result.success ? res.result.data : null
-    if (!remote) {
-      scheduleCloudSync(local)
-      return local
-    }
-
-    const localTime = new Date(local.lastUpdated || 0).getTime() || 0
-    const remoteTime = new Date(remote.lastUpdated || 0).getTime() || 0
-    if (remoteTime >= localTime) {
-      wx.setStorageSync(getStorageKey(), remote)
-      return getCartData()
-    }
-    scheduleCloudSync(local)
-    return local
+  const version = mutationVersion
+  return wx.cloud.callFunction({ name: 'cart', data: { action: 'save', cartData: local } }).then(res => {
+    const merged = res.result && res.result.success ? res.result.data : null
+    if (merged && version === mutationVersion) wx.setStorageSync(getStorageKey(), merged)
+    return merged && version === mutationVersion ? getCartData() : local
   }).catch(error => {
     console.error('获取云端饭篮失败:', error)
     return local
@@ -215,15 +226,18 @@ function addWishToCart(wish) {
     servingSize: wish.servingSize ? wish.servingSize.label : '',
     note: wish.displayNote || wish.description || wish.note || '',
     addedAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     isSelected: true
   }
 
   const existingIndex = cartItems.findIndex(cartItem => getCartKey(cartItem) === cartKey)
   if (existingIndex !== -1) {
+    item.addedAt = cartItems[existingIndex].addedAt || item.addedAt
     cartItems[existingIndex] = item
   } else {
     cartItems.push(item)
   }
+  delete cartData.deletedKeys[cartKey]
 
   cartData.totalCount = cartItems.length
   cartData.selectedCount = cartItems.filter(item => item.isSelected).length
@@ -242,7 +256,11 @@ function removeFromCart(recipeId) {
   const cartData = getCartData()
   const { cartItems } = cartData
   
+  const removedItems = cartItems.filter(item => getCartKey(item) === recipeId || item.recipeId === recipeId)
   const filteredItems = cartItems.filter(item => getCartKey(item) !== recipeId && item.recipeId !== recipeId)
+  const removedAt = new Date().toISOString()
+  cartData.deletedKeys = cartData.deletedKeys || {}
+  removedItems.forEach(item => { cartData.deletedKeys[getCartKey(item)] = removedAt })
   
   cartData.cartItems = filteredItems
   cartData.totalCount = filteredItems.length
@@ -254,8 +272,12 @@ function removeFromCart(recipeId) {
 function removeByAuthor(authorId) {
   if (!authorId) return false
   const cartData = getCartData()
+  const removedAt = new Date().toISOString()
+  const removedItems = cartData.cartItems.filter(item => item.authorId === authorId)
   const cartItems = cartData.cartItems.filter(item => item.authorId !== authorId)
   if (cartItems.length === cartData.cartItems.length) return true
+  cartData.deletedKeys = cartData.deletedKeys || {}
+  removedItems.forEach(item => { cartData.deletedKeys[getCartKey(item)] = removedAt })
   cartData.cartItems = cartItems
   cartData.totalCount = cartItems.length
   cartData.selectedCount = cartItems.filter(item => item.isSelected).length
@@ -266,11 +288,17 @@ function removeByAuthor(authorId) {
  * 清空购物车
  */
 function clearCart() {
+  const current = getCartData()
+  const deletedAt = new Date().toISOString()
+  const deletedKeys = { ...(current.deletedKeys || {}) }
+  current.cartItems.forEach(item => { deletedKeys[getCartKey(item)] = deletedAt })
   const cartData = {
     cartItems: [],
     totalCount: 0,
     selectedCount: 0,
-    lastUpdated: new Date()
+    deletedKeys,
+    revision: current.revision || 0,
+    lastUpdated: deletedAt
   }
   return saveCartData(cartData)
 }
@@ -285,6 +313,7 @@ function toggleRecipeSelection(recipeId) {
   const item = cartItems.find(item => getCartKey(item) === recipeId || item.recipeId === recipeId)
   if (item) {
     item.isSelected = !item.isSelected
+    item.updatedAt = new Date().toISOString()
     cartData.selectedCount = cartItems.filter(item => item.isSelected).length
     return saveCartData(cartData)
   }

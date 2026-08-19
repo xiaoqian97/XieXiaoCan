@@ -110,8 +110,12 @@ Page({
 
 
     // 先获取图片信息，确保文件存在
+    let sourcePath = option.src
+    try {
+      sourcePath = decodeURIComponent(option.src)
+    } catch (error) {}
     wx.getImageInfo({
-      src: option.src,
+      src: sourcePath,
       success: (res) => {
         cropperOpt.src = res.path // 使用获取到的有效路径
         this.initCropper(cropperOpt)

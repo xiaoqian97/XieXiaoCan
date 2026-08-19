@@ -1,4 +1,5 @@
 const cloud = require('wx-server-sdk')
+const crypto = require('crypto')
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
@@ -64,7 +65,9 @@ exports.main = async (event, context) => {
 
 // 创建订单
 async function createOrder(openid, orderData) {
-  const { recipes, assigneeId, mealType, orderDate, orderTime, notes } = orderData
+  const { recipes, assigneeId, mealType, orderDate, orderTime, notes } = orderData || {}
+  const requestId = normalizeOrderRequestId(orderData && orderData.requestId)
+  if (!requestId) return { success: false, message: '提交标识无效，请重新提交' }
 
   const currentUser = await getUserByOpenid(openid)
   const familyConfig = await getFamilyConfig()
@@ -125,25 +128,47 @@ async function createOrder(openid, orderData) {
     notes: notes || '',
     totalRecipes: recipes.length,
     estimatedTime,
+    requestId,
     createdAt: new Date(),
     updatedAt: new Date()
   }
 
-  const result = await db.collection('orders').add({
-    data: order
+  const orderId = buildOrderId(openid, requestId)
+  const transactionResult = await db.runTransaction(async transaction => {
+    const orderRef = transaction.collection('orders').doc(orderId)
+    try {
+      const existing = await orderRef.get()
+      if (existing.data) return { created: false, order: existing.data }
+    } catch (error) {
+      // 文档不存在时继续创建。
+    }
+    await orderRef.set({ data: order })
+    return { created: true, order }
   })
 
-  await markWishesOrdered(openid, recipes, result._id)
+  if (!transactionResult.created) {
+    return {
+      success: true,
+      data: {
+        orderId,
+        orderNo: transactionResult.order.orderNo,
+        duplicate: true,
+        message: '投喂单已提交，请勿重复操作'
+      }
+    }
+  }
+
+  await markWishesOrdered(openid, recipes, orderId)
   await updateFeedingStats(order, 'created').catch(error => console.error('新投喂单统计更新失败:', error))
-  await createOrderNotification('created', order, result._id, openid)
+  await createOrderNotification('created', order, orderId, openid)
     .catch(error => console.error('新投喂单站内消息创建失败:', error))
-  const reminder = await sendOrderSubscribeMessage('orderCreated', order, result._id)
+  const reminder = await sendOrderSubscribeMessage('orderCreated', order, orderId)
     .catch(error => ({ sent: false, message: formatSubscribeError(error) }))
 
   return {
     success: true,
     data: {
-      orderId: result._id,
+      orderId,
       orderNo,
       reminder,
       message: '投喂单已提交'
@@ -153,6 +178,9 @@ async function createOrder(openid, orderData) {
 
 // 获取订单列表
 async function getOrderList(openid, status = null, page = 1, limit = 10, searchValue = '') {
+  page = Math.max(1, Number(page) || 1)
+  limit = Math.min(50, Math.max(1, Number(limit) || 10))
+  const hasSearch = Boolean(searchValue && searchValue.trim())
   let query = db.collection('orders').where({
     $or: [
       { creatorId: openid },
@@ -167,11 +195,20 @@ async function getOrderList(openid, status = null, page = 1, limit = 10, searchV
   }
 
   // 先获取基础订单数据
-  const result = await query
-    .orderBy('createdAt', 'desc')
-    .skip((page - 1) * limit)
-    .limit(limit)
-    .get()
+  let result
+  if (hasSearch) {
+    const allOrders = []
+    let offset = 0
+    while (true) {
+      const batch = await query.orderBy('createdAt', 'desc').skip(offset).limit(100).get()
+      allOrders.push(...batch.data)
+      if (batch.data.length < 100) break
+      offset += 100
+    }
+    result = { data: allOrders }
+  } else {
+    result = await query.orderBy('createdAt', 'desc').skip((page - 1) * limit).limit(limit).get()
+  }
 
   // 删除仅对当前用户生效，另一位饭搭子的记录和历史统计保持不变。
   const visibleOrders = result.data.filter(order => !(
@@ -221,7 +258,7 @@ async function getOrderList(openid, status = null, page = 1, limit = 10, searchV
   }))
 
   // 如果有搜索条件，进行客户端过滤（支持制作者昵称搜索）
-  if (searchValue && searchValue.trim()) {
+  if (hasSearch) {
     const searchTerm = searchValue.trim().toLowerCase()
     orders = orders.filter(order => {
       // 搜索订单号
@@ -250,9 +287,9 @@ async function getOrderList(openid, status = null, page = 1, limit = 10, searchV
 
   // 获取总数（如果有搜索条件，需要重新计算）
   let total = result.data.length
-  if (searchValue && searchValue.trim()) {
-    // 对于搜索情况，总数就是过滤后的结果数量
+  if (hasSearch) {
     total = orders.length
+    orders = orders.slice((page - 1) * limit, page * limit)
   } else {
     const countResult = await query.count()
     total = countResult.total
@@ -265,7 +302,7 @@ async function getOrderList(openid, status = null, page = 1, limit = 10, searchV
       total,
       page,
       limit,
-      hasMore: result.data.length === limit
+      hasMore: page * limit < total
     }
   }
 }
@@ -428,6 +465,16 @@ async function updateOrderStatus(openid, orderId, status) {
     data: { reminder },
     message: '投喂单状态已更新'
   }
+}
+
+function normalizeOrderRequestId(value) {
+  const requestId = String(value || '').trim()
+  return /^[A-Za-z0-9_-]{8,80}$/.test(requestId) ? requestId : ''
+}
+
+function buildOrderId(openid, requestId) {
+  const digest = crypto.createHash('sha256').update(`${openid}:${requestId}`).digest('hex').slice(0, 32)
+  return `order_${digest}`
 }
 
 async function hideOrder(openid, orderId) {
@@ -880,14 +927,9 @@ async function getFamilyConfig() {
     const result = await db.collection('app_config').doc('family').get()
     if (result.data && result.data.chefOpenid) return result.data
   } catch (error) {
-    // 继续兼容控制台自动生成记录 ID 的配置。
+    throw new Error('系统配置读取失败，请检查 app_config/family')
   }
-  const existingConfigs = await db.collection('app_config').limit(20).get()
-  const existingConfig = existingConfigs.data.find(item => item && item.chefOpenid)
-  if (!existingConfig) throw new Error('固定投喂官尚未配置')
-  const { _id, ...config } = existingConfig
-  await db.collection('app_config').doc('family').set({ data: { ...config, updatedAt: new Date() } })
-  return config
+  throw new Error('请先在 app_config/family 配置固定投喂官')
 }
 
 async function getChefOpenid() {

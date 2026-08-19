@@ -20,7 +20,7 @@
   <view class="relation-list">
     <view wx:for="{{relationships}}" wx:key="openid" wx:for-index="rowIndex" class="relation-card">
       <view class="person-row">
-        <image class="person-avatar" src="{{item.avatar}}" mode="aspectFill"></image>
+        <cloud-image class="person-avatar" custom-class="person-avatar" src="{{item.avatar}}" fallback="/images/default-avatar.png"></cloud-image>
         <view class="person-info">
           <text class="person-name">{{item.nickname}}</text>
           <text class="person-code">{{item.searchCode || '暂无搜索码'}}</text>

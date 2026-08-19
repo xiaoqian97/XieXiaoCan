@@ -165,7 +165,7 @@
 
       <view class="wheel-result {{wheelResult ? 'visible' : ''}}">
         <block wx:if="{{wheelResult}}">
-          <image class="wheel-result-image" src="{{wheelResult.displayImage || wheelResult.images[0]}}" mode="aspectFill"></image>
+          <cloud-image class="wheel-result-image" custom-class="wheel-result-image" src="{{wheelResult.displayImage || wheelResult.images[0]}}" original-src="{{wheelResult.images[0]}}" fallback="/images/default-recipe.jpg"></cloud-image>
           <view class="wheel-result-content">
             <text class="wheel-result-label">今日小馋签 · 就是它啦</text>
             <text class="wheel-result-name">{{wheelResult.name}}</text>

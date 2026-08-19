@@ -4,7 +4,6 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 const _ = db.command
-const PRIMARY_ADMIN_OPENID = 'oyWDkxVwYIHb3adMU4PpCl9rWUqI'
 const ROLE_LABELS = {
   chef: '投喂官',
   consumer: '点菜人'
@@ -19,7 +18,7 @@ exports.main = async event => {
       case 'getDashboard':
         return await getDashboard(admin)
       case 'getUsers':
-        return await getUsers(event)
+        return await getUsers(event, admin)
       case 'updateUserRole':
         return await updateUserRole(admin, event)
       case 'updateAdminPermission':
@@ -45,7 +44,7 @@ exports.main = async event => {
 async function requireAdmin(openid) {
   const user = await getUser(openid)
   const config = await getFamilyConfig()
-  const primaryAdminOpenid = config.adminOpenid || PRIMARY_ADMIN_OPENID
+  const primaryAdminOpenid = config.adminOpenid
   if (openid !== primaryAdminOpenid && !user.isAdmin && user.role !== 'admin') {
     throw new Error('无管理员权限')
   }
@@ -76,7 +75,7 @@ async function getDashboard(admin) {
   }
 }
 
-async function getUsers(event) {
+async function getUsers(event, admin) {
   const page = Math.max(1, Number(event.page) || 1)
   const pageSize = Math.min(30, Math.max(1, Number(event.pageSize) || 20))
   const keyword = String(event.keyword || '').trim()
@@ -103,7 +102,7 @@ async function getUsers(event) {
     query.count(),
     query.orderBy('createTime', 'desc').skip((page - 1) * pageSize).limit(pageSize).get()
   ])
-  const users = await enrichUsers(listResult.data || [])
+  const users = await enrichUsers(listResult.data || [], admin.primaryAdminOpenid)
 
   return {
     success: true,
@@ -478,7 +477,7 @@ async function updateCancelledOrderStats(order) {
   })
 }
 
-async function enrichUsers(users) {
+async function enrichUsers(users, primaryAdminOpenid) {
   const feederMap = new Map()
   const feederIds = [...new Set(users.map(user => user.fixedFeederOpenid).filter(Boolean))]
   const feeders = await getUsersByOpenids(feederIds)
@@ -493,10 +492,10 @@ async function enrichUsers(users) {
       searchCode: user.searchCode || '',
       role: user.role === 'admin' ? 'chef' : (user.role || 'consumer'),
       roleLabel: user.role === 'chef' || user.role === 'admin' ? '投喂官' : '点菜人',
-      isAdmin: Boolean(user.isAdmin || user.role === 'admin' || user.openid === PRIMARY_ADMIN_OPENID),
+      isAdmin: Boolean(user.isAdmin || user.role === 'admin' || user.openid === primaryAdminOpenid),
       fixedFeederOpenid: user.fixedFeederOpenid || '',
       fixedFeederName: feeder ? (feeder.nickname || '未命名投喂官') : '',
-      isPrimaryAdmin: user.openid === PRIMARY_ADMIN_OPENID,
+      isPrimaryAdmin: user.openid === primaryAdminOpenid,
       createTime: user.createTime || null
     }
   })
@@ -531,13 +530,9 @@ async function areBound(openid, otherOpenid) {
 }
 
 async function getFamilyConfig() {
-  try {
-    const result = await db.collection('app_config').doc('family').get()
-    if (result.data) return result.data
-  } catch (error) {
-    // 使用默认主管理员继续校验。
-  }
-  return { adminOpenid: PRIMARY_ADMIN_OPENID }
+  const result = await db.collection('app_config').doc('family').get()
+  if (!result.data || !result.data.adminOpenid) throw new Error('主管理员尚未配置')
+  return result.data
 }
 
 async function writeAuditLog(admin, action, targetOpenid, detail) {

@@ -6,7 +6,6 @@ cloud.init({
 
 const db = cloud.database()
 const _ = db.command
-const PRIMARY_ADMIN_OPENID = 'oyWDkxVwYIHb3adMU4PpCl9rWUqI'
 
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext()
@@ -73,7 +72,7 @@ async function getFriendList(openid) {
       getUserByOpenid(openid),
       getFamilyConfig()
     ])
-    const canViewAdminIdentity = openid === (config.adminOpenid || PRIMARY_ADMIN_OPENID)
+    const canViewAdminIdentity = Boolean(config.adminOpenid && openid === config.adminOpenid)
     const fixedFeederOpenid = currentUser.fixedFeederOpenid || ''
     const result = await db.collection('friends').where({
       $or: [

@@ -5,8 +5,7 @@ cloud.init({
 })
 
 const db = cloud.database()
-const DEFAULT_ADMIN_OPENID = 'oyWDkxVwYIHb3adMU4PpCl9rWUqI'
-const DEFAULT_CHEF_OPENID = DEFAULT_ADMIN_OPENID
+const API_VERSION = '2026.08.19.1'
 
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext()
@@ -31,6 +30,8 @@ exports.main = async (event, context) => {
       const storedRole = existingProfile ? normalizeRole(existingProfile.role) : ''
       return {
         success: true,
+        apiVersion: API_VERSION,
+        openid,
         registered: Boolean(existingProfile),
         needsRoleSelection: !(configuredRole || storedRole),
         role: configuredRole || storedRole || '',
@@ -143,6 +144,7 @@ exports.main = async (event, context) => {
 
     return {
       success: true,
+      apiVersion: API_VERSION,
       openid: openid,
       userInfo: {
         ...userData,
@@ -189,42 +191,17 @@ async function attachUserStats(userData) {
 async function getFamilyConfig() {
   try {
     const result = await db.collection('app_config').doc('family').get()
-    if (result.data && result.data.chefOpenid) {
-      const config = sanitizeFamilyConfig(result.data)
-      if (!result.data.adminOpenid) {
-        await db.collection('app_config').doc('family').update({
-          data: { adminOpenid: config.adminOpenid, updatedAt: new Date() }
-        })
-      }
-      return config
-    }
+    if (result.data && result.data.adminOpenid) return sanitizeFamilyConfig(result.data)
   } catch (error) {
-    // 兼容旧数据：首次升级时从已有厨师账号生成集中配置。
+    throw new Error('系统配置读取失败，请检查 app_config/family')
   }
-
-  const existingConfigs = await db.collection('app_config').limit(20).get()
-  const existingConfig = existingConfigs.data.find(item => item && item.chefOpenid)
-  if (existingConfig) {
-    const config = sanitizeFamilyConfig(existingConfig)
-    await db.collection('app_config').doc('family').set({ data: { ...config, updatedAt: new Date() } })
-    return config
-  }
-
-  const config = {
-    chefOpenid: DEFAULT_CHEF_OPENID,
-    adminOpenid: DEFAULT_ADMIN_OPENID,
-    chefNickname: '小千',
-    subscribeTemplates: {},
-    updatedAt: new Date()
-  }
-  await db.collection('app_config').doc('family').set({ data: config })
-  return sanitizeFamilyConfig(config)
+  throw new Error('请先创建 app_config/family 并配置 adminOpenid')
 }
 
 function sanitizeFamilyConfig(config) {
   return {
     chefOpenid: config.chefOpenid,
-    adminOpenid: config.adminOpenid || DEFAULT_ADMIN_OPENID,
+    adminOpenid: config.adminOpenid,
     chefNickname: config.chefNickname || '投喂官',
     miniprogramState: config.miniprogramState || 'formal',
     subscribeTemplates: config.subscribeTemplates || {}

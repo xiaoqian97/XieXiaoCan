@@ -40,7 +40,7 @@
           />
         </view>
         
-        <image class="item-image" bindtap="onToggleSelection" data-cart-key="{{item.cartKey}}" src="{{item.displayImage || item.image || '/images/default-recipe.jpg'}}" mode="aspectFill" />
+        <cloud-image class="item-image" custom-class="item-image" bindtap="onToggleSelection" data-cart-key="{{item.cartKey}}" src="{{item.displayImage || item.image}}" original-src="{{item.image}}" fallback="/images/default-recipe.jpg" />
         
         <view class="item-info" bindtap="onToggleSelection" data-cart-key="{{item.cartKey}}">
           <text class="item-name">{{item.recipeName}}</text>
@@ -138,9 +138,10 @@
     <van-button 
       type="primary" 
       bind:click="onCreateOrder"
-      disabled="{{!canCreateOrder}}"
+      disabled="{{!canCreateOrder || submittingOrder}}"
+      loading="{{submittingOrder}}"
     >
-      提交投喂单
+      {{submittingOrder ? '提交中' : '提交投喂单'}}
     </van-button>
   </view>
 

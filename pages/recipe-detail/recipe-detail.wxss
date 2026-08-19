@@ -321,7 +321,8 @@
   transform: scale(0.98);
 }
 
-.step-image image {
+.step-image image,
+.step-image cloud-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -388,7 +389,8 @@
   overflow: hidden;
 }
 
-.creator-avatar image {
+.creator-avatar image,
+.creator-avatar cloud-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -671,7 +673,8 @@
 
 /* 图片懒加载优化 */
 .hero-image,
-.step-image image {
+.step-image image,
+.step-image cloud-image {
   transition: opacity 0.3s ease;
 }
 

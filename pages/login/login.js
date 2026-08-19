@@ -18,7 +18,8 @@ Page({
     returningUserInfo: null,
     returningAvatar: '',
     showSubscribeGuide: false,
-    subscribeGuidePending: false
+    subscribeGuidePending: false,
+    uploadOpenid: ''
   },
 
   onLoad: function () {
@@ -33,6 +34,7 @@ Page({
     util.callCloudFunction('login', { action: 'getRegistrationState' }).then(res => {
       const returningUserInfo = res.userInfo || null
       this.setData({
+        uploadOpenid: res.openid || '',
         needsRoleSelection: Boolean(res.needsRoleSelection),
         isReturningUser: Boolean(res.registered && returningUserInfo),
         returningUserInfo,
@@ -210,7 +212,11 @@ Page({
       return Promise.resolve(userInfo)
     }
 
-    const cloudPath = `avatars/${Date.now()}-${Math.random().toString(36).substr(2)}.jpg`
+    const cloudPath = util.buildUserCloudPath(
+      'avatars',
+      `${Date.now()}-${Math.random().toString(36).substr(2)}.jpg`,
+      this.data.uploadOpenid
+    )
     return util.uploadFile(userInfo.avatarUrl, cloudPath).then(res => ({
       ...userInfo,
       avatarUrl: res.fileID

@@ -71,7 +71,7 @@
       <view wx:else>
         <view class="request-item" wx:for="{{pendingRequests}}" wx:key="id">
           <view class="request-content">
-            <image class="request-avatar" src="{{item.avatar}}" mode="aspectFill"></image>
+            <cloud-image class="request-avatar" custom-class="request-avatar" src="{{item.avatar}}" fallback="/images/default-avatar.png"></cloud-image>
             <view class="request-info">
               <text class="request-name">{{item.nickname}}</text>
               <text class="request-desc">申请与你绑定为饭搭子</text>
@@ -99,7 +99,7 @@
         <view wx:if="{{item.swiped}}" class="sent-delete-action" data-id="{{item.id}}" catchtap="onDeleteReceivedRequest">删除</view>
         <view class="request-item sent-request-item {{item.swiped ? 'is-swiped' : ''}}">
           <view class="request-content">
-            <image class="request-avatar" src="{{item.avatar}}" mode="aspectFill"></image>
+            <cloud-image class="request-avatar" custom-class="request-avatar" src="{{item.avatar}}" fallback="/images/default-avatar.png"></cloud-image>
             <view class="request-info">
               <text class="request-name">{{item.nickname}}</text>
               <text class="request-desc">{{item.description}}</text>
@@ -126,7 +126,7 @@
         <view wx:if="{{item.swiped}}" class="sent-delete-action" data-id="{{item.id}}" catchtap="onDeleteSentRequest">删除</view>
         <view class="request-item sent-request-item {{item.swiped ? 'is-swiped' : ''}}">
           <view class="request-content">
-            <image class="request-avatar" src="{{item.avatar}}" mode="aspectFill"></image>
+            <cloud-image class="request-avatar" custom-class="request-avatar" src="{{item.avatar}}" fallback="/images/default-avatar.png"></cloud-image>
             <view class="request-info">
               <text class="request-name">{{item.nickname}}</text>
               <text class="request-desc">{{item.description}}</text>

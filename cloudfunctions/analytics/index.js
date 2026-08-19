@@ -4,7 +4,6 @@ cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })
 
 const db = cloud.database()
 const _ = db.command
-const PRIMARY_ADMIN_OPENID = 'oyWDkxVwYIHb3adMU4PpCl9rWUqI'
 const MAX_SESSION_SECONDS = 12 * 60 * 60
 const EVENT_LABELS = {
   recipe_list_view: '浏览菜谱',
@@ -66,8 +65,10 @@ async function startSession(openid, event) {
   let existed = false
   try {
     const result = await db.collection('analytics_sessions').doc(sessionId).get()
-    existed = Boolean(result.data && result.data.userId === openid)
+    if (result.data && result.data.userId !== openid) throw new Error('会话标识冲突，请重新进入小程序')
+    existed = Boolean(result.data)
   } catch (error) {
+    if (error && error.message && error.message.includes('会话标识冲突')) throw error
     existed = false
   }
 
@@ -330,12 +331,9 @@ async function getChefRecipes() {
 }
 
 async function requirePrimaryAdmin(openid) {
-  let primaryAdminOpenid = PRIMARY_ADMIN_OPENID
-  try {
-    const config = await db.collection('app_config').doc('family').get()
-    primaryAdminOpenid = (config.data && config.data.adminOpenid) || PRIMARY_ADMIN_OPENID
-  } catch (error) {}
-  if (openid !== primaryAdminOpenid) throw new Error('仅主管理员可以查看埋点数据')
+  const config = await db.collection('app_config').doc('family').get()
+  if (!config.data || !config.data.adminOpenid) throw new Error('主管理员尚未配置')
+  if (openid !== config.data.adminOpenid) throw new Error('仅主管理员可以查看埋点数据')
 }
 
 async function getAllRecords(collection, condition) {

@@ -47,7 +47,7 @@
           data-friend-id="{{item._id}}"
           bindtap="onSelectFriend"
         >
-          <image class="friend-avatar" src="{{item.avatar}}" mode="aspectFill" />
+          <cloud-image class="friend-avatar" custom-class="friend-avatar" src="{{item.avatar}}" fallback="/images/default-avatar.png" />
           <view class="friend-info">
             <view class="friend-name-row">
               <text class="friend-name">{{item.nickname}}</text>

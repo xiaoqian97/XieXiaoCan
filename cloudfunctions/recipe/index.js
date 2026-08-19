@@ -6,7 +6,6 @@ cloud.init({
 
 const db = cloud.database()
 const _ = db.command
-const PRIMARY_ADMIN_OPENID = 'oyWDkxVwYIHb3adMU4PpCl9rWUqI'
 const SAMPLE_RECIPES = [
   ['红烧肉', '五花肉', '肉类经典，软糯下饭。', 'meat', 'heavy', ['stew', 'home_style', 'sweet']],
   ['宫保鸡丁', '鸡腿肉', '香辣微甜的快手下饭菜。', 'meat', 'quick', ['stir_fry', 'sichuan', 'spicy']],
@@ -381,6 +380,7 @@ async function getRecipeList(event, openid) {
     .skip((page - 1) * pageSize)
     .limit(pageSize)
     .get()
+  const countResult = await query.where(whereCondition).count()
 
   // 获取创建者信息，添加错误处理
   const recipes = await attachCreators(result.data)
@@ -392,7 +392,7 @@ async function getRecipeList(event, openid) {
     success: true,
     data: {
       recipes: recipesWithStats,
-      total: result.data.length
+      total: countResult.total
     }
   }
 }
@@ -702,6 +702,10 @@ async function updateRecipe(event, openid) {
     }
   })
 
+  const retainedImageIDs = collectRecipeFileIDs({ images: images || [], steps: steps || [] })
+  const removedImageIDs = existingImageIDs.filter(fileID => !retainedImageIDs.includes(fileID))
+  await deleteCloudFiles(removedImageIDs)
+
   return {
     success: true,
     data: {}
@@ -880,12 +884,9 @@ async function canManageRecipes(openid) {
 }
 
 async function requirePrimaryAdmin(openid) {
-  let primaryAdminOpenid = PRIMARY_ADMIN_OPENID
-  try {
-    const config = await db.collection('app_config').doc('family').get()
-    primaryAdminOpenid = (config.data && config.data.adminOpenid) || PRIMARY_ADMIN_OPENID
-  } catch (error) {}
-  if (openid !== primaryAdminOpenid) throw new Error('仅主管理员可以查看菜谱查看者')
+  const config = await db.collection('app_config').doc('family').get()
+  if (!config.data || !config.data.adminOpenid) throw new Error('主管理员尚未配置')
+  if (openid !== config.data.adminOpenid) throw new Error('仅主管理员可以查看菜谱查看者')
 }
 
 function isValidRecipeId(recipeId) {
@@ -974,14 +975,9 @@ async function getChefOpenid() {
     const result = await db.collection('app_config').doc('family').get()
     if (result.data && result.data.chefOpenid) return result.data.chefOpenid
   } catch (error) {
-    // 继续兼容控制台自动生成记录 ID 的配置。
+    throw new Error('系统配置读取失败，请检查 app_config/family')
   }
-  const existingConfigs = await db.collection('app_config').limit(20).get()
-  const existingConfig = existingConfigs.data.find(item => item && item.chefOpenid)
-  if (!existingConfig) throw new Error('固定投喂官尚未配置')
-  const { _id, ...config } = existingConfig
-  await db.collection('app_config').doc('family').set({ data: { ...config, updatedAt: new Date() } })
-  return config.chefOpenid
+  throw new Error('请先在 app_config/family 配置固定投喂官')
 }
 
 async function areFamilyMembers(openid, otherOpenid) {
@@ -1009,8 +1005,10 @@ async function deleteRecipe(event, openid) {
     }
   }
   
+  const fileIDs = collectRecipeFileIDs(recipeResult.data)
   await db.collection('recipes').doc(recipeId).remove()
   await cleanupRecipeReferences(recipeId)
+  await deleteCloudFiles(fileIDs)
 
   return {
     success: true,
@@ -1032,18 +1030,48 @@ async function cleanupRecipeReferences(recipeId) {
   })))
 
   try {
-    const cartResult = await db.collection('carts')
-      .where({ cartItems: _.elemMatch({ recipeId }) })
-      .limit(100)
-      .get()
-    await Promise.all(cartResult.data.map(cart => {
-      const cartItems = (cart.cartItems || []).filter(item => item && item.recipeId !== recipeId)
-      return db.collection('carts').doc(cart._id).update({
-        data: { cartItems, updatedAt: new Date() }
-      })
-    }))
+    let hasMore = true
+    while (hasMore) {
+      const cartResult = await db.collection('carts')
+        .where({ cartItems: _.elemMatch({ recipeId }) })
+        .limit(100)
+        .get()
+      if (!cartResult.data.length) break
+      const deletedAt = new Date().toISOString()
+      await Promise.all(cartResult.data.map(cart => {
+        const removedItems = (cart.cartItems || []).filter(item => item && item.recipeId === recipeId)
+        const cartItems = (cart.cartItems || []).filter(item => item && item.recipeId !== recipeId)
+        const deletedKeys = { ...(cart.deletedKeys || {}) }
+        removedItems.forEach(item => {
+          const key = item.cartKey || `recipe:${recipeId}`
+          deletedKeys[key] = deletedAt
+        })
+        return db.collection('carts').doc(cart._id).update({
+          data: { cartItems, deletedKeys, updatedAt: new Date() }
+        })
+      }))
+      hasMore = cartResult.data.length === 100
+    }
   } catch (error) {
     console.error('清理饭篮引用失败:', recipeId, error)
+  }
+}
+
+function collectRecipeFileIDs(recipe = {}) {
+  return [...new Set([
+    ...(Array.isArray(recipe.images) ? recipe.images : []),
+    ...(Array.isArray(recipe.steps) ? recipe.steps.map(step => step && step.image) : [])
+  ].filter(fileID => typeof fileID === 'string' && fileID.startsWith('cloud://')))]
+}
+
+async function deleteCloudFiles(fileIDs = []) {
+  const uniqueIDs = [...new Set(fileIDs)].filter(Boolean)
+  for (let index = 0; index < uniqueIDs.length; index += 50) {
+    try {
+      await cloud.deleteFile({ fileList: uniqueIDs.slice(index, index + 50) })
+    } catch (error) {
+      console.error('清理菜谱云存储图片失败:', error)
+    }
   }
 }
 
@@ -1182,23 +1210,28 @@ function randomTieBreak() { return Math.random() - 0.5 }
 
 // 搜索菜谱
 async function searchRecipes(event) {
-  const { keyword, page = 1, pageSize = 10 } = event
+  const keyword = String(event.keyword || '').trim()
+  const page = Math.max(1, Number(event.page) || 1)
+  const pageSize = Math.min(50, Math.max(1, Number(event.pageSize) || 10))
+  if (!keyword) return { success: true, data: { recipes: [], total: 0 } }
+  const safeKeyword = escapeRegExp(keyword)
   
   const result = await db.collection('recipes')
     .where(_.and([
       {
-        isPublic: true
+        isPublic: true,
+        status: 'published'
       },
       _.or([
         {
           name: db.RegExp({
-            regexp: keyword,
+            regexp: safeKeyword,
             options: 'i'
           })
         },
         {
           description: db.RegExp({
-            regexp: keyword,
+            regexp: safeKeyword,
             options: 'i'
           })
         }
@@ -1209,10 +1242,18 @@ async function searchRecipes(event) {
     .limit(pageSize)
     .get()
   
+  const countResult = await db.collection('recipes').where(_.and([
+    { isPublic: true, status: 'published' },
+    _.or([
+      { name: db.RegExp({ regexp: safeKeyword, options: 'i' }) },
+      { description: db.RegExp({ regexp: safeKeyword, options: 'i' }) }
+    ])
+  ])).count()
   return {
     success: true,
     data: {
-      recipes: result.data
+      recipes: result.data,
+      total: countResult.total
     }
   }
 }
@@ -1294,27 +1335,7 @@ async function getMyRecipes(event, openid) {
   // 制作时间筛选
   if (preparationTime) {
     const timeValue = parseInt(preparationTime)
-    if (timeValue === 10) {
-      // 10分钟
-      conditions.push({
-        'preparationTime.value': '10'
-      })
-    } else if (timeValue === 30) {
-      // 30分钟
-      conditions.push({
-        'preparationTime.value': '30'
-      })
-    } else if (timeValue === 60) {
-      // 1小时
-      conditions.push({
-        'preparationTime.value': '60'
-      })
-    } else if (timeValue === 120) {
-      // 2小时+
-      conditions.push({
-        'preparationTime.value': '120'
-      })
-    }
+    if (Number.isFinite(timeValue)) conditions.push({ 'preparationTime.value': String(timeValue) })
   }
 
   // 状态筛选
@@ -1333,6 +1354,7 @@ async function getMyRecipes(event, openid) {
     .skip((page - 1) * pageSize)
     .limit(pageSize)
     .get()
+  const countResult = await query.where(whereCondition).count()
 
   // 获取创建者信息，添加错误处理
   const recipes = await attachCreators(result.data)
@@ -1344,7 +1366,7 @@ async function getMyRecipes(event, openid) {
     success: true,
     data: {
       recipes: recipesWithStats,
-      total: result.data.length,
+      total: countResult.total,
       needsFixedFeeder: false,
       readOnly: !isOwnerView
     }
@@ -1438,23 +1460,7 @@ async function getFriendRecipes(event, openid) {
   // 制作时间筛选
   if (preparationTime) {
     const timeValue = parseInt(preparationTime)
-    if (timeValue === 10) {
-      conditions.push({
-        'preparationTime.value': '10'
-      })
-    } else if (timeValue === 30) {
-      conditions.push({
-        'preparationTime.value': '30'
-      })
-    } else if (timeValue === 60) {
-      conditions.push({
-        'preparationTime.value': '60'
-      })
-    } else if (timeValue === 120) {
-      conditions.push({
-        'preparationTime.value': '120'
-      })
-    }
+    if (Number.isFinite(timeValue)) conditions.push({ 'preparationTime.value': String(timeValue) })
   }
 
   // 合并所有条件
@@ -1466,6 +1472,7 @@ async function getFriendRecipes(event, openid) {
     .skip((page - 1) * pageSize)
     .limit(pageSize)
     .get()
+  const countResult = await query.where(whereCondition).count()
 
   // 获取创建者信息，添加错误处理
   const recipes = await attachCreators(result.data)
@@ -1474,7 +1481,7 @@ async function getFriendRecipes(event, openid) {
     success: true,
     data: {
       recipes,
-      total: result.data.length
+      total: countResult.total
     }
   }
 }

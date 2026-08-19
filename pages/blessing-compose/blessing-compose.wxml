@@ -27,9 +27,16 @@
 
   <view class="section-card form-card">
     <text class="field-label">送给谁 <text class="required">*</text></text>
-    <picker wx:if="{{friends.length}}" range="{{friends}}" range-key="nickname" value="{{friendIndex}}" bindchange="onFriendChange">
-      <view class="picker-field"><text>{{friends[friendIndex].nickname}}</text><text class="picker-arrow">⌄</text></view>
-    </picker>
+    <view wx:if="{{friends.length}}" class="picker-field" bindtap="openFriendSelector">
+      <view class="selected-friend">
+        <cloud-image class="selected-friend-avatar" custom-class="selected-friend-avatar" src="{{friends[friendIndex].avatar}}" original-src="{{friends[friendIndex].avatar}}" fallback="/images/default-avatar.png" mode="aspectFill"></cloud-image>
+        <view class="selected-friend-copy">
+          <text class="selected-friend-name">{{friends[friendIndex].displayName}}</text>
+          <text wx:if="{{friends[friendIndex].displayNickname}}" class="selected-friend-nickname">（{{friends[friendIndex].displayNickname}}）</text>
+        </view>
+      </view>
+      <text class="picker-arrow">⌄</text>
+    </view>
     <view wx:elif="{{loadingFriends}}" class="picker-field muted">饭搭子加载中...</view>
     <view wx:else class="picker-field muted">还没有已绑定的饭搭子</view>
 
@@ -68,5 +75,37 @@
   </view>
 
   <button class="submit-button" loading="{{submitting}}" disabled="{{submitting || !friends.length}}" bindtap="submitBlessing">{{submitting ? '正在送出...' : (sendMode === 'scheduled' ? '定时送出祝福' : '立即送出祝福')}}</button>
+</view>
+
+<view wx:if="{{friendSelectorVisible}}" class="friend-selector-mask" bindtap="closeFriendSelector" catchtouchmove="stopPropagation">
+  <view class="friend-selector-sheet" catchtap="stopPropagation">
+    <view class="friend-selector-handle"></view>
+    <view class="friend-selector-heading">
+      <view>
+        <text class="friend-selector-title">这份祝福送给谁</text>
+        <text class="friend-selector-desc">选择一位饭搭子接收你的心意</text>
+      </view>
+      <view class="friend-selector-close" bindtap="closeFriendSelector">×</view>
+    </view>
+    <scroll-view class="friend-selector-list" scroll-y="true" show-scrollbar="false">
+      <view
+        wx:for="{{friends}}"
+        wx:key="openid"
+        class="friend-option {{friendIndex === index ? 'active' : ''}}"
+        data-index="{{index}}"
+        bindtap="selectFriend"
+      >
+        <cloud-image class="friend-option-avatar" custom-class="friend-option-avatar" src="{{item.avatar}}" original-src="{{item.avatar}}" fallback="/images/default-avatar.png" mode="aspectFill"></cloud-image>
+        <view class="friend-option-copy">
+          <view class="friend-option-name-row">
+            <text class="friend-option-name">{{item.displayName}}</text>
+            <text wx:if="{{item.displayNickname}}" class="friend-option-nickname">（{{item.displayNickname}}）</text>
+          </view>
+          <text class="friend-option-role">{{item.identityLabel || '饭搭子'}}</text>
+        </view>
+        <view class="friend-option-check">{{friendIndex === index ? '✓' : ''}}</view>
+      </view>
+    </scroll-view>
+  </view>
 </view>
 <global-notification-popup id="globalNotificationPopup" />

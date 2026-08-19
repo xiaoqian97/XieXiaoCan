@@ -31,7 +31,8 @@ Page({
     showTimeSelector: false,
     
     // 计算属性
-    canCreateOrder: false
+    canCreateOrder: false,
+    submittingOrder: false
   },
 
   onLoad: function() {
@@ -255,6 +256,7 @@ Page({
 
   // 创建投喂单
   onCreateOrder: function() {
+    if (this.data.submittingOrder) return
     if (!util.requireLogin('提交投喂单需要登录')) return
     const { selectedFriend, selectedTime, selectedDate, orderNotes, cartItems } = this.data
     if (!selectedFriend) {
@@ -311,6 +313,10 @@ Page({
 
   // 提交投喂单
   submitOrder: function(recipes, friend, mealType, orderDate, notes) {
+    if (this.data.submittingOrder) return
+    const requestId = this._pendingOrderRequestId || `order_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
+    this._pendingOrderRequestId = requestId
+    this.setData({ submittingOrder: true })
     wx.showLoading({
       title: '提交投喂单中...'
     })
@@ -321,6 +327,7 @@ Page({
       data: {
         action: 'createOrder',
         orderData: {
+          requestId,
           recipes: recipes.map(recipe => ({
             type: recipe.type || 'recipe',
             wishId: recipe.wishId || '',
@@ -343,9 +350,8 @@ Page({
         }
       }
     }).then(res => {
-      wx.hideLoading()
-      
       if (res.result.success) {
+        this._pendingOrderRequestId = ''
         getApp().globalData.orderDataVersion = (getApp().globalData.orderDataVersion || 0) + 1
         const reminder = res.result.data && res.result.data.reminder
         // 清空已选择的商品
@@ -368,7 +374,10 @@ Page({
             url: '/pages/order-list/order-list'
           })
         }
-        if (reminder && reminder.sent === false) {
+        if (res.result.data && res.result.data.duplicate) {
+          wx.showToast({ title: '投喂单已提交', icon: 'success', duration: 1200 })
+          setTimeout(goToOrders, 1200)
+        } else if (reminder && reminder.sent === false) {
           wx.showModal({
             title: '投喂单已提交',
             content: `微信提醒未发送：${reminder.message}`,
@@ -380,18 +389,21 @@ Page({
           setTimeout(goToOrders, 1800)
         }
       } else {
+        this._pendingOrderRequestId = ''
         wx.showToast({
           title: res.result.message || '投喂单没提交成功',
           icon: 'none'
         })
       }
     }).catch(err => {
-      wx.hideLoading()
       console.error('创建投喂单失败:', err)
       wx.showToast({
         title: '投喂单没提交成功',
         icon: 'none'
       })
+    }).finally(() => {
+      wx.hideLoading()
+      this.setData({ submittingOrder: false })
     })
   },
 

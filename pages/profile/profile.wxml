@@ -18,7 +18,7 @@
     <!-- 用户信息区域 -->
     <view class="user-info-section">
       <view class="avatar-section">
-        <image class="user-avatar" src="{{displayAvatar || userInfo.avatar || '/images/default-avatar.png'}}" bindtap="onAvatarClick"></image>
+        <cloud-image class="user-avatar" custom-class="user-avatar" src="{{displayAvatar || userInfo.avatar}}" original-src="{{userInfo.avatar}}" fallback="/images/default-avatar.png" bindtap="onAvatarClick"></cloud-image>
       </view>
       
       <view class="user-details">

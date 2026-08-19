@@ -1,0 +1,9 @@
+<image
+  class="cloud-image custom-class"
+  src="{{displaySrc}}"
+  mode="{{mode}}"
+  lazy-load="{{lazyLoad}}"
+  show-menu-by-longpress="{{showMenuByLongpress}}"
+  binderror="onImageError"
+  catchtap="onTap"
+/>

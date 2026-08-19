@@ -9,6 +9,7 @@ Page({
     selectedEmoji: '💭',
     friends: [],
     friendIndex: 0,
+    friendSelectorVisible: false,
     title: '',
     content: '',
     contentHtml: '',
@@ -33,7 +34,13 @@ Page({
 
   loadFriends() {
     util.callCloudFunction('friend', { action: 'getFriendList' }).then(res => {
-      const friends = res.data || []
+      const friends = (res.data || []).map(item => ({
+        ...item,
+        displayName: item.remark || item.nickname || item.originalNickname || '饭搭子',
+        displayNickname: item.remark && item.originalNickname && item.remark !== item.originalNickname
+          ? item.originalNickname
+          : ''
+      }))
       const friendIndex = Math.max(0, friends.findIndex(item => item.openid === this._recipientId || item.id === this._recipientId))
       this.setData({ friends, friendIndex, loadingFriends: false })
     }).catch(error => {
@@ -60,12 +67,27 @@ Page({
     }, () => this.syncEditorContents())
   },
 
-  onFriendChange(e) { this.setData({ friendIndex: Number(e.detail.value) }) },
+  openFriendSelector() {
+    if (!this.data.friends.length) return
+    this.setData({ friendSelectorVisible: true })
+    this.blurEditor()
+  },
+  closeFriendSelector() {
+    this.setData({ friendSelectorVisible: false })
+  },
+  stopPropagation() {},
+  selectFriend(e) {
+    this.setData({
+      friendIndex: Number(e.currentTarget.dataset.index),
+      friendSelectorVisible: false
+    })
+  },
   onTitleInput(e) { this.setData({ title: e.detail.value }) },
   onEditorReady() {
     wx.createSelectorQuery().in(this).select('#blessingEditor').context(res => {
       this.editorCtx = res && res.context
       this.syncEditorContents()
+      this.blurEditor()
     }).exec()
   },
   onEditorInput(e) {
@@ -91,7 +113,14 @@ Page({
   },
   syncEditorContents() {
     if (!this.editorCtx) return
-    this.editorCtx.setContents({ html: this.data.contentHtml || '<p><br></p>' })
+    this.editorCtx.setContents({
+      html: this.data.contentHtml || '<p><br></p>',
+      success: () => this.blurEditor()
+    })
+  },
+  blurEditor() {
+    if (this.editorCtx && typeof this.editorCtx.blur === 'function') this.editorCtx.blur()
+    wx.hideKeyboard()
   },
   onDateChange(e) { this.setData({ sendDate: e.detail.value }) },
   onTimeChange(e) { this.setData({ sendTime: e.detail.value }) },

@@ -27,7 +27,7 @@
   <view wx:else class="wish-list">
     <view wx:for="{{wishes}}" wx:key="_id" class="wish-card status-{{item.status}}">
       <view class="wish-main">
-        <image class="wish-cover" src="{{item.displayCoverImage || item.coverImage || '/images/default-recipe.jpg'}}" mode="aspectFill" />
+        <cloud-image class="wish-cover" custom-class="wish-cover" src="{{item.displayCoverImage || item.coverImage}}" original-src="{{item.coverImage}}" fallback="/images/default-recipe.jpg" />
         <view class="wish-content">
           <text class="wish-name">{{item.name}}</text>
           <text wx:if="{{item.displayNote}}" class="wish-note">{{item.displayNote}}</text>
@@ -36,7 +36,7 @@
       </view>
 
       <view wx:if="{{mode === 'pool'}}" class="wish-submitter">
-        <image wx:if="{{item.submitterAvatar}}" class="submitter-avatar" src="{{item.displaySubmitterAvatar || item.submitterAvatar}}" mode="aspectFill" />
+        <cloud-image wx:if="{{item.submitterAvatar}}" class="submitter-avatar" custom-class="submitter-avatar" src="{{item.displaySubmitterAvatar || item.submitterAvatar}}" original-src="{{item.submitterAvatar}}" fallback="/images/default-avatar.png" />
         <view wx:else class="submitter-avatar submitter-avatar-placeholder">
           {{item.submitterName ? item.submitterName.charAt(0) : '她'}}
         </view>

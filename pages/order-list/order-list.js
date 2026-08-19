@@ -133,15 +133,17 @@ Page({
       }
     }).then(res => {
       if (res.result.success) {
+        this._lastOrderListData = res.result.data || {}
         const orders = res.result.data.orders || []
         return Promise.all(orders.map(order => this.resolveOrderImages(order)))
       } else {
         throw new Error(res.result.message || '投喂单没加载出来')
       }
     }).then(orders => {
+        const serverData = this._lastOrderListData || {}
         this.setData({
           orders: page === 1 ? orders : [...this.data.orders, ...orders],
-          hasMore: orders.length === pageSize,
+          hasMore: typeof serverData.hasMore === 'boolean' ? serverData.hasMore : orders.length === pageSize,
           loading: false,
           refreshing: false
         })

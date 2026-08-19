@@ -37,11 +37,12 @@
       duration="300"
     >
       <swiper-item wx:for="{{recipe.images}}" wx:key="index">
-        <image 
-          class="hero-image" 
-          src="{{item}}" 
-          mode="aspectFill"
-          lazy-load="{{true}}"
+        <cloud-image
+          class="hero-image"
+          custom-class="hero-image"
+          src="{{item}}"
+          original-src="{{recipe.originalImages[index]}}"
+          fallback="/images/default-recipe.jpg"
           bindtap="previewImage"
           data-current="{{index}}"
         />
@@ -185,7 +186,7 @@
               bindtap="previewStepImage"
               data-index="{{index}}"
             >
-              <image src="{{item.image}}" mode="aspectFill" lazy-load="{{true}}" />
+              <cloud-image src="{{item.image}}" original-src="{{item.originalImage}}" fallback="/images/default-recipe.jpg" />
             </view>
           </view>
         </view>
@@ -222,10 +223,11 @@
     <view class="section">
       <view class="creator-info">
         <view class="creator-avatar">
-          <image 
+          <cloud-image
             wx:if="{{recipe.creator.avatar}}"
-            src="{{recipe.creator.avatar}}" 
-            mode="aspectFill"
+            src="{{recipe.creator.avatar}}"
+            original-src="{{recipe.originalCreatorAvatar}}"
+            fallback="/images/default-avatar.png"
           />
           <text wx:else>{{recipe.creator.nickname && recipe.creator.nickname.charAt(0) || '用'}}</text>
         </view>

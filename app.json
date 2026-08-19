@@ -82,11 +82,13 @@
     ]
   },
   "cloud": true,
+  "lazyCodeLoading": "requiredComponents",
   "networkTimeout": {
     "request": 10000,
     "downloadFile": 10000
   },
   "usingComponents": {
+    "cloud-image": "/components/cloud-image/cloud-image",
     "global-notification-popup": "/components/global-notification-popup/global-notification-popup",
     "login-prompt": "/components/login-prompt/login-prompt",
     "theme-confirm-dialog": "/components/theme-confirm-dialog/theme-confirm-dialog",

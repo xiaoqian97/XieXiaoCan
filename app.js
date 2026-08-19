@@ -1,6 +1,7 @@
 import Device from './utils/device.js'
 const navigation = require('./utils/navigation')
 const FALLBACK_APP_VERSION = '1.0.6'
+const EXPECTED_BACKEND_API_VERSION = '2026.08.19.1'
 
 App({
   onLaunch: async function () {
@@ -114,6 +115,9 @@ App({
     return util.callCloudFunction('login', {
       userInfo: userInfo
     }).then(res => {
+      if (res.apiVersion !== EXPECTED_BACKEND_API_VERSION) {
+        throw new Error('云函数版本较旧，请先按部署清单重新上传全部云函数')
+      }
       this.globalData.isPreviewMode = false
       this.globalData.openid = res.openid
       this.globalData.userInfo = res.userInfo
@@ -312,6 +316,7 @@ App({
     isPreviewMode: false, // 预览模式标志
     version: FALLBACK_APP_VERSION, // 开发工具未返回线上版本号时的兜底值
     envVersion: 'develop',
+    backendApiVersion: EXPECTED_BACKEND_API_VERSION,
     recipeDataVersion: 0,
     favoriteDataVersion: 0,
     orderDataVersion: 0,

@@ -19,7 +19,7 @@
 
   <view class="user-list">
     <view wx:for="{{users}}" wx:key="openid" class="user-card">
-      <image class="user-avatar" src="{{item.avatar}}" mode="aspectFill"></image>
+      <cloud-image class="user-avatar" custom-class="user-avatar" src="{{item.avatar}}" fallback="/images/default-avatar.png"></cloud-image>
       <view class="user-main">
         <view class="user-name-row">
           <text class="user-name">{{item.nickname}}</text>
@@ -27,7 +27,11 @@
           <text wx:if="{{item.isAdmin}}" class="admin-badge">管理员</text>
           <text wx:if="{{item.isPrimaryAdmin}}" class="primary-badge">主管理员</text>
         </view>
-        <text class="user-code">搜索码：{{item.searchCode || '未生成'}}</text>
+        <text
+          class="user-code {{item.searchCode ? 'copyable' : ''}}"
+          data-code="{{item.searchCode}}"
+          catchlongpress="onCopySearchCode"
+        >搜索码：{{item.searchCode || '未生成'}}</text>
         <text class="feeder-info" wx:if="{{item.fixedFeederName}}">固定投喂官：{{item.fixedFeederName}}</text>
       </view>
       <view class="user-actions">

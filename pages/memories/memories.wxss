@@ -169,7 +169,8 @@
   font-size: 26rpx;
 }
 
-.recipe-chip image {
+.recipe-chip image,
+.recipe-chip cloud-image {
   width: 72rpx;
   height: 72rpx;
   border-radius: 14rpx;
@@ -203,7 +204,8 @@
   white-space: normal;
 }
 
-.favorite-card image {
+.favorite-card image,
+.favorite-card cloud-image {
   width: 150rpx;
   height: 110rpx;
   border-radius: 16rpx;

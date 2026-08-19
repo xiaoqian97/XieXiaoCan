@@ -23,9 +23,9 @@
   <view wx:else class="log-list">
     <view wx:for="{{items}}" wx:key="_id" class="log-card" data-id="{{item._id}}" bindtap="openDetail">
       <view class="people-row">
-        <image class="avatar" src="{{item.senderAvatar}}" mode="aspectFill" />
+        <cloud-image class="avatar" custom-class="avatar" src="{{item.displaySenderAvatar || item.senderAvatar}}" original-src="{{item.senderAvatar}}" fallback="/images/default-avatar.png" />
         <text class="person-name">{{item.senderName}}</text><text class="arrow">→</text>
-        <image class="avatar" src="{{item.recipientAvatar}}" mode="aspectFill" />
+        <cloud-image class="avatar" custom-class="avatar" src="{{item.displayRecipientAvatar || item.recipientAvatar}}" original-src="{{item.recipientAvatar}}" fallback="/images/default-avatar.png" />
         <text class="person-name recipient">{{item.recipientName}}</text>
         <text class="delivery-status">{{item.deliveryStatus}}</text>
       </view>

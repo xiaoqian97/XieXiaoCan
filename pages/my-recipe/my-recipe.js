@@ -136,11 +136,7 @@ Page({
     const userInfo = app.globalData.userInfo || wx.getStorageSync('userInfo') || {}
     this.setData({
       canCreateRecipe: ['chef', 'admin'].includes(userInfo.role),
-      isPrimaryAdmin: Boolean(
-        userInfo.isPrimaryAdmin ||
-        userInfo.openid === PRIMARY_ADMIN_OPENID ||
-        app.globalData.openid === PRIMARY_ADMIN_OPENID
-      )
+      isPrimaryAdmin: Boolean(userInfo.isPrimaryAdmin)
     })
   },
 

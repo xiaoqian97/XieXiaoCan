@@ -284,18 +284,24 @@ Page({
 
   resolveRecipeImages() {
     const recipe = this.data.recipe
-    const stepImages = (recipe.steps || []).map(step => step.image).filter(Boolean)
+    const originalImages = recipe.originalImages || [...(recipe.images || [])]
+    const originalCreatorAvatar = recipe.originalCreatorAvatar || (recipe.creator && recipe.creator.avatar) || ''
+    const originalSteps = (recipe.steps || []).map(step => ({
+      ...step,
+      originalImage: step.originalImage || step.image || ''
+    }))
+    const stepImages = originalSteps.map(step => step.originalImage).filter(Boolean)
 
     return Promise.all([
-      util.resolveCloudImages([...recipe.images, ...stepImages]),
-      util.resolveCloudImage(recipe.creator && recipe.creator.avatar, '/images/default-avatar.png')
+      util.resolveCloudImages([...originalImages, ...stepImages]),
+      util.resolveCloudImage(originalCreatorAvatar, '/images/default-avatar.png')
     ]).then(([urls, creatorAvatar]) => {
-      const imageCount = recipe.images.length
+      const imageCount = originalImages.length
       const images = urls.slice(0, imageCount)
       const stepUrls = urls.slice(imageCount)
       let stepIndex = 0
-      const steps = (recipe.steps || []).map(step => {
-        if (!step.image) return step
+      const steps = originalSteps.map(step => {
+        if (!step.originalImage) return step
         return {
           ...step,
           image: stepUrls[stepIndex++] || step.image
@@ -305,8 +311,10 @@ Page({
       return new Promise(resolve => {
         this.setData({
           'recipe.images': images,
+          'recipe.originalImages': originalImages,
           'recipe.steps': steps,
-          'recipe.creator.avatar': creatorAvatar
+          'recipe.creator.avatar': creatorAvatar,
+          'recipe.originalCreatorAvatar': originalCreatorAvatar
         }, resolve)
       })
     }).catch(error => {

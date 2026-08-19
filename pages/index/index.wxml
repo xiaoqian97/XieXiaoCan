@@ -110,7 +110,7 @@
         bindtap="onRecipeClick"
       >
         <view class="recipe-image-container">
-          <image class="recipe-image" src="{{item.image ? item.image : '/images/default-recipe.jpg'}}" mode="aspectFill"></image>
+          <cloud-image class="recipe-image" custom-class="recipe-image" src="{{item.image}}" fallback="/images/default-recipe.jpg"></cloud-image>
           <view
             class="favorite-button {{item.isFavorited ? 'active' : ''}} {{item.favoriteLoading ? 'loading' : ''}}"
             data-id="{{item._id}}"

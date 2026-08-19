@@ -69,7 +69,7 @@
           <!-- 好友列表 -->
           <view wx:else>
             <view class="friend-item" wx:for="{{filteredFriends}}" wx:key="id">
-              <image class="friend-avatar" src="{{item.avatar}}" mode="aspectFill"></image>
+              <cloud-image class="friend-avatar" custom-class="friend-avatar" src="{{item.avatar}}" fallback="/images/default-avatar.png"></cloud-image>
               <view class="friend-info">
                 <view class="friend-name-row">
                   <text class="friend-name">{{item.nickname}}</text>

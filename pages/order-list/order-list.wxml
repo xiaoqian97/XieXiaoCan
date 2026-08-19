@@ -99,7 +99,7 @@
 
           <!-- 投喂官信息 -->
           <view class="assignee-info">
-            <image class="assignee-avatar" src="{{item.assignee.displayAvatar || item.assignee.avatar || '/images/default-avatar.png'}}" mode="aspectFill" />
+            <cloud-image class="assignee-avatar" custom-class="assignee-avatar" src="{{item.assignee.displayAvatar || item.assignee.avatar}}" original-src="{{item.assignee.avatar}}" fallback="/images/default-avatar.png" />
             <view class="assignee-details">
               <text class="assignee-name">{{item.assignee.nickname}}</text>
               <!-- <text class="order-time">日期： {{item.orderDate}}</text> -->
@@ -115,7 +115,7 @@
                 wx:if="{{index < 4}}"
                 class="recipe-image-item"
               >
-                <image class="recipe-image" src="{{item.displayImage || item.image || '/images/default-recipe.jpg'}}" mode="aspectFill" />
+                <cloud-image class="recipe-image" custom-class="recipe-image" src="{{item.displayImage || item.image}}" original-src="{{item.image}}" fallback="/images/default-recipe.jpg" />
               </view>
             </view>
             <view class="recipe-info-right">

@@ -19,6 +19,10 @@
         "type": "folder"
       },
       {
+        "value": ".understand-anything",
+        "type": "folder"
+      },
+      {
         "value": "tests",
         "type": "folder"
       },
@@ -41,6 +45,10 @@
       {
         "value": "storage.rules",
         "type": "file"
+      },
+      {
+        "value": "cloudfunctions-manifest.json",
+        "type": "file"
       }
     ],
     "include": []
@@ -61,7 +69,7 @@
     "uglifyFileName": false,
     "checkInvalidKey": true,
     "checkSiteMap": true,
-    "uploadWithSourceMap": true,
+    "uploadWithSourceMap": false,
     "compileHotReLoad": false,
     "lazyloadPlaceholderEnable": false,
     "useMultiFrameRuntime": true,
@@ -88,7 +96,7 @@
     "swc": false,
     "disableSWC": true,
     "ignoreDevUnusedFiles": false,
-    "ignoreUploadUnusedFiles": false
+    "ignoreUploadUnusedFiles": true
   },
   "compileType": "miniprogram",
   "libVersion": "3.10.3",

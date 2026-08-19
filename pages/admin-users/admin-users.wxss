@@ -21,6 +21,7 @@
 .admin-badge { color: #A66012; background: rgba(246, 200, 95, 0.3); }
 .primary-badge { color: #FFFFFF; background: #3F302B; }
 .user-code, .feeder-info { color: #8C7770; font-size: 21rpx; }
+.user-code.copyable { align-self: flex-start; padding: 4rpx 0; }
 .user-actions { display: flex; flex-shrink: 0; flex-direction: column; gap: 8rpx; }
 .role-button { width: auto; min-width: 112rpx; height: 56rpx; margin: 0; padding: 0 16rpx; color: #E85D4A; font-size: 21rpx; line-height: 56rpx; border-radius: 28rpx; background: #FFF0EA; }
 .role-button::after, .permission-button::after { border: none; }

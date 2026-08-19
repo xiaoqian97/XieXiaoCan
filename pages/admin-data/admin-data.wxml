@@ -56,7 +56,7 @@
         <text class="group-count">{{group.recipes.length}}道菜</text>
       </view>
       <view wx:for="{{group.recipes}}" wx:key="_id" wx:for-item="recipe" class="recipe-card">
-        <image class="recipe-image" src="{{recipe.displayImage || recipe.image}}" mode="aspectFill"></image>
+        <cloud-image class="recipe-image" custom-class="recipe-image" src="{{recipe.displayImage || recipe.image}}" original-src="{{recipe.image}}" fallback="/images/default-recipe.jpg"></cloud-image>
         <view class="recipe-info">
           <view class="card-top">
             <text class="recipe-name">{{recipe.name}}</text>
@@ -92,7 +92,7 @@
       <scroll-view class="audience-user-scroll" scroll-y="true" show-scrollbar="{{false}}">
         <view class="audience-user-list">
           <view wx:for="{{audienceUsers}}" wx:key="openid" class="audience-user-pill">
-            <image class="audience-user-avatar" src="{{item.displayAvatar}}" mode="aspectFill" />
+            <cloud-image class="audience-user-avatar" custom-class="audience-user-avatar" src="{{item.displayAvatar}}" original-src="{{item.avatar}}" fallback="/images/default-avatar.png" />
             <text class="audience-user-name">{{item.nickname || '微信用户'}}</text>
             <text wx:if="{{showAudienceViewCount}}" class="audience-user-count">{{item.viewCount}} 次</text>
           </view>

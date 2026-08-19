@@ -36,7 +36,7 @@
           bindtap="onPersonTap"
           data-id="{{item.id}}"
         >
-          <image class="person-avatar" src="{{item.displayAvatar}}" mode="aspectFill" />
+          <cloud-image class="person-avatar" custom-class="person-avatar" src="{{item.displayAvatar}}" original-src="{{item.avatar}}" fallback="/images/default-avatar.png" />
           <text>{{item.nickname}}</text>
         </view>
       </view>
@@ -67,7 +67,7 @@
         <text class="section-title">常点的菜</text>
         <view class="recipe-row">
           <view wx:for="{{activePerson.topRecipes}}" wx:key="name" class="recipe-chip">
-            <image src="{{item.displayImage || '/images/default-recipe.jpg'}}" mode="aspectFill" />
+            <cloud-image src="{{item.displayImage}}" original-src="{{item.image}}" fallback="/images/default-recipe.jpg" />
             <view>
               <text>{{item.name}}</text>
               <text class="recipe-count">吃过 {{item.count}} 次</text>
@@ -81,7 +81,7 @@
         <scroll-view class="favorite-scroll" scroll-x="true" show-scrollbar="{{false}}">
           <view class="favorite-list">
             <view wx:for="{{activePerson.favoriteRecipes}}" wx:key="id" class="favorite-card" bindtap="onRecipeTap" data-id="{{item.id}}">
-              <image src="{{item.displayImage || '/images/default-recipe.jpg'}}" mode="aspectFill" />
+              <cloud-image src="{{item.displayImage}}" original-src="{{item.image}}" fallback="/images/default-recipe.jpg" />
               <text>{{item.name}}</text>
             </view>
           </view>

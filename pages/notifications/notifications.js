@@ -6,7 +6,11 @@ Page({
     notifications: [],
     unreadCount: 0,
     loading: true,
-    markingAllRead: false
+    markingAllRead: false,
+    loadingMore: false,
+    page: 1,
+    pageSize: 20,
+    hasMore: true
   },
 
   onLoad() {
@@ -16,28 +20,41 @@ Page({
   },
 
   onShow() {
-    this.loadNotifications()
+    this.loadNotifications(true)
   },
 
   onPullDownRefresh() {
-    this.loadNotifications().finally(() => wx.stopPullDownRefresh())
+    this.loadNotifications(true).finally(() => wx.stopPullDownRefresh())
   },
 
-  loadNotifications() {
+  onReachBottom() {
+    if (!this.data.loading && !this.data.loadingMore && this.data.hasMore) this.loadNotifications(false)
+  },
+
+  loadNotifications(reset = true) {
     if (!util.isLoggedIn()) return Promise.resolve()
-    this.setData({ loading: true })
+    const page = reset ? 1 : this.data.page + 1
+    this.setData(reset ? { loading: true, page: 1 } : { loadingMore: true })
 
     return util.callCloudFunction('notification', {
-      action: 'list'
+      action: 'list',
+      page,
+      limit: this.data.pageSize
     }).then(res => {
-      const notifications = (res.data || []).map(item => this.decorateNotification(item))
+      const payload = Array.isArray(res.data) ? { notifications: res.data } : (res.data || {})
+      const notifications = (payload.notifications || []).map(item => this.decorateNotification(item))
       this.setData({
-        notifications,
-        unreadCount: notifications.filter(item => !item.read).length,
-        loading: false
+        notifications: reset ? notifications : [...this.data.notifications, ...notifications],
+        unreadCount: Number.isFinite(Number(payload.unreadCount))
+          ? Number(payload.unreadCount)
+          : notifications.filter(item => !item.read).length,
+        page,
+        hasMore: typeof payload.hasMore === 'boolean' ? payload.hasMore : notifications.length === this.data.pageSize,
+        loading: false,
+        loadingMore: false
       })
     }).catch(err => {
-      this.setData({ loading: false })
+      this.setData({ loading: false, loadingMore: false })
       util.showError(err.message || '消息没加载出来')
     })
   },
@@ -49,12 +66,14 @@ Page({
       if (index >= 0) this.setData({ [`notifications[${index}].swipeOffset`]: 0 })
       return
     }
+    const wasUnread = index >= 0 && !this.data.notifications[index].read
+    const previousUnreadCount = this.data.unreadCount
     const notifications = this.data.notifications.map(item => (
       item._id === id ? { ...item, read: true } : item
     ))
     this.setData({
       notifications,
-      unreadCount: notifications.filter(item => !item.read).length
+      unreadCount: Math.max(0, previousUnreadCount - (wasUnread ? 1 : 0))
     })
 
     util.callCloudFunction('notification', {
@@ -62,6 +81,13 @@ Page({
       notificationId: id
     }).catch(err => {
       console.error('标记通知已读失败:', err)
+      if (index >= 0) {
+        this.setData({
+          [`notifications[${index}].read`]: !wasUnread,
+          unreadCount: previousUnreadCount
+        })
+      }
+      util.showError('已读状态同步失败，请稍后重试')
     })
 
     if (page) navigation.navigateToTarget(page).catch(() => {})
@@ -138,9 +164,10 @@ Page({
       notificationId: id
     }).then(() => {
       const notifications = this.data.notifications.filter(item => item._id !== id)
+      const wasUnread = !this.data.notifications[index].read
       this.setData({
         notifications,
-        unreadCount: notifications.filter(item => !item.read).length
+        unreadCount: Math.max(0, this.data.unreadCount - (wasUnread ? 1 : 0))
       })
       wx.showToast({ title: '已删除', icon: 'success' })
     }).catch(err => {
