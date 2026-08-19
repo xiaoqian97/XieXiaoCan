@@ -2,6 +2,7 @@ const app = getApp()
 const util = require('../../utils/util')
 const recipeTemplate = require('../../utils/recipeTemplate')
 const recipeParser = require('../../utils/recipeParser')
+const share = require('../../utils/share')
 const {
   getSceneCategories,
   getIngredientCategories,
@@ -29,6 +30,7 @@ Page({
     loading: false,
     initialLoading: false,
     initialLoadError: '',
+    showPostCreateShare: false,
     showTemplateEntry: false,
     filledFlash: false,
     fabLeft: 0,
@@ -889,13 +891,14 @@ Page({
       },
       success: (res) => {
         if (res.result && res.result.success) {
-          wx.showToast({
-            title: '饭愿已送达',
-            icon: 'success'
-          })
-          setTimeout(() => {
-            wx.navigateBack()
-          }, 1200)
+          const wishId = res.result.data && res.result.data.wishId
+          this._postCreateWishShare = {
+            ...formData,
+            _id: wishId,
+            submitterName: (app.globalData.userInfo || {}).nickname || 'TA',
+            coverImage: (formData.images || [])[0] || '/images/default-recipe.jpg'
+          }
+          this.setData({ showPostCreateShare: true })
         } else {
           wx.showToast({
             title: res.result?.message || '饭愿没送出去',
@@ -914,6 +917,17 @@ Page({
         this.setData({ loading: false })
       }
     })
+  },
+
+  onPostCreateShareClose() {
+    this.setData({ showPostCreateShare: false })
+    wx.navigateBack()
+  },
+
+  onShareAppMessage() {
+    return this._postCreateWishShare
+      ? share.getWishShare(this._postCreateWishShare, '/pages/wish-list/wish-list?mode=pool')
+      : share.getBrandShare()
   },
 
   acceptWishAsRecipe(formData) {

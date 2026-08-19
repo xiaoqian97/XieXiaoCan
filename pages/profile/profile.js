@@ -42,6 +42,7 @@ Page({
     unreadNotificationCount: 0,
     pendingFriendRequestCount: 0,
     pendingFeedbackCount: 0,
+    unopenedBlessingCount: 0,
     subscribeTemplateIds: [],
     subscribeConfigLoading: false,
     subscribeConfigError: '',
@@ -84,6 +85,7 @@ Page({
     this.loadUnreadNotificationCount()
     this.loadPendingFriendRequestCount()
     this.loadPendingFeedbackCount()
+    this.loadUnopenedBlessingCount()
     this.preloadSubscribeConfig()
     this.refreshProfileStats()
   },
@@ -116,7 +118,8 @@ Page({
         },
         ...getIdentityMeta(null, true),
         isPreviewMode: true,
-        isDataLoaded: true
+        isDataLoaded: true,
+        unopenedBlessingCount: 0
       })
       return
     }
@@ -131,7 +134,8 @@ Page({
         },
         ...getIdentityMeta(null, true),
         isPreviewMode: true,
-        isDataLoaded: true  // 数据加载完成
+        isDataLoaded: true,  // 数据加载完成
+        unopenedBlessingCount: 0
       })
     } else if (app.isLoggedIn()) {
       // 已登录，显示真实用户信息
@@ -251,6 +255,19 @@ Page({
   onBlessings: function() {
     this.handlePreviewMode('祝福功能需要登录后使用', () => {
       wx.navigateTo({ url: '/pages/blessings/blessings' })
+    })
+  },
+
+  loadUnopenedBlessingCount: function() {
+    if (!app.isLoggedIn() || this.data.isPreviewMode) {
+      this.setData({ unopenedBlessingCount: 0 })
+      return Promise.resolve()
+    }
+    return util.callCloudFunction('blessing', { action: 'getUnopenedCount' }).then(res => {
+      const count = Number(res.data && res.data.unopenedCount) || 0
+      this.setData({ unopenedBlessingCount: Math.max(0, count) })
+    }).catch(() => {
+      this.setData({ unopenedBlessingCount: 0 })
     })
   },
 

@@ -266,6 +266,7 @@ const BUSINESS_EVENT_MAP = {
   'wish:accept': 'wish_process',
   'wish:acceptAsRecipe': 'wish_process',
   'wish:reject': 'wish_process',
+  'wish:delete': 'wish_delete',
   'favorite:list': 'favorite_view',
   'favorite:listFriend': 'favorite_view',
   'favorite:toggle': 'favorite_toggle',

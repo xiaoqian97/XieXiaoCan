@@ -17,7 +17,11 @@ exports.main = async (event, context) => {
       case 'list':
         return await listNotifications(openid, event)
       case 'getFirstUnread':
-        return await getFirstUnread(openid)
+        return await getFirstUnread(openid, event.excludeIds)
+      case 'getWishUnreadCount':
+        return await getWishUnreadCount(openid, event.mode)
+      case 'markWishRead':
+        return await markWishRead(openid, event.mode)
       case 'markRead':
         return await markRead(openid, event.notificationId)
       case 'markAllRead':
@@ -95,8 +99,8 @@ async function createWishShare(openid, wishId) {
   const content = `${wish.name || '想吃的菜'}，来看看这份饭愿吧`
 
   const recipientId = wish.assigneeId === openid ? wish.creatorId : wish.assigneeId
-  const targetPage = recipientId === await getChefOpenid()
-    ? `/pages/recipe-form/recipe-form?mode=acceptWish&wishId=${wishId}`
+  const targetPage = recipientId === wish.assigneeId
+    ? '/pages/wish-list/wish-list?mode=pool'
     : '/pages/wish-list/wish-list?mode=mine'
 
   return await addNotification({
@@ -125,6 +129,7 @@ async function listNotifications(openid, event = {}) {
     data: {
       notifications: result.data.map(item => ({
         ...item,
+        targetPage: normalizeWishTargetPage(item),
         title: sanitizeTerminology(item.title),
         content: sanitizeTerminology(sanitizeLegacyWishContent(item)),
         createdAtText: formatDate(item.createdAt)
@@ -138,23 +143,86 @@ async function listNotifications(openid, event = {}) {
   }
 }
 
-async function getFirstUnread(openid) {
+async function getFirstUnread(openid, excludeIds = []) {
+  const excluded = new Set((Array.isArray(excludeIds) ? excludeIds : [])
+    .slice(-100)
+    .map(id => String(id || '').trim())
+    .filter(Boolean))
   const result = await db.collection('notifications')
     .where({ recipientId: openid, read: false })
     .orderBy('createdAt', 'desc')
-    .limit(1)
+    .limit(100)
     .get()
-  const item = result.data[0]
+  const item = (result.data || []).find(notification => !excluded.has(notification._id))
 
   return {
     success: true,
     data: item ? {
       ...item,
+      targetPage: normalizeWishTargetPage(item),
       title: sanitizeTerminology(item.title),
       content: sanitizeTerminology(sanitizeLegacyWishContent(item)),
       createdAtText: formatDate(item.createdAt)
     } : null
   }
+}
+
+async function getWishUnreadCount(openid, mode) {
+  const unread = await getAllUnreadNotifications(openid)
+  const types = getWishNotificationTypes(mode)
+  return {
+    success: true,
+    data: {
+      unreadCount: unread.filter(item => types.includes(item.type)).length
+    }
+  }
+}
+
+async function markWishRead(openid, mode) {
+  const unread = await getAllUnreadNotifications(openid)
+  const types = getWishNotificationTypes(mode)
+  const ids = unread.filter(item => types.includes(item.type)).map(item => item._id)
+  const readAt = new Date()
+  for (let index = 0; index < ids.length; index += 20) {
+    await Promise.all(ids.slice(index, index + 20).map(id => {
+      return db.collection('notifications').doc(id).update({
+        data: { read: true, readAt }
+      })
+    }))
+  }
+  return { success: true, updated: ids.length }
+}
+
+async function getAllUnreadNotifications(openid) {
+  const records = []
+  const limit = 100
+  let offset = 0
+  while (true) {
+    const result = await db.collection('notifications')
+      .where({ recipientId: openid, read: false })
+      .skip(offset)
+      .limit(limit)
+      .get()
+    const items = result.data || []
+    records.push(...items)
+    if (items.length < limit) return records
+    offset += items.length
+  }
+}
+
+function getWishNotificationTypes(mode) {
+  return mode === 'pool'
+    ? ['wish_received', 'wish_share']
+    : ['wish_status', 'wish_share']
+}
+
+function normalizeWishTargetPage(item) {
+  if (item.type === 'wish_received') return '/pages/wish-list/wish-list?mode=pool'
+  if (item.type === 'wish_status') return '/pages/wish-list/wish-list?mode=mine'
+  if (item.type === 'wish_share' && String(item.targetPage || '').includes('mode=acceptWish')) {
+    return '/pages/wish-list/wish-list?mode=pool'
+  }
+  return item.targetPage || '/pages/notifications/notifications'
 }
 
 function sanitizeLegacyWishContent(item) {
@@ -330,11 +398,6 @@ async function getFamilyConfig() {
     throw new Error('系统配置读取失败，请检查 app_config/family')
   }
   throw new Error('缺少 app_config/family 配置，请在云数据库中创建记录 ID 为 family 的记录')
-}
-
-async function getChefOpenid() {
-  const config = await getFamilyConfig()
-  return config.chefOpenid || ''
 }
 
 function getMealTypeLabel(mealType) {

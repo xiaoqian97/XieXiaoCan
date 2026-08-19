@@ -104,6 +104,7 @@
 }
 
 .icon-container {
+  position: relative;
   width: 112rpx;
   height: 112rpx;
   border-radius: 24rpx;
@@ -116,6 +117,28 @@
 
 .gradient-green {
   background: linear-gradient(135deg, #F6C85F 0%, #E5AA3E 100%);
+}
+
+.wish-unread-badge {
+  position: absolute;
+  top: -15rpx;
+  right: -15rpx;
+  z-index: 4;
+  display: flex;
+  min-width: 36rpx;
+  height: 36rpx;
+  padding: 0 10rpx;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 4rpx solid #FFFFFF;
+  border-radius: 999rpx;
+  background: #E5484D;
+  color: #FFFFFF;
+  font-size: 19rpx;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 5rpx 14rpx rgba(229, 72, 77, 0.28);
 }
 
 .gradient-purple {

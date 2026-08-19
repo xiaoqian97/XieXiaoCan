@@ -2,7 +2,7 @@
   <view class="notification-card type-{{message.type}} theme-{{themeKey}} {{opening ? 'opening' : ''}}" catchtap="stopPropagation">
     <view class="notification-glow glow-left"></view>
     <view class="notification-glow glow-right"></view>
-    <view wx:if="{{!opening}}" class="notification-close" bindtap="onLater">×</view>
+    <view wx:if="{{!opening}}" class="notification-close" bindtap="onClose">×</view>
 
     <view wx:if="{{!isBlessing}}" class="notification-icon-wrap">
       <view class="notification-icon">{{icon}}</view>
@@ -26,7 +26,8 @@
     <text wx:if="{{!isBlessing}}" class="notification-content">{{message.content || '快去看看饭搭子发来的新消息吧'}}</text>
     <text wx:if="{{message.createdAtText}}" class="notification-time">{{message.createdAtText}}</text>
 
-    <view class="notification-actions">
+    <view class="notification-actions {{!isBlessing ? 'three-actions' : ''}}">
+      <button wx:if="{{!isBlessing}}" class="notification-button acknowledge" disabled="{{opening}}" bindtap="onAcknowledge">我知道了</button>
       <button class="notification-button later" disabled="{{opening}}" bindtap="onLater">稍后再看</button>
       <button class="notification-button confirm" disabled="{{opening}}" bindtap="onConfirm">{{opening ? '正在拆开...' : confirmText}}</button>
     </view>

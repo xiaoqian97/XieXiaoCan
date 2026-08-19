@@ -182,6 +182,8 @@ Page({
       order_created: { icon: '🍱', typeLabel: '新投喂单', themeClass: 'order' },
       order_status: { icon: '🍲', typeLabel: '投喂进度', themeClass: 'order' },
       wish_share: { icon: '💭', typeLabel: '饭愿', themeClass: 'wish' },
+      wish_received: { icon: '🍽️', typeLabel: '新的饭愿', themeClass: 'wish' },
+      wish_status: { icon: '💭', typeLabel: '饭愿进度', themeClass: 'wish' },
       friend_request: { icon: '👥', typeLabel: '饭搭子申请', themeClass: 'friend' },
       friend_request_result: { icon: '🤝', typeLabel: '申请结果', themeClass: 'friend' },
       blessing: { icon: '💌', typeLabel: '祝福', themeClass: 'blessing' },

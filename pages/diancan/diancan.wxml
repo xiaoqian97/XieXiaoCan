@@ -177,4 +177,11 @@
   </van-popup>
 </view>
 <theme-confirm-dialog id="themeConfirmDialog" />
+<post-create-share-dialog
+  visible="{{showPostCreateShare}}"
+  icon="🍱"
+  title="投喂单已提交"
+  content="{{postCreateShareContent}}"
+  bind:close="onPostCreateShareClose"
+/>
 <global-notification-popup id="globalNotificationPopup" />

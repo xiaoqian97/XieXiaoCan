@@ -41,6 +41,7 @@ exports.main = async (event = {}, context) => {
     switch (action) {
       case 'create': return await createBlessing(openid, event)
       case 'list': return await listBlessings(openid, event.mode)
+      case 'getUnopenedCount': return await getUnopenedBlessingCount(openid)
       case 'detail': return await getBlessingDetail(openid, event.id)
       case 'dismiss': return await dismissBlessing(openid, event.id)
       case 'cancel': return await cancelBlessing(openid, event.id)
@@ -57,6 +58,19 @@ exports.main = async (event = {}, context) => {
   } catch (error) {
     console.error('祝福操作失败:', error)
     return { success: false, message: error.message || '祝福暂时没有送达' }
+  }
+}
+
+async function getUnopenedBlessingCount(openid) {
+  const records = await getAllRecords('blessings', {
+    recipientId: openid,
+    status: 'sent'
+  })
+  return {
+    success: true,
+    data: {
+      unopenedCount: records.filter(item => !item.readAt).length
+    }
   }
 }
 

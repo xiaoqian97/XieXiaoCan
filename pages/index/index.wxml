@@ -43,6 +43,7 @@
 
       <view class="feature-card" bindtap="onOrderClick">
         <view class="icon-container gradient-purple floating" style="animation-delay: 0.2s;">
+          <view wx:if="{{pendingOrderCount > 0}}" class="wish-unread-badge">{{pendingOrderCount > 99 ? '99+' : pendingOrderCount}}</view>
           <image class="feature-icon-img" src="/images/home-feed-cute.png" mode="aspectFit"></image>
         </view>
         <text class="feature-text">开始投喂</text>
@@ -67,6 +68,7 @@
     
     <view class="feature-card" bindtap="onFriendsClick">
       <view class="icon-container gradient-orange floating" style="animation-delay: 0.4s;">
+        <view wx:if="{{wishUnreadCount > 0}}" class="wish-unread-badge">{{wishUnreadCount > 99 ? '99+' : wishUnreadCount}}</view>
         <view class="feature-icon wish-icon">
           <view class="wish-paper">
             <view class="wish-heart"></view>
@@ -75,7 +77,7 @@
           </view>
         </view>
       </view>
-      <text class="feature-text">{{isChef ? '待投喂清单' : '查看愿望'}}</text>
+      <text class="feature-text">{{isChef ? '收到的饭愿' : '我的饭愿'}}</text>
     </view>
   </view>
 

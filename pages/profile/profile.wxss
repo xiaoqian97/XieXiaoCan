@@ -489,7 +489,7 @@
   border: none;
 }
 
-.feedback-count {
+.menu-count {
   min-width: 36rpx;
   height: 36rpx;
   padding: 0 9rpx;

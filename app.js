@@ -164,11 +164,26 @@ App({
     }
 
     this._notificationChecking = true
+    let continuePopupQueue = false
     const util = require('./utils/util')
     return this.ensureFestivalGreeting().then(() => (
-      util.callCloudFunction('notification', { action: 'getFirstUnread' })
+      util.callCloudFunction('notification', {
+        action: 'getFirstUnread',
+        excludeIds: Object.keys(this._shownNotificationIds || {}).slice(-100)
+      })
     )).then(res => {
       const message = res.data
+      const visiblePages = getCurrentPages()
+      const visiblePage = visiblePages[visiblePages.length - 1]
+      if (visiblePage && typeof visiblePage.loadWishUnreadCount === 'function') {
+        visiblePage.loadWishUnreadCount()
+      }
+      if (visiblePage && typeof visiblePage.loadUnopenedBlessingCount === 'function') {
+        visiblePage.loadUnopenedBlessingCount()
+      }
+      if (visiblePage && typeof visiblePage.loadPendingOrderCount === 'function') {
+        visiblePage.loadPendingOrderCount()
+      }
       if (!message || !message._id) return
       this._shownNotificationIds = this._shownNotificationIds || Object.create(null)
       if (this._shownNotificationIds[message._id]) return
@@ -184,6 +199,13 @@ App({
       return popup.show(message).then(modalRes => {
         const isBlessing = ['blessing', 'festival_blessing'].includes(message.type)
         if (!modalRes || !modalRes.confirm) {
+          continuePopupQueue = Boolean(modalRes && ['later', 'cancel', 'acknowledged'].includes(modalRes.action))
+          if (modalRes && modalRes.action === 'acknowledged') {
+            return util.callCloudFunction('notification', {
+              action: 'markRead',
+              notificationId: message._id
+            }).catch(() => {})
+          }
           if (modalRes && modalRes.action === 'later' && isBlessing) {
             return Promise.all([
               util.callCloudFunction('blessing', { action: 'dismiss', id: message.targetId }),
@@ -205,6 +227,9 @@ App({
       })
     }).catch(() => {}).finally(() => {
       this._notificationChecking = false
+      if (continuePopupQueue) {
+        setTimeout(() => this.checkFirstUnreadNotification(), 280)
+      }
     })
   },
 

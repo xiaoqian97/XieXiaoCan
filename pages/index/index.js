@@ -14,7 +14,9 @@ Page({
     loading: true,
     showLoginPrompt: false,
     promptContent: '',
-    isDataLoaded: false
+    isDataLoaded: false,
+    wishUnreadCount: 0,
+    pendingOrderCount: 0
   },
 
   onLoad: function () {
@@ -50,6 +52,8 @@ Page({
       const tabBar = this.getTabBar()
       if (tabBar.data.selected !== 'home') tabBar.setData({ selected: 'home' })
     }
+    this.loadWishUnreadCount()
+    this.loadPendingOrderCount()
   },
 
   // 检查登录状态并加载数据
@@ -87,12 +91,18 @@ Page({
       })
       this.loadRecommendRecipes()
     }
+    this.loadWishUnreadCount()
+    this.loadPendingOrderCount()
   },
 
   onPullDownRefresh: function() {
     this.refreshHomeUserInfo()
-      .then(() => this.loadRecommendRecipes(true))
-      .then(refreshed => {
+      .then(() => Promise.all([
+        this.loadRecommendRecipes(true),
+        this.loadWishUnreadCount(),
+        this.loadPendingOrderCount()
+      ]))
+      .then(([refreshed]) => {
         if (refreshed) {
           wx.showToast({ title: '已刷新', icon: 'success', duration: 900 })
         }
@@ -102,6 +112,33 @@ Page({
         wx.showToast({ title: '刷新失败，请重试', icon: 'none' })
       })
       .then(() => wx.stopPullDownRefresh())
+  },
+
+  loadWishUnreadCount: function() {
+    if (!app.isLoggedIn()) {
+      if (this.data.wishUnreadCount) this.setData({ wishUnreadCount: 0 })
+      return Promise.resolve(0)
+    }
+    return util.callCloudFunction('notification', {
+      action: 'getWishUnreadCount',
+      mode: this.data.isChef ? 'pool' : 'mine'
+    }).then(res => {
+      const wishUnreadCount = Math.max(0, Number(res.data && res.data.unreadCount) || 0)
+      this.setData({ wishUnreadCount })
+      return wishUnreadCount
+    }).catch(() => this.data.wishUnreadCount)
+  },
+
+  loadPendingOrderCount: function() {
+    if (!app.isLoggedIn() || !this.data.isChef) {
+      if (this.data.pendingOrderCount) this.setData({ pendingOrderCount: 0 })
+      return Promise.resolve(0)
+    }
+    return util.callCloudFunction('order', { action: 'getPendingCount' }).then(res => {
+      const pendingOrderCount = Math.max(0, Number(res.data && res.data.pendingCount) || 0)
+      this.setData({ pendingOrderCount })
+      return pendingOrderCount
+    }).catch(() => this.data.pendingOrderCount)
   },
 
   refreshHomeUserInfo: function() {
@@ -263,7 +300,7 @@ Page({
   },
 
   onFriendsClick: function() {
-    const title = this.data.isChef ? '待投喂清单' : '我的饭愿'
+    const title = this.data.isChef ? '收到的饭愿' : '我的饭愿'
     if (!this.data.hasUserInfo) {
       this.setData({
         showLoginPrompt: true,
@@ -273,7 +310,8 @@ Page({
     }
 
     wx.navigateTo({
-      url: `/pages/wish-list/wish-list?mode=${this.data.isChef ? 'pool' : 'mine'}`
+      url: `/pages/wish-list/wish-list?mode=${this.data.isChef ? 'pool' : 'mine'}`,
+      success: () => this.setData({ wishUnreadCount: 0 })
     })
   },
 

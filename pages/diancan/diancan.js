@@ -2,6 +2,7 @@ const cartManager = require('../../utils/cartManager')
 const tagData = require('../../utils/tagData')
 const util = require('../../utils/util')
 const subscribe = require('../../utils/subscribe')
+const share = require('../../utils/share')
 
 Page({
   data: {
@@ -23,6 +24,8 @@ Page({
     selectedTime: '',
     selectedTimeLabel: '', // 时间显示标签
     orderNotes: '',
+    showPostCreateShare: false,
+    postCreateShareContent: '',
     
     // 时间选项
     timeOptions: [],
@@ -353,7 +356,15 @@ Page({
       if (res.result.success) {
         this._pendingOrderRequestId = ''
         getApp().globalData.orderDataVersion = (getApp().globalData.orderDataVersion || 0) + 1
-        const reminder = res.result.data && res.result.data.reminder
+        const resultData = res.result.data || {}
+        const reminder = resultData.reminder
+        this._postCreateOrderShare = {
+          _id: resultData.orderId,
+          status: 'pending',
+          creatorName: (getApp().globalData.userInfo || {}).nickname || '饭搭子',
+          mealTypeLabel: this.data.selectedTimeLabel || '今日',
+          recipes: recipes.map(recipe => ({ image: recipe.image, displayImage: recipe.displayImage }))
+        }
         // 清空已选择的商品
         recipes.forEach(recipe => {
           cartManager.removeFromCart(recipe.cartKey || recipe.recipeId)
@@ -369,25 +380,12 @@ Page({
           orderNotes: ''
         })
         
-        const goToOrders = () => {
-          wx.switchTab({
-            url: '/pages/order-list/order-list'
-          })
-        }
-        if (res.result.data && res.result.data.duplicate) {
-          wx.showToast({ title: '投喂单已提交', icon: 'success', duration: 1200 })
-          setTimeout(goToOrders, 1200)
-        } else if (reminder && reminder.sent === false) {
-          wx.showModal({
-            title: '投喂单已提交',
-            content: `微信提醒未发送：${reminder.message}`,
-            showCancel: false,
-            success: goToOrders
-          })
-        } else {
-          wx.showToast({ title: '投喂单已提交并提醒对方', icon: 'success', duration: 1800 })
-          setTimeout(goToOrders, 1800)
-        }
+        this.setData({
+          showPostCreateShare: true,
+          postCreateShareContent: reminder && reminder.sent === false
+            ? '微信提醒可能没有送达，可以分享给投喂官，方便 TA 及时看到你的点餐需求。'
+            : '可以分享给投喂官，方便 TA 及时看到你的点餐需求。'
+        })
       } else {
         this._pendingOrderRequestId = ''
         wx.showToast({
@@ -405,6 +403,17 @@ Page({
       wx.hideLoading()
       this.setData({ submittingOrder: false })
     })
+  },
+
+  onPostCreateShareClose: function() {
+    this.setData({ showPostCreateShare: false })
+    wx.switchTab({ url: '/pages/order-list/order-list' })
+  },
+
+  onShareAppMessage: function() {
+    return this._postCreateOrderShare
+      ? share.getOrderShare(this._postCreateOrderShare, this._postCreateOrderShare._id)
+      : share.getBrandShare()
   },
 
   // 跳转到菜谱页面

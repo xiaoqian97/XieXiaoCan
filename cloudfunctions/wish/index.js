@@ -35,6 +35,8 @@ exports.main = async (event, context) => {
         })
       case 'cancel':
         return await cancelWish(openid, event.wishId)
+      case 'delete':
+        return await deleteWish(openid, event.wishId)
       case 'markInCart':
         return await updateByOwner(openid, event.wishId, { status: 'in_cart' })
       case 'markOrdered':
@@ -90,6 +92,16 @@ async function createWish(openid, event) {
       createdAt: now,
       updatedAt: now
     }
+  })
+
+  await addWishNotification({
+    type: 'wish_received',
+    senderId: openid,
+    recipientId: feederOpenid,
+    title: `${user.nickname || '饭搭子'}许下了新饭愿`,
+    content: `${name}，正在等你来安排`,
+    targetPage: '/pages/wish-list/wish-list?mode=pool',
+    targetId: result._id
   })
 
   return {
@@ -171,6 +183,17 @@ async function acceptAsRecipe(openid, event) {
     }
   })
 
+  const feeder = await getUserByOpenid(openid)
+  await addWishNotification({
+    type: 'wish_status',
+    senderId: openid,
+    recipientId: wish.creatorId,
+    title: `${feeder.nickname || '投喂官'}接下了你的饭愿`,
+    content: `${data.name}，已经安排上桌啦`,
+    targetPage: '/pages/wish-list/wish-list?mode=mine',
+    targetId: event.wishId
+  })
+
   return {
     success: true,
     data: {
@@ -221,7 +244,7 @@ async function listFriend(openid, event = {}) {
 
 async function listPool(openid, event = {}) {
   if (!(await isFeeder(openid))) {
-    return { success: false, message: '待投喂清单只能投喂官查看' }
+    return { success: false, message: '收到的饭愿只能投喂官查看' }
   }
 
   const { page, limit } = normalizePagination(event)
@@ -289,7 +312,69 @@ async function cancelWish(openid, wishId) {
     return { success: false, message: '这个饭愿现在不能收回' }
   }
 
-  return await updateWish(wishId, { status: 'cancelled', cancelledAt: new Date() })
+  const result = await updateWish(wishId, { status: 'cancelled', cancelledAt: new Date() })
+  const creator = await getUserByOpenid(openid)
+  await addWishNotification({
+    type: 'wish_received',
+    senderId: openid,
+    recipientId: wish.assigneeId,
+    title: `${creator.nickname || '饭搭子'}收回了一条饭愿`,
+    content: `${wish.name || '这道菜'}已取消，不用再安排啦`,
+    targetPage: '/pages/wish-list/wish-list?mode=pool',
+    targetId: wishId
+  })
+  return result
+}
+
+async function deleteWish(openid, wishId) {
+  const wish = await getWish(wishId)
+  if (!wish) {
+    return { success: false, message: '这个饭愿已经删除了' }
+  }
+  const isCreator = wish.creatorId === openid
+  const isAssignedFeeder = wish.assigneeId === openid && await isFeeder(openid)
+  if (!isCreator && !isAssignedFeeder) {
+    return { success: false, message: '只有饭愿创建者或指定投喂官可以删除' }
+  }
+  if (wish.status !== 'cancelled') {
+    return { success: false, message: '只有已取消的饭愿才能删除' }
+  }
+
+  await removeWishFromOwnerCarts(wish.creatorId, wishId)
+  await db.collection('wishes').doc(wishId).remove()
+  return { success: true, message: '饭愿已删除' }
+}
+
+async function removeWishFromOwnerCarts(ownerOpenid, wishId) {
+  const cartKey = `wish:${wishId}`
+  let offset = 0
+  const limit = 100
+  while (true) {
+    const result = await db.collection('carts')
+      .where({ userId: ownerOpenid })
+      .skip(offset)
+      .limit(limit)
+      .get()
+    const records = result.data || []
+    if (!records.length) return
+    await Promise.all(records.map(record => {
+      const cartItems = (record.cartItems || []).filter(item => item.wishId !== wishId)
+      const deletedKeys = {
+        ...(record.deletedKeys || {}),
+        [cartKey]: new Date().toISOString()
+      }
+      return db.collection('carts').doc(record._id).update({
+        data: {
+          cartItems,
+          deletedKeys,
+          revision: Math.max(0, Number(record.revision) || 0) + 1,
+          updatedAt: new Date()
+        }
+      })
+    }))
+    if (records.length < limit) return
+    offset += records.length
+  }
 }
 
 async function markOrdered(openid, wishIds) {
@@ -322,7 +407,25 @@ async function updateByChef(openid, wishId, data) {
     return { success: false, message: '这个饭愿现在不能处理' }
   }
 
-  return await updateWish(wishId, data)
+  const result = await updateWish(wishId, data)
+  if (['accepted', 'rejected'].includes(data.status)) {
+    const feeder = await getUserByOpenid(openid)
+    const accepted = data.status === 'accepted'
+    await addWishNotification({
+      type: 'wish_status',
+      senderId: openid,
+      recipientId: wish.creatorId,
+      title: accepted
+        ? `${feeder.nickname || '投喂官'}接下了你的饭愿`
+        : `${feeder.nickname || '投喂官'}回复了你的饭愿`,
+      content: accepted
+        ? `${wish.name || '这道菜'}，已经安排上桌啦`
+        : `${wish.name || '这道菜'}先欠着，下次再安排`,
+      targetPage: '/pages/wish-list/wish-list?mode=mine',
+      targetId: wishId
+    })
+  }
+  return result
 }
 
 async function updateByOwner(openid, wishId, data) {
@@ -457,4 +560,37 @@ async function getRemark(openid, otherOpenid) {
   return String(relationship.userOpenid === openid
     ? relationship.userRemark || ''
     : relationship.friendRemark || '').trim()
+}
+
+async function addWishNotification(data) {
+  if (!data.recipientId || data.recipientId === data.senderId) return
+  try {
+    const duplicate = await db.collection('notifications').where({
+      type: data.type,
+      senderId: data.senderId,
+      recipientId: data.recipientId,
+      targetId: data.targetId,
+      read: false
+    }).limit(1).get()
+    if (duplicate.data && duplicate.data.length) {
+      await db.collection('notifications').doc(duplicate.data[0]._id).update({
+        data: {
+          title: data.title,
+          content: data.content,
+          targetPage: data.targetPage,
+          createdAt: new Date()
+        }
+      })
+      return
+    }
+    await db.collection('notifications').add({
+      data: {
+        ...data,
+        read: false,
+        createdAt: new Date()
+      }
+    })
+  } catch (error) {
+    console.error('创建饭愿站内通知失败:', error)
+  }
 }

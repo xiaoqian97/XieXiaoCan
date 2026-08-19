@@ -38,9 +38,19 @@ Component({
       })
     },
 
+    onClose() {
+      if (this.data.opening) return
+      this.finish(false, 'cancel')
+    },
+
     onLater() {
       if (this.data.opening) return
       this.finish(false, 'later')
+    },
+
+    onAcknowledge() {
+      if (this.data.opening || this.data.isBlessing) return
+      this.finish(false, 'acknowledged')
     },
 
     onConfirm() {
@@ -73,6 +83,8 @@ function getMessageMeta(type) {
     order_created: { icon: '🍱', label: '新的投喂单' },
     order_status: { icon: '🍲', label: '投喂进度' },
     wish_share: { icon: '💭', label: '饭愿消息' },
+    wish_received: { icon: '🍽️', label: '新的饭愿', confirmText: '去看看' },
+    wish_status: { icon: '💭', label: '饭愿进度', confirmText: '去看看' },
     friend_request: { icon: '👥', label: '新的饭搭子申请', confirmText: '去处理' },
     friend_request_result: { icon: '🤝', label: '饭搭子申请结果', confirmText: '去看看' },
     blessing: { icon: '💌', label: '饭搭子的祝福', confirmText: '拆开祝福' },

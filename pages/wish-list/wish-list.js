@@ -14,7 +14,8 @@ Page({
     sharingWish: null,
     readOnly: false,
     friendId: '',
-    friendName: ''
+    friendName: '',
+    deletingWishId: ''
   },
 
   onLoad(options) {
@@ -24,7 +25,7 @@ Page({
     }
     const mode = options.mode === 'pool' ? 'pool' : (options.mode === 'friend' ? 'friend' : 'mine')
     const friendName = safeDecode(options.friendName) || 'TA'
-    const title = mode === 'pool' ? '待投喂清单' : (mode === 'friend' ? `${friendName}的饭愿` : '我的饭愿')
+    const title = mode === 'pool' ? '收到的饭愿' : (mode === 'friend' ? `${friendName}的饭愿` : '我的饭愿')
     this.setData({
       mode,
       title,
@@ -36,7 +37,16 @@ Page({
   },
 
   onShow() {
+    this.markWishNotificationsRead()
     this.loadWishes(true)
+  },
+
+  markWishNotificationsRead() {
+    if (this.data.mode === 'friend' || !util.isLoggedIn()) return Promise.resolve()
+    return util.callCloudFunction('notification', {
+      action: 'markWishRead',
+      mode: this.data.mode
+    }).catch(() => {})
   },
 
   onPullDownRefresh() {
@@ -70,7 +80,8 @@ Page({
         ]).then(images => ({
           ...wish,
           displayCoverImage: images[0],
-          displaySubmitterAvatar: images[1]
+          displaySubmitterAvatar: images[1],
+          swipeOffset: 0
         }))
       })).then(items => ({
         wishes: items,
@@ -125,6 +136,84 @@ Page({
       tone: 'danger'
     }).then(confirmed => {
       if (confirmed) this.updateWish(wishId, 'cancel', '饭愿已收回')
+    })
+  },
+
+  onWishTouchStart(e) {
+    const wishId = e.currentTarget.dataset.id
+    const index = this.data.wishes.findIndex(item => item._id === wishId)
+    const touch = e.touches && e.touches[0]
+    const wish = this.data.wishes[index]
+    if (index < 0 || !touch || !wish || wish.status !== 'cancelled' || this.data.readOnly) return
+    this._wishSwipe = {
+      index,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      startOffset: Number(wish.swipeOffset) || 0,
+      horizontal: false
+    }
+    const updates = {}
+    this.data.wishes.forEach((item, itemIndex) => {
+      if (itemIndex !== index && item.swipeOffset) updates[`wishes[${itemIndex}].swipeOffset`] = 0
+    })
+    if (Object.keys(updates).length) this.setData(updates)
+  },
+
+  onWishTouchMove(e) {
+    if (!this._wishSwipe) return
+    const touch = e.touches && e.touches[0]
+    if (!touch) return
+    const deltaX = touch.clientX - this._wishSwipe.startX
+    const deltaY = touch.clientY - this._wishSwipe.startY
+    if (!this._wishSwipe.horizontal && Math.abs(deltaX) <= Math.abs(deltaY)) return
+    this._wishSwipe.horizontal = true
+    const offset = Math.max(-76, Math.min(0, this._wishSwipe.startOffset + deltaX))
+    this.setData({ [`wishes[${this._wishSwipe.index}].swipeOffset`]: offset })
+  },
+
+  onWishTouchEnd() {
+    if (!this._wishSwipe) return
+    const { index } = this._wishSwipe
+    const currentOffset = Number(this.data.wishes[index].swipeOffset) || 0
+    this.setData({ [`wishes[${index}].swipeOffset`]: currentOffset < -36 ? -76 : 0 })
+    this._wishSwipe = null
+  },
+
+  deleteWish(e) {
+    const wishId = e.currentTarget.dataset.id
+    if (!wishId || this.data.deletingWishId) return
+    const wishIndex = this.data.wishes.findIndex(item => item._id === wishId)
+    this.selectComponent('#themeConfirmDialog').open({
+      icon: '🗑️',
+      title: '删除饭愿？',
+      content: '删除后无法恢复，确定删除这条已取消的饭愿吗？',
+      confirmText: '确认删除',
+      tone: 'danger'
+    }).then(confirmed => {
+      if (!confirmed) {
+        if (wishIndex >= 0) this.setData({ [`wishes[${wishIndex}].swipeOffset`]: 0 })
+        return
+      }
+      this.setData({ deletingWishId: wishId })
+      util.showLoading('正在删除...')
+      util.callCloudFunction('wish', {
+        action: 'delete',
+        wishId
+      }).then(() => {
+        cartManager.removeFromCart(`wish:${wishId}`)
+        util.hideLoading()
+        util.showSuccess('饭愿已删除')
+        this.setData({
+          deletingWishId: '',
+          wishes: this.data.wishes.filter(item => item._id !== wishId)
+        })
+      }).catch(err => {
+        util.hideLoading()
+        const updates = { deletingWishId: '' }
+        if (wishIndex >= 0) updates[`wishes[${wishIndex}].swipeOffset`] = 0
+        this.setData(updates)
+        util.showError(err.message || '饭愿没有删除成功')
+      })
     })
   },
 

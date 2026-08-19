@@ -90,6 +90,7 @@
   "usingComponents": {
     "cloud-image": "/components/cloud-image/cloud-image",
     "global-notification-popup": "/components/global-notification-popup/global-notification-popup",
+    "post-create-share-dialog": "/components/post-create-share-dialog/post-create-share-dialog",
     "login-prompt": "/components/login-prompt/login-prompt",
     "theme-confirm-dialog": "/components/theme-confirm-dialog/theme-confirm-dialog",
     "van-button": "@vant/weapp/button/index",

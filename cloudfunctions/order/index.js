@@ -19,6 +19,9 @@ exports.main = async (event, context) => {
       
       case 'getOrderList':
         return await getOrderList(wxContext.OPENID, event.status, event.page, event.limit, event.searchValue)
+
+      case 'getPendingCount':
+        return await getPendingOrderCount(wxContext.OPENID)
       
       case 'getOrderDetail':
         return await getOrderDetail(wxContext.OPENID, event.orderId)
@@ -59,6 +62,19 @@ exports.main = async (event, context) => {
     return {
       success: false,
       message: error.message || '服务器错误'
+    }
+  }
+}
+
+async function getPendingOrderCount(openid) {
+  const result = await db.collection('orders').where({
+    assigneeId: openid,
+    status: 'pending'
+  }).count()
+  return {
+    success: true,
+    data: {
+      pendingCount: Math.max(0, Number(result.total) || 0)
     }
   }
 }

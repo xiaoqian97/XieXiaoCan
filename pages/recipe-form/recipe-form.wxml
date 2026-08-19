@@ -407,4 +407,11 @@
   </view>
 </view>
 <theme-confirm-dialog id="themeConfirmDialog" />
+<post-create-share-dialog
+  visible="{{showPostCreateShare}}"
+  icon="💭"
+  title="饭愿已送达"
+  content="可以分享给投喂官，方便 TA 及时看到你想吃什么。"
+  bind:close="onPostCreateShareClose"
+/>
 <global-notification-popup id="globalNotificationPopup" />

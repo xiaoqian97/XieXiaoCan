@@ -1,0 +1,15 @@
+<view wx:if="{{visible}}" class="share-mask" catchtouchmove="stopPropagation">
+  <view class="share-card" catchtap="stopPropagation">
+    <view class="share-glow glow-left"></view>
+    <view class="share-glow glow-right"></view>
+    <view class="share-icon">{{icon}}</view>
+    <text class="share-kicker">谢小馋提醒你</text>
+    <text class="share-title">{{title}}</text>
+    <text class="share-content">{{content}}</text>
+    <text class="share-tip">分享完成后，点击“完成”即可继续</text>
+    <view class="share-actions">
+      <button class="share-button done" bindtap="close">完成</button>
+      <button class="share-button primary" open-type="share">{{shareText}}</button>
+    </view>
+  </view>
+</view>

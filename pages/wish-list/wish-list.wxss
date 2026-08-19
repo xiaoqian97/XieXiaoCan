@@ -58,11 +58,42 @@
   gap: 24rpx;
 }
 
+.wish-swipe-row {
+  position: relative;
+  overflow: hidden;
+  border: 0;
+  border-radius: 20rpx;
+  background: transparent;
+  box-shadow: 0 12rpx 36rpx rgba(15, 23, 42, 0.08);
+}
+
+.wish-delete-action {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  width: 76px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: #E5484D;
+  color: #FFFFFF;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
 .wish-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
   padding: 28rpx;
+  box-sizing: border-box;
+  border: 0;
   border-radius: 20rpx;
   background: #ffffff;
-  box-shadow: 0 12rpx 36rpx rgba(15, 23, 42, 0.08);
+  box-shadow: none;
+  transition: transform 0.18s ease;
 }
 
 .wish-main {

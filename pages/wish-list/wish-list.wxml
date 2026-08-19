@@ -25,7 +25,24 @@
   </view>
 
   <view wx:else class="wish-list">
-    <view wx:for="{{wishes}}" wx:key="_id" class="wish-card status-{{item.status}}">
+    <view wx:for="{{wishes}}" wx:key="_id" class="wish-swipe-row">
+      <view
+        wx:if="{{!readOnly && item.status === 'cancelled' && item.swipeOffset < 0}}"
+        class="wish-delete-action"
+        data-id="{{item._id}}"
+        catchtap="deleteWish"
+      >
+        <text>删除</text>
+      </view>
+      <view
+        class="wish-card status-{{item.status}}"
+        style="transform: translateX({{item.swipeOffset || 0}}px);"
+        data-id="{{item._id}}"
+        bindtouchstart="onWishTouchStart"
+        bindtouchmove="onWishTouchMove"
+        bindtouchend="onWishTouchEnd"
+        bindtouchcancel="onWishTouchEnd"
+      >
       <view class="wish-main">
         <cloud-image class="wish-cover" custom-class="wish-cover" src="{{item.displayCoverImage || item.coverImage}}" original-src="{{item.coverImage}}" fallback="/images/default-recipe.jpg" />
         <view class="wish-content">
@@ -51,7 +68,7 @@
         先欠着原因：{{item.rejectReason}}
       </view>
 
-      <view wx:if="{{!readOnly}}" class="wish-actions">
+      <view wx:if="{{!readOnly && item.status !== 'cancelled' && item.status !== 'ordered' && item.status !== 'done'}}" class="wish-actions">
         <button
           class="wish-share-btn"
           open-type="share"
@@ -62,7 +79,7 @@
         </button>
         <block wx:if="{{mode === 'mine'}}">
           <van-button
-            wx:if="{{item.status === 'accepted' || item.status === 'in_cart'}}"
+            wx:if="{{item.status === 'accepted'}}"
             type="primary"
             size="small"
             round
@@ -72,7 +89,7 @@
             放进饭篮
           </van-button>
           <van-button
-            wx:if="{{item.status !== 'ordered' && item.status !== 'done' && item.status !== 'cancelled'}}"
+            wx:if="{{item.status === 'pending' || item.status === 'rejected'}}"
             type="default"
             size="small"
             round
@@ -81,8 +98,8 @@
           >
             取消
           </van-button>
-          <van-button type="default" size="small" round bind:click="goToCart">
-            去安排
+          <van-button wx:if="{{item.status === 'in_cart'}}" type="primary" size="small" round bind:click="goToCart">
+            去饭篮
           </van-button>
         </block>
 
@@ -108,6 +125,7 @@
             先欠着
           </van-button>
         </block>
+      </view>
       </view>
     </view>
   </view>
