@@ -1,0 +1,19 @@
+cloudfunctions/cart/index.js
+  s_ef3ac079ed47ed::t_94012768fa618f 2,24-33,35,39,42-43,45,47-63,65-93,95-124,128-133,137-138,157,172-173,177-208
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.10",
+  "base_commit_sha": "b860c93ab265608ad97e12c1905cdc73008a57dc",
+  "prompts": {},
+  "sessions": {
+    "s_ef3ac079ed47ed": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c064ff79-b042-4acc-894d-8cb006dd241b",
+        "model": "claude-opus-5"
+      },
+      "human_author": "zhangqian <zhangqian@wedobest.com.cn>"
+    }
+  }
+}
